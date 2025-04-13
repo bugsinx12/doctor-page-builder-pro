@@ -1,10 +1,14 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Stethoscope, Menu, X } from 'lucide-react';
+import LanguageSwitcher from './LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const { t } = useTranslation();
   
   return (
     <nav className="sticky top-0 z-50 border-b bg-white">
@@ -17,20 +21,21 @@ const Navbar = () => {
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-6">
           <Link to="/pricing" className="text-sm font-medium text-gray-700 hover:text-medical-600 transition-colors">
-            Pricing
+            {t('navbar.pricing')}
           </Link>
           <Link to="/templates" className="text-sm font-medium text-gray-700 hover:text-medical-600 transition-colors">
-            Templates
+            {t('navbar.templates')}
           </Link>
           <Link to="/features" className="text-sm font-medium text-gray-700 hover:text-medical-600 transition-colors">
-            Features
+            {t('navbar.features')}
           </Link>
           <div className="ml-3 flex items-center space-x-3">
+            <LanguageSwitcher />
             <Button variant="outline" className="rounded-md" asChild>
-              <Link to="/login">Login</Link>
+              <Link to="/login">{t('navbar.login')}</Link>
             </Button>
             <Button className="rounded-md bg-medical-600 hover:bg-medical-700" asChild>
-              <Link to="/signup">Get Started</Link>
+              <Link to="/signup">{t('navbar.getStarted')}</Link>
             </Button>
           </div>
         </div>
@@ -60,31 +65,34 @@ const Navbar = () => {
               className="w-full py-3 text-center text-lg font-medium text-gray-700 hover:text-medical-600 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Pricing
+              {t('navbar.pricing')}
             </Link>
             <Link
               to="/templates"
               className="w-full py-3 text-center text-lg font-medium text-gray-700 hover:text-medical-600 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Templates
+              {t('navbar.templates')}
             </Link>
             <Link
               to="/features"
               className="w-full py-3 text-center text-lg font-medium text-gray-700 hover:text-medical-600 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              Features
+              {t('navbar.features')}
             </Link>
             <div className="mt-6 flex flex-col w-full space-y-3">
+              <div className="flex justify-center mb-2">
+                <LanguageSwitcher />
+              </div>
               <Button variant="outline" className="w-full py-6" asChild>
                 <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                  Login
+                  {t('navbar.login')}
                 </Link>
               </Button>
               <Button className="w-full py-6 bg-medical-600 hover:bg-medical-700" asChild>
                 <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
-                  Get Started
+                  {t('navbar.getStarted')}
                 </Link>
               </Button>
             </div>

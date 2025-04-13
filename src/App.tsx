@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Pricing from "./pages/Pricing";
 import Templates from "./pages/Templates";
 import NotFound from "./pages/NotFound";
+import './i18n';
 
 const queryClient = new QueryClient();
 
