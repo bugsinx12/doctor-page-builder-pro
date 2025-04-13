@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { MedicalCross, Menu, X } from 'lucide-react';
+import { Stethoscope, Menu, X } from 'lucide-react';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
@@ -11,7 +10,7 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 border-b bg-white">
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
-          <MedicalCross className="h-6 w-6 text-medical-600" />
+          <Stethoscope className="h-6 w-6 text-medical-600" />
           <span className="hidden font-bold text-xl text-medical-800 sm:inline-block">DocPages</span>
         </Link>
         

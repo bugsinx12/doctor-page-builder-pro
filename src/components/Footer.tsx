@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { MedicalCross } from 'lucide-react';
+import { Stethoscope } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -10,7 +9,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <MedicalCross className="h-6 w-6 text-medical-600" />
+              <Stethoscope className="h-6 w-6 text-medical-600" />
               <span className="font-bold text-xl text-medical-800">DocPages</span>
             </div>
             <p className="text-gray-600 text-sm">
