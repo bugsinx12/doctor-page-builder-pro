@@ -10,7 +10,7 @@ const Footer = () => {
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
               <Stethoscope className="h-6 w-6 text-medical-600" />
-              <span className="font-bold text-xl text-medical-800">DocPages</span>
+              <span className="font-bold text-xl text-medical-800">Boost.Doctor</span>
             </div>
             <p className="text-gray-600 text-sm">
               The easiest way for medical professionals to create professional online presences.
@@ -83,7 +83,7 @@ const Footer = () => {
         
         <div className="mt-12 pt-8 border-t border-gray-200">
           <p className="text-gray-500 text-sm text-center">
-            © {new Date().getFullYear()} DocPages. All rights reserved.
+            © {new Date().getFullYear()} Boost.Doctor. All rights reserved.
           </p>
         </div>
       </div>

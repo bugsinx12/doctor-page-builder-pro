@@ -11,7 +11,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center space-x-2">
           <Stethoscope className="h-6 w-6 text-medical-600" />
-          <span className="hidden font-bold text-xl text-medical-800 sm:inline-block">DocPages</span>
+          <span className="hidden font-bold text-xl text-medical-800 sm:inline-block">Boost.Doctor</span>
         </Link>
         
         {/* Desktop Menu */}
