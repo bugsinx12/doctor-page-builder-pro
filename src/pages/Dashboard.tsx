@@ -8,44 +8,48 @@ import Onboarding from '@/components/onboarding/Onboarding';
 import { useToast } from '@/components/ui/use-toast';
 
 const Dashboard = () => {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
   const { isSignedIn, isLoaded: isAuthLoaded } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    // Wait for auth to be fully loaded
-    if (!isAuthLoaded) return;
+    // Only proceed when both auth states are loaded
+    if (!isAuthLoaded || !isUserLoaded) {
+      return;
+    }
 
-    // If the user is not signed in, redirect to auth page
-    if (!isSignedIn) {
+    // Check if user is signed in
+    if (!isSignedIn || !user) {
       navigate('/auth');
       return;
     }
 
-    // If the user is loaded and authenticated, check onboarding status
-    if (user) {
-      // Check if user has completed onboarding based on metadata
-      const hasCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
-      setHasCompletedOnboarding(hasCompleted || false);
-      
-      if (user.firstName) {
-        toast({
-          title: `Welcome back, ${user.firstName}!`,
-          description: "Great to see you again.",
-        });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "Great to see you again.",
-        });
-      }
+    // Authentication check is complete
+    setIsCheckingAuth(false);
+
+    // Check onboarding status from metadata
+    const hasCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
+    setHasCompletedOnboarding(hasCompleted || false);
+    
+    // Show welcome toast
+    if (user.firstName) {
+      toast({
+        title: `Welcome back, ${user.firstName}!`,
+        description: "Great to see you again.",
+      });
+    } else {
+      toast({
+        title: "Welcome back!",
+        description: "Great to see you again.",
+      });
     }
-  }, [isAuthLoaded, isSignedIn, isLoaded, user, navigate, toast]);
+  }, [isAuthLoaded, isUserLoaded, isSignedIn, user, navigate, toast]);
 
   // Show loading state while checking authentication
-  if (!isAuthLoaded || !isLoaded) {
+  if (isCheckingAuth || !isAuthLoaded || !isUserLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medical-600"></div>
@@ -53,9 +57,9 @@ const Dashboard = () => {
     );
   }
 
-  // If not signed in, render nothing as the redirect will happen
+  // User is not signed in
   if (!isSignedIn || !user) {
-    return null;
+    return null; // Will be redirected by the useEffect
   }
 
   return (

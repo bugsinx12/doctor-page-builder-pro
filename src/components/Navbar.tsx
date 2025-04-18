@@ -10,7 +10,7 @@ import { UserButton, useAuth } from '@clerk/clerk-react';
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { t } = useTranslation();
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
   
   return (
@@ -34,7 +34,7 @@ const Navbar = () => {
           </Link>
           <div className="ml-3 flex items-center space-x-3">
             <LanguageSwitcher />
-            {isSignedIn ? (
+            {isLoaded && isSignedIn ? (
               <div className="flex items-center space-x-4">
                 <Button variant="outline" className="rounded-md" onClick={() => navigate('/dashboard')}>
                   Dashboard
@@ -99,7 +99,7 @@ const Navbar = () => {
               <div className="flex justify-center mb-2">
                 <LanguageSwitcher />
               </div>
-              {isSignedIn ? (
+              {isLoaded && isSignedIn ? (
                 <div className="flex flex-col items-center space-y-4">
                   <Button variant="outline" className="w-full" onClick={() => {
                     navigate('/dashboard');
