@@ -83,7 +83,16 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         return (
           <PracticeInfo 
             practiceInfo={practiceInfo}
-            onChange={(values) => setPracticeInfo(values)}
+            onChange={(values) => {
+              // Ensure all required fields are present
+              setPracticeInfo({
+                name: values.name,
+                specialty: values.specialty,
+                address: values.address,
+                phone: values.phone,
+                email: values.email
+              });
+            }}
             onNext={handleNext}
             onPrevious={handlePrevious}
           />
