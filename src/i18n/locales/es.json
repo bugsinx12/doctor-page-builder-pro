@@ -1,5 +1,9 @@
 
 {
+  "language": {
+    "en": "Inglés",
+    "es": "Español"
+  },
   "navbar": {
     "pricing": "Precios",
     "templates": "Plantillas",
@@ -8,7 +12,7 @@
     "getStarted": "Comenzar"
   },
   "footer": {
-    "tagline": "La forma más fácil para que los profesionales médicos creen presencias en línea profesionales.",
+    "tagline": "Creando hermosos sitios web para profesionales médicos",
     "product": "Producto",
     "productLinks": {
       "features": "Características",
@@ -18,140 +22,21 @@
     },
     "company": "Empresa",
     "companyLinks": {
-      "about": "Nosotros",
+      "about": "Sobre Nosotros",
       "blog": "Blog",
       "contact": "Contacto"
     },
     "legal": "Legal",
     "legalLinks": {
-      "privacy": "Privacidad",
-      "terms": "Términos"
+      "privacy": "Política de Privacidad",
+      "terms": "Términos de Servicio"
     },
     "copyright": "© {{year}} Boost.Doctor. Todos los derechos reservados."
   },
-  "hero": {
-    "title": "Sitios web hermosos para profesionales médicos",
-    "subtitle": "Lance su presencia profesional en línea en minutos con plantillas prediseñadas específicamente para médicos y consultorios médicos.",
-    "getStarted": "Comenzar",
-    "viewTemplates": "Ver Plantillas",
-    "noCard": "No se requiere tarjeta de crédito • Configuración en minutos • Cancele cuando quiera"
-  },
-  "features": {
-    "title": "Todo lo que necesita para su consulta médica",
-    "subtitle": "Nuestra plataforma ofrece a los profesionales médicos las herramientas que necesitan para establecer una fuerte presencia en línea sin conocimientos técnicos.",
-    "seeAll": "Ver todas las características",
-    "list": {
-      "templates": {
-        "title": "Plantillas Profesionales",
-        "description": "Elija entre docenas de plantillas diseñadas específicamente para profesionales médicos."
-      },
-      "domains": {
-        "title": "Dominios Personalizados",
-        "description": "Conecte su propio dominio o compre uno directamente a través de nuestra plataforma."
-      },
-      "payments": {
-        "title": "Pagos Fáciles",
-        "description": "Gestión segura de suscripciones con opciones de pago flexibles."
-      },
-      "setup": {
-        "title": "Configuración Rápida",
-        "description": "Lance su sitio web en minutos con nuestro proceso de incorporación paso a paso."
-      },
-      "seo": {
-        "title": "Optimizado para SEO",
-        "description": "Cada sitio web está optimizado para ayudar a los pacientes a encontrarlo en línea."
-      },
-      "patients": {
-        "title": "Amigable para Pacientes",
-        "description": "Construido pensando en la accesibilidad y la experiencia del usuario para todos los pacientes."
-      }
-    }
-  },
   "templates": {
-    "title": "Plantillas diseñadas para médicos",
-    "subtitle": "Elija entre una variedad de plantillas diseñadas profesionalmente creadas específicamente para profesionales médicos.",
+    "useTemplate": "Usar esta Plantilla",
+    "backToTemplates": "Volver a Plantillas",
     "viewAll": "Ver Todas las Plantillas",
-    "categories": {
-      "general": "Medicina General",
-      "specialist": "Especialista",
-      "pediatric": "Pediatría"
-    },
-    "descriptions": {
-      "general": "Perfecto para médicos de familia y médicos generales",
-      "specialist": "Diseñado para especialistas médicos con secciones personalizables",
-      "pediatric": "Diseño cálido y amigable para consultas pediátricas"
-    },
-    "preview": "Vista Previa",
-    "badges": {
-      "popular": "Popular",
-      "new": "Nuevo"
-    }
-  },
-  "testimonials": {
-    "title": "De confianza para profesionales médicos",
-    "subtitle": "Vea lo que los médicos dicen sobre su experiencia con nuestra plataforma."
-  },
-  "cta": {
-    "title": "¿Listo para lanzar el sitio web de su consulta médica?",
-    "subtitle": "Únase a miles de profesionales médicos que han creado hermosos sitios web con Boost.Doctor. Comience en minutos sin conocimientos técnicos requeridos.",
-    "getStarted": "Comenzar",
-    "viewPricing": "Ver Precios",
-    "noCard": "No se requiere tarjeta de crédito • Configuración en minutos • Cancele cuando quiera"
-  },
-  "pricing": {
-    "title": "Precios simples y transparentes",
-    "subtitle": "Elija el plan adecuado para su consulta médica",
-    "faq": {
-      "title": "Preguntas Frecuentes",
-      "cancel": {
-        "question": "¿Puedo cancelar mi suscripción en cualquier momento?",
-        "answer": "Sí, puede cancelar su suscripción en cualquier momento. Si cancela, su servicio permanecerá activo hasta el final de su período de facturación."
-      },
-      "domain": {
-        "question": "¿Cómo funciona la característica de dominio personalizado?",
-        "answer": "Con los planes de pago, puede conectar su dominio existente o comprar uno nuevo directamente a través de nuestra plataforma. Nosotros nos encargaremos de toda la configuración técnica por usted."
-      },
-      "upgrade": {
-        "question": "¿Puedo actualizar mi plan más tarde?",
-        "answer": "¡Absolutamente! Puede actualizar su plan en cualquier momento. El nuevo precio se prorrateará por el resto de su período de facturación."
-      }
-    },
-    "plans": {
-      "free": {
-        "title": "Gratis",
-        "description": "Para individuos que están comenzando",
-        "cta": "Comenzar gratis"
-      },
-      "pro": {
-        "title": "Pro",
-        "description": "Perfecto para consultas establecidas",
-        "cta": "Suscribirse"
-      },
-      "enterprise": {
-        "title": "Empresa",
-        "description": "Para consultas médicas más grandes",
-        "cta": "Suscribirse"
-      }
-    },
-    "features": {
-      "websites": "{{count}} sitio web",
-      "websites_plural": "Hasta {{count}} sitios web",
-      "basicTemplates": "Plantillas básicas",
-      "allTemplates": "Todas las plantillas",
-      "subdomain": "Subdominio Boost.Doctor",
-      "ssl": "Certificado SSL",
-      "limitedCustomization": "Personalización limitada",
-      "fullCustomization": "Personalización completa",
-      "customDomain": "Dominio personalizado",
-      "customDomains": "Dominios personalizados",
-      "premiumTemplates": "Plantillas premium",
-      "analytics": "Analíticas",
-      "advancedAnalytics": "Analíticas avanzadas",
-      "prioritySupport": "Soporte prioritario"
-    }
-  },
-  "language": {
-    "en": "Inglés",
-    "es": "Español"
+    "preview": "Vista Previa"
   }
 }
