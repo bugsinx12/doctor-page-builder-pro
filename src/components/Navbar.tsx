@@ -1,30 +1,17 @@
 
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Stethoscope, Menu, X, User } from 'lucide-react';
+import { Stethoscope, Menu, X } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { UserButton, useAuth } from '@clerk/clerk-react';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { t } = useTranslation();
-  const { user } = useAuth();
-  const navigate = useNavigate();
+  const { isSignedIn } = useAuth();
   
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/');
-  };
-
   return (
     <nav className="sticky top-0 z-50 border-b bg-white">
       <div className="container flex h-16 items-center justify-between">
@@ -46,19 +33,8 @@ const Navbar = () => {
           </Link>
           <div className="ml-3 flex items-center space-x-3">
             <LanguageSwitcher />
-            {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <User className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleLogout}>
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+            {isSignedIn ? (
+              <UserButton afterSignOutUrl="/" />
             ) : (
               <>
                 <Button variant="outline" className="rounded-md" asChild>
@@ -117,10 +93,10 @@ const Navbar = () => {
               <div className="flex justify-center mb-2">
                 <LanguageSwitcher />
               </div>
-              {user ? (
-                <Button onClick={handleLogout} className="w-full py-6">
-                  Logout
-                </Button>
+              {isSignedIn ? (
+                <div className="flex justify-center">
+                  <UserButton afterSignOutUrl="/" />
+                </div>
               ) : (
                 <>
                   <Button variant="outline" className="w-full py-6" asChild>
