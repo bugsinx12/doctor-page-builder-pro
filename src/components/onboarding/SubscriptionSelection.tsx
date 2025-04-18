@@ -86,8 +86,8 @@ const SubscriptionSelection = ({
       if (selectedPlan === 'free') {
         // Save selected plan to user metadata
         await user?.update({
-          publicMetadata: {
-            ...user.publicMetadata,
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
             plan: selectedPlan,
           },
         });

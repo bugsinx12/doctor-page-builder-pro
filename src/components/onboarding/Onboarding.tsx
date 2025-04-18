@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { useUser } from '@clerk/clerk-react';
-import { Check, ChevronRight } from 'lucide-react';
 import { Steps } from '@/components/onboarding/Steps';
 import TemplateSelection from '@/components/onboarding/TemplateSelection';
 import PracticeInfo from '@/components/onboarding/PracticeInfo';
@@ -47,7 +46,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     try {
       // Save data to Clerk user metadata
       await user?.update({
-        publicMetadata: {
+        unsafeMetadata: {
           onboardingCompleted: true,
           selectedTemplate,
           practiceInfo
@@ -84,7 +83,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         return (
           <PracticeInfo 
             practiceInfo={practiceInfo}
-            onChange={setPracticeInfo}
+            onChange={(values) => setPracticeInfo(values)}
             onNext={handleNext}
             onPrevious={handlePrevious}
           />

@@ -21,7 +21,7 @@ const Dashboard = () => {
 
     if (user) {
       // Check if user has completed onboarding based on metadata
-      const hasCompleted = user.publicMetadata.onboardingCompleted as boolean;
+      const hasCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
       setHasCompletedOnboarding(hasCompleted || false);
       
       if (user.firstName) {
