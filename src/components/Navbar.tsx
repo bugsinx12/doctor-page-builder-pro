@@ -1,15 +1,30 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Stethoscope, Menu, X } from 'lucide-react';
+import { Stethoscope, Menu, X, User } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { t } = useTranslation();
+  const { user } = useAuth();
+  const navigate = useNavigate();
   
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
   return (
     <nav className="sticky top-0 z-50 border-b bg-white">
       <div className="container flex h-16 items-center justify-between">
@@ -31,12 +46,29 @@ const Navbar = () => {
           </Link>
           <div className="ml-3 flex items-center space-x-3">
             <LanguageSwitcher />
-            <Button variant="outline" className="rounded-md" asChild>
-              <Link to="/login">{t('navbar.login')}</Link>
-            </Button>
-            <Button className="rounded-md bg-medical-600 hover:bg-medical-700" asChild>
-              <Link to="/signup">{t('navbar.getStarted')}</Link>
-            </Button>
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <User className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button variant="outline" className="rounded-md" asChild>
+                  <Link to="/auth">{t('navbar.login')}</Link>
+                </Button>
+                <Button className="rounded-md bg-medical-600 hover:bg-medical-700" asChild>
+                  <Link to="/auth">{t('navbar.getStarted')}</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
         
@@ -85,16 +117,24 @@ const Navbar = () => {
               <div className="flex justify-center mb-2">
                 <LanguageSwitcher />
               </div>
-              <Button variant="outline" className="w-full py-6" asChild>
-                <Link to="/login" onClick={() => setIsMenuOpen(false)}>
-                  {t('navbar.login')}
-                </Link>
-              </Button>
-              <Button className="w-full py-6 bg-medical-600 hover:bg-medical-700" asChild>
-                <Link to="/signup" onClick={() => setIsMenuOpen(false)}>
-                  {t('navbar.getStarted')}
-                </Link>
-              </Button>
+              {user ? (
+                <Button onClick={handleLogout} className="w-full py-6">
+                  Logout
+                </Button>
+              ) : (
+                <>
+                  <Button variant="outline" className="w-full py-6" asChild>
+                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                      {t('navbar.login')}
+                    </Link>
+                  </Button>
+                  <Button className="w-full py-6 bg-medical-600 hover:bg-medical-700" asChild>
+                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                      {t('navbar.getStarted')}
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
