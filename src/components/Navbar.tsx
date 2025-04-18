@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Stethoscope, Menu, X } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
@@ -11,6 +11,7 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { t } = useTranslation();
   const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
   
   return (
     <nav className="sticky top-0 z-50 border-b bg-white">
@@ -34,7 +35,12 @@ const Navbar = () => {
           <div className="ml-3 flex items-center space-x-3">
             <LanguageSwitcher />
             {isSignedIn ? (
-              <UserButton afterSignOutUrl="/" />
+              <div className="flex items-center space-x-4">
+                <Button variant="outline" className="rounded-md" onClick={() => navigate('/dashboard')}>
+                  Dashboard
+                </Button>
+                <UserButton afterSignOutUrl="/" />
+              </div>
             ) : (
               <>
                 <Button variant="outline" className="rounded-md" asChild>
@@ -94,8 +100,16 @@ const Navbar = () => {
                 <LanguageSwitcher />
               </div>
               {isSignedIn ? (
-                <div className="flex justify-center">
-                  <UserButton afterSignOutUrl="/" />
+                <div className="flex flex-col items-center space-y-4">
+                  <Button variant="outline" className="w-full" onClick={() => {
+                    navigate('/dashboard');
+                    setIsMenuOpen(false);
+                  }}>
+                    Dashboard
+                  </Button>
+                  <div className="flex justify-center">
+                    <UserButton afterSignOutUrl="/" />
+                  </div>
                 </div>
               ) : (
                 <>
