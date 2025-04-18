@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Onboarding from '@/components/onboarding/Onboarding';
@@ -9,16 +9,22 @@ import { useToast } from '@/components/ui/use-toast';
 
 const Dashboard = () => {
   const { user, isLoaded } = useUser();
+  const { isSignedIn, isLoaded: isAuthLoaded } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (isLoaded && !user) {
+    // Wait for auth to be fully loaded
+    if (!isAuthLoaded) return;
+
+    // If the user is not signed in, redirect to auth page
+    if (!isSignedIn) {
       navigate('/auth');
       return;
     }
 
+    // If the user is loaded and authenticated, check onboarding status
     if (user) {
       // Check if user has completed onboarding based on metadata
       const hasCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
@@ -36,14 +42,20 @@ const Dashboard = () => {
         });
       }
     }
-  }, [isLoaded, user, navigate, toast]);
+  }, [isAuthLoaded, isSignedIn, isLoaded, user, navigate, toast]);
 
-  if (!isLoaded || !user) {
+  // Show loading state while checking authentication
+  if (!isAuthLoaded || !isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medical-600"></div>
       </div>
     );
+  }
+
+  // If not signed in, render nothing as the redirect will happen
+  if (!isSignedIn || !user) {
+    return null;
   }
 
   return (

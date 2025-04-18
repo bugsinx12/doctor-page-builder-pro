@@ -1,12 +1,9 @@
 
 import { SignIn, SignUp } from "@clerk/clerk-react";
-import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Auth = () => {
-  const navigate = useNavigate();
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
@@ -25,7 +22,7 @@ const Auth = () => {
               <SignIn 
                 routing="path" 
                 path="/auth"
-                redirectUrl="/"
+                fallbackRedirectUrl="/dashboard"
                 appearance={{
                   elements: {
                     rootBox: "w-full",
@@ -40,7 +37,7 @@ const Auth = () => {
               <SignUp 
                 routing="path" 
                 path="/auth"
-                redirectUrl="/"
+                fallbackRedirectUrl="/dashboard"
                 appearance={{
                   elements: {
                     rootBox: "w-full",
