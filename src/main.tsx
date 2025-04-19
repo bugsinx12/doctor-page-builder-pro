@@ -10,18 +10,8 @@ if (!PUBLISHABLE_KEY) {
   throw new Error("Missing Clerk Publishable Key");
 }
 
-// Create a simple client-side routing function for Clerk redirects
-const routing = {
-  // Function called anytime the app needs to navigate
-  // We'll just let the browser handle it directly
-  navigate: (to) => window.location.assign(to)
-};
-
 createRoot(document.getElementById("root")!).render(
-  <ClerkProvider 
-    publishableKey={PUBLISHABLE_KEY}
-    routing={routing}
-  >
+  <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
     <App />
   </ClerkProvider>
 );

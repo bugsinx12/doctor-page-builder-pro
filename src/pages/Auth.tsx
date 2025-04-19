@@ -26,7 +26,7 @@ const Auth = () => {
               <SignIn 
                 path="/auth"
                 signUpUrl="/auth?tab=signup"
-                fallbackRedirectUrl="/dashboard"
+                redirectUrl="/dashboard"
                 appearance={{
                   elements: {
                     rootBox: "w-full",
@@ -41,7 +41,7 @@ const Auth = () => {
               <SignUp 
                 path="/auth"
                 signInUrl="/auth?tab=login"
-                fallbackRedirectUrl="/dashboard"
+                redirectUrl="/dashboard"
                 appearance={{
                   elements: {
                     rootBox: "w-full",
