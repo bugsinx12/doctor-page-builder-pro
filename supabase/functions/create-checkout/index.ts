@@ -9,7 +9,7 @@ const corsHeaders = {
 }
 
 const PRICE_IDS = {
-  pro: 'price_pro', // You'll need to replace this with your actual Stripe price ID
+  pro: 'price_pro', // We'll replace this with the actual Stripe price ID
   enterprise: 'price_enterprise', // You'll need to replace this with your actual Stripe price ID
 }
 
@@ -91,3 +91,4 @@ serve(async (req) => {
     })
   }
 })
+
