@@ -48,24 +48,33 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <BrowserRouter>
-        <Toaster />
-        <Sonner />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/templates" element={<Templates />} />
-          <Route path="/templates/:id" element={<TemplateDetail />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <ClerkProviderWithRoutes />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
+
+// This component will pass the correct navigate function to ClerkProvider
+const ClerkProviderWithRoutes = () => {
+  return (
+    <>
+      <Toaster />
+      <Sonner />
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/templates" element={<Templates />} />
+        <Route path="/templates/:id" element={<TemplateDetail />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+};
 
 export default App;

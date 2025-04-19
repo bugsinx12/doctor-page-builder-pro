@@ -26,7 +26,7 @@ const Auth = () => {
               <SignIn 
                 path="/auth"
                 signUpUrl="/auth?tab=signup"
-                redirectUrl="/dashboard"
+                afterSignInUrl="/dashboard"
                 appearance={{
                   elements: {
                     rootBox: "w-full",
@@ -41,7 +41,7 @@ const Auth = () => {
               <SignUp 
                 path="/auth"
                 signInUrl="/auth?tab=login"
-                redirectUrl="/dashboard"
+                afterSignUpUrl="/dashboard"
                 appearance={{
                   elements: {
                     rootBox: "w-full",
