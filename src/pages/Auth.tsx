@@ -22,6 +22,7 @@ const Auth = () => {
               <SignIn 
                 routing="path" 
                 path="/auth"
+                signUpUrl="/auth?tab=signup"
                 redirectUrl="/dashboard"
                 appearance={{
                   elements: {
@@ -37,6 +38,7 @@ const Auth = () => {
               <SignUp 
                 routing="path" 
                 path="/auth"
+                signInUrl="/auth?tab=login"
                 redirectUrl="/dashboard"
                 appearance={{
                   elements: {

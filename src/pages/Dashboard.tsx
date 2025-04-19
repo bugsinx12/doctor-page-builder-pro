@@ -13,43 +13,48 @@ const Dashboard = () => {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only proceed when both auth states are loaded
+    // Check if auth is still loading
     if (!isAuthLoaded || !isUserLoaded) {
       return;
     }
 
-    // Check if user is signed in
-    if (!isSignedIn || !user) {
+    // Auth is loaded, now check if user is signed in
+    if (!isSignedIn) {
+      console.log("Not signed in, redirecting to auth page");
       navigate('/auth');
       return;
     }
 
-    // Authentication check is complete
-    setIsCheckingAuth(false);
-
-    // Check onboarding status from metadata
-    const hasCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
-    setHasCompletedOnboarding(hasCompleted || false);
-    
-    // Show welcome toast
-    if (user.firstName) {
-      toast({
-        title: `Welcome back, ${user.firstName}!`,
-        description: "Great to see you again.",
-      });
-    } else {
-      toast({
-        title: "Welcome back!",
-        description: "Great to see you again.",
-      });
+    // User is signed in and loaded
+    if (user) {
+      console.log("User is signed in:", user.id);
+      // Check onboarding status
+      const hasCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
+      setHasCompletedOnboarding(hasCompleted || false);
+      
+      // Welcome message
+      if (user.firstName) {
+        toast({
+          title: `Welcome back, ${user.firstName}!`,
+          description: "Great to see you again.",
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "Great to see you again.",
+        });
+      }
     }
+    
+    // Loading complete
+    setLoading(false);
   }, [isAuthLoaded, isUserLoaded, isSignedIn, user, navigate, toast]);
 
-  // Show loading state while checking authentication
-  if (isCheckingAuth || !isAuthLoaded || !isUserLoaded) {
+  // Show loading state
+  if (loading || !isAuthLoaded || !isUserLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medical-600"></div>
@@ -57,9 +62,9 @@ const Dashboard = () => {
     );
   }
 
-  // User is not signed in
+  // If not signed in, show nothing (redirect will happen)
   if (!isSignedIn || !user) {
-    return null; // Will be redirected by the useEffect
+    return null;
   }
 
   return (
