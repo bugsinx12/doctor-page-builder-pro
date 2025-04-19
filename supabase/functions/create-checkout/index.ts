@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import Stripe from 'https://esm.sh/stripe@14.21.0'
@@ -10,7 +9,7 @@ const corsHeaders = {
 
 const PRICE_IDS = {
   pro: 'price_pro', // We'll replace this with the actual Stripe price ID
-  enterprise: 'price_enterprise', // You'll need to replace this with your actual Stripe price ID
+  enterprise: 'price_enterprise', // We'll replace this with the actual Stripe price ID
 }
 
 serve(async (req) => {
@@ -91,4 +90,3 @@ serve(async (req) => {
     })
   }
 })
-
