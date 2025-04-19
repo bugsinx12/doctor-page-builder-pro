@@ -3,6 +3,10 @@ import React from 'react';
 import { Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from '@/components/ui/use-toast';
 
 interface PricingFeature {
   text: string;
@@ -18,6 +22,7 @@ interface PricingCardProps {
   buttonText: string;
   buttonLink: string;
   frequency?: string;
+  planId?: 'pro' | 'enterprise';
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({
@@ -27,9 +32,47 @@ const PricingCard: React.FC<PricingCardProps> = ({
   features,
   popular = false,
   buttonText,
-  buttonLink,
+  planId,
   frequency = 'month'
 }) => {
+  const { isSignedIn } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = React.useState(false);
+
+  const handleSubscribe = async () => {
+    if (!isSignedIn) {
+      navigate('/auth');
+      return;
+    }
+
+    if (!planId || price === 'Free') {
+      navigate('/dashboard');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { plan: planId },
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Could not process subscription. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div 
       className={cn(
@@ -65,11 +108,10 @@ const PricingCard: React.FC<PricingCardProps> = ({
             popular ? "bg-medical-600 hover:bg-medical-700" : ""
           )}
           variant={popular ? "default" : "outline"}
-          asChild
+          onClick={handleSubscribe}
+          disabled={isLoading}
         >
-          <a href={buttonLink}>
-            {buttonText}
-          </a>
+          {isLoading ? "Processing..." : buttonText}
         </Button>
       </div>
       

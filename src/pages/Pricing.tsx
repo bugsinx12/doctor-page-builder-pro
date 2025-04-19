@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -41,6 +40,7 @@ const pricingPlans = [
     buttonText: 'Subscribe',
     buttonLink: '/signup?plan=pro',
     popular: true,
+    planId: 'pro' as const,
   },
   {
     title: 'Enterprise',
@@ -59,6 +59,7 @@ const pricingPlans = [
     ],
     buttonText: 'Subscribe',
     buttonLink: '/signup?plan=enterprise',
+    planId: 'enterprise' as const,
   },
 ];
 
