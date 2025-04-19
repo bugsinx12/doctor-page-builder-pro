@@ -80,6 +80,20 @@ const SubscriptionSelection = ({
     setSelectedPlan(planId);
   };
 
+  // Create auth data for Supabase edge functions
+  const getAuthToken = () => {
+    if (!user) return null;
+    
+    // Create an auth token that includes the necessary user info
+    const authData = {
+      userId: user.id,
+      userEmail: user.primaryEmailAddress?.emailAddress
+    };
+    
+    // Base64 encode the data
+    return `Bearer ${btoa(JSON.stringify(authData))}`;
+  };
+
   const handleContinue = async () => {
     setIsLoading(true);
     try {
@@ -104,10 +118,18 @@ const SubscriptionSelection = ({
       });
       
       try {
+        const authToken = getAuthToken();
+        if (!authToken) {
+          throw new Error("User authentication required");
+        }
+        
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: { 
             plan: selectedPlan as 'pro' | 'enterprise'
           },
+          headers: {
+            Authorization: authToken
+          }
         });
 
         if (error) {

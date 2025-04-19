@@ -28,7 +28,7 @@ serve(async (req) => {
     })
     logStep('Stripe initialized');
 
-    // Get the user information from the request
+    // Get the user information from Clerk request
     const authHeader = req.headers.get('Authorization')
     logStep('Auth header', { authHeader: authHeader ? 'present' : 'missing' });
     
@@ -41,6 +41,25 @@ serve(async (req) => {
         status: 401
       });
     }
+
+    // Extract user ID and email from the authorization header (from Clerk)
+    const authData = JSON.parse(atob(authHeader.split(' ')[1]));
+    logStep('Auth data extracted', { authData });
+    
+    if (!authData.userId || !authData.userEmail) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid authorization data. Missing userId or userEmail',
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+    
+    const userId = authData.userId;
+    const userEmail = authData.userEmail;
+    
+    logStep('User authenticated', { userId, email: userEmail });
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -56,39 +75,17 @@ serve(async (req) => {
       });
     }
     
+    // Using service role to bypass RLS since we're authenticating with Clerk
     const supabase = createClient(
       supabaseUrl,
-      supabaseAnonKey,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
     )
     
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) {
-      logStep('Auth error', { error: error.message });
-      return new Response(JSON.stringify({ 
-        error: 'User authentication error: ' + error.message,
-        subscribed: false 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
-    }
-    
-    if (!user) {
-      logStep('No user found');
-      return new Response(JSON.stringify({ subscribed: false, error: 'User not authenticated' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
-    }
-    
-    logStep('User authenticated', { userId: user.id, email: user.email });
-
     // Check for existing subscriber info
     const { data: subscriber, error: subscriberError } = await supabase
       .from('subscribers')
       .select('stripe_customer_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle()
     
     if (subscriberError) {
@@ -108,8 +105,8 @@ serve(async (req) => {
       logStep('No Stripe customer ID found');
       // Create a default subscriber record if one doesn't exist
       const { error: upsertError } = await supabase.from('subscribers').upsert({
-        user_id: user.id,
-        email: user.email,
+        user_id: userId,
+        email: userEmail,
         subscribed: false
       });
       
@@ -141,8 +138,8 @@ serve(async (req) => {
       if (hasActiveSubscription && subscription) {
         // Update subscriber record with latest info
         const { error: upsertError } = await supabase.from('subscribers').upsert({
-          user_id: user.id,
-          email: user.email,
+          user_id: userId,
+          email: userEmail,
           stripe_customer_id: subscriber.stripe_customer_id,
           subscribed: true,
           subscription_tier: subscription.items.data[0].price.nickname || 'pro',

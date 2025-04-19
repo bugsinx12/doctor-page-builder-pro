@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/components/ui/use-toast';
+import { useUser } from '@clerk/clerk-react';
 
 interface PricingFeature {
   text: string;
@@ -38,9 +39,24 @@ const PricingCard: React.FC<PricingCardProps> = ({
   isCurrentPlan = false
 }) => {
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
+
+  // Create auth data for Supabase edge functions
+  const getAuthToken = () => {
+    if (!user) return null;
+    
+    // Create an auth token that includes the necessary user info
+    const authData = {
+      userId: user.id,
+      userEmail: user.primaryEmailAddress?.emailAddress
+    };
+    
+    // Base64 encode the data
+    return `Bearer ${btoa(JSON.stringify(authData))}`;
+  };
 
   const handleSubscribe = async () => {
     if (!isSignedIn) {
@@ -61,8 +77,22 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
     try {
       setIsLoading(true);
+      
+      const authToken = getAuthToken();
+      if (!authToken) {
+        toast({
+          title: "Error",
+          description: "User authentication required",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: planId },
+        headers: {
+          Authorization: authToken
+        }
       });
 
       if (error) {

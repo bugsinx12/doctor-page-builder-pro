@@ -56,12 +56,37 @@ const Dashboard = () => {
     setLoading(false);
   }, [isLoaded, user, toast]);
 
+  // Create auth data for Supabase edge functions
+  const getAuthToken = () => {
+    if (!user) return null;
+    
+    // Create an auth token that includes the necessary user info
+    const authData = {
+      userId: user.id,
+      userEmail: user.primaryEmailAddress?.emailAddress
+    };
+    
+    // Base64 encode the data
+    return `Bearer ${btoa(JSON.stringify(authData))}`;
+  };
+
   const checkSubscription = async () => {
     try {
       setIsLoadingSubscription(true);
       setSubscriptionError(null);
       
-      const { data, error } = await supabase.functions.invoke('check-subscription');
+      const authToken = getAuthToken();
+      if (!authToken) {
+        setSubscriptionError("User authentication required");
+        setIsLoadingSubscription(false);
+        return;
+      }
+      
+      const { data, error } = await supabase.functions.invoke('check-subscription', {
+        headers: {
+          Authorization: authToken
+        }
+      });
       
       if (error) {
         console.error("Error checking subscription:", error);
@@ -86,8 +111,22 @@ const Dashboard = () => {
   const handleUpgrade = async (plan: 'pro' | 'enterprise' = 'pro') => {
     try {
       setUpgradingPlan(true);
+      
+      const authToken = getAuthToken();
+      if (!authToken) {
+        toast({
+          title: "Error",
+          description: "User authentication required",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan },
+        headers: {
+          Authorization: authToken
+        }
       });
 
       if (error) {

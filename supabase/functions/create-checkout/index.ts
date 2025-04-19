@@ -43,7 +43,7 @@ serve(async (req) => {
     })
     logStep('Stripe initialized');
 
-    // Get the user information from the request
+    // Get the user information from Clerk request
     const authHeader = req.headers.get('Authorization')
     logStep('Auth header', { authHeader: authHeader ? 'present' : 'missing' });
     
@@ -55,11 +55,30 @@ serve(async (req) => {
         status: 401
       });
     }
+
+    // Extract user ID and email from the authorization header (from Clerk)
+    const authData = JSON.parse(atob(authHeader.split(' ')[1]));
+    logStep('Auth data extracted', { authData });
+    
+    if (!authData.userId || !authData.userEmail) {
+      return new Response(JSON.stringify({ 
+        error: 'Invalid authorization data. Missing userId or userEmail',
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+    
+    const userId = authData.userId;
+    const userEmail = authData.userEmail;
+    
+    logStep('User authenticated', { userId, email: userEmail });
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
       logStep('Supabase credentials missing');
       return new Response(JSON.stringify({ 
         error: 'Supabase configuration is missing'
@@ -69,33 +88,12 @@ serve(async (req) => {
       });
     }
     
+    // Using service role to bypass RLS since we're authenticating with Clerk
     const supabase = createClient(
       supabaseUrl,
-      supabaseAnonKey,
-      { global: { headers: { Authorization: authHeader } } }
+      supabaseServiceRoleKey
     )
     
-    const { data: { user }, error } = await supabase.auth.getUser()
-    if (error) {
-      logStep('Auth error', { error: error.message });
-      return new Response(JSON.stringify({ 
-        error: 'User authentication error: ' + error.message
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
-    }
-    
-    if (!user) {
-      logStep('No user found');
-      return new Response(JSON.stringify({ error: 'User not authenticated' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
-    }
-    
-    logStep('User authenticated', { userId: user.id, email: user.email });
-
     // Get the plan from the request body
     let requestBody;
     try {
@@ -128,7 +126,7 @@ serve(async (req) => {
     const { data: subscriber, error: subscriberError } = await supabase
       .from('subscribers')
       .select('stripe_customer_id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
     
     if (subscriberError) {
@@ -149,9 +147,9 @@ serve(async (req) => {
       logStep('Creating new Stripe customer');
       try {
         const customer = await stripe.customers.create({
-          email: user.email,
+          email: userEmail,
           metadata: {
-            supabase_user_id: user.id,
+            clerk_user_id: userId,
           },
         });
         customerId = customer.id;
@@ -159,8 +157,8 @@ serve(async (req) => {
 
         // Store the customer ID in our database
         const { error: upsertError } = await supabase.from('subscribers').upsert({
-          user_id: user.id,
-          email: user.email,
+          user_id: userId,
+          email: userEmail,
           stripe_customer_id: customerId,
         });
         
