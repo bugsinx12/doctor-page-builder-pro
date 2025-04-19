@@ -28,14 +28,23 @@ serve(async (req) => {
   try {
     logStep('Function started');
     
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    
+    const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
     })
     logStep('Stripe initialized');
 
     // Get the user information from the request
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
     logStep('Auth header', { authHeader: authHeader ? 'present' : 'missing' });
+    
+    if (!authHeader) {
+      throw new Error('No authorization header provided');
+    }
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -44,76 +53,107 @@ serve(async (req) => {
     )
     
     const { data: { user }, error } = await supabase.auth.getUser()
-    if (error || !user) {
-      logStep('Auth error', { error: error?.message || 'No user found' });
+    if (error) {
+      logStep('Auth error', { error: error.message });
+      throw new Error('User authentication error: ' + error.message);
+    }
+    
+    if (!user) {
+      logStep('No user found');
       throw new Error('User not authenticated')
     }
+    
     logStep('User authenticated', { userId: user.id, email: user.email });
 
-    // Get the plan from the request
-    const { plan } = await req.json()
-    if (!plan || !PRICE_IDS[plan]) {
-      logStep('Invalid plan', { plan });
-      throw new Error('Invalid plan selected')
+    // Get the plan from the request body
+    try {
+      const requestBody = await req.json();
+      const { plan } = requestBody;
+      
+      if (!plan || !PRICE_IDS[plan]) {
+        logStep('Invalid plan', { plan });
+        throw new Error('Invalid plan selected');
+      }
+      
+      logStep('Plan selected', { plan, priceId: PRICE_IDS[plan] });
+      
+      // Check if user already has a Stripe customer ID
+      const { data: subscriber, error: subscriberError } = await supabase
+        .from('subscribers')
+        .select('stripe_customer_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (subscriberError) {
+        logStep('Error retrieving subscriber data', { error: subscriberError.message });
+        throw new Error('Database error: ' + subscriberError.message);
+      }
+      
+      logStep('Subscriber data', { subscriber });
+      let customerId = subscriber?.stripe_customer_id;
+
+      // If no customer ID exists, create a new customer
+      if (!customerId) {
+        logStep('Creating new Stripe customer');
+        try {
+          const customer = await stripe.customers.create({
+            email: user.email,
+            metadata: {
+              supabase_user_id: user.id,
+            },
+          });
+          customerId = customer.id;
+          logStep('Customer created', { customerId });
+
+          // Store the customer ID in our database
+          await supabase.from('subscribers').upsert({
+            user_id: user.id,
+            email: user.email,
+            stripe_customer_id: customerId,
+          });
+          logStep('Customer ID stored in database');
+        } catch (stripeError) {
+          logStep('Error creating Stripe customer', { error: stripeError.message });
+          throw new Error('Failed to create Stripe customer: ' + stripeError.message);
+        }
+      }
+
+      // Create a Stripe checkout session
+      logStep('Creating checkout session');
+      try {
+        const origin = req.headers.get('origin') || 'https://app.boost.doctor';
+        const session = await stripe.checkout.sessions.create({
+          customer: customerId,
+          line_items: [
+            {
+              price: PRICE_IDS[plan],
+              quantity: 1,
+            },
+          ],
+          mode: 'subscription',
+          success_url: `${origin}/dashboard?success=true`,
+          cancel_url: `${origin}/pricing?canceled=true`,
+          allow_promotion_codes: true,
+        });
+        logStep('Checkout session created', { sessionUrl: session.url });
+
+        return new Response(JSON.stringify({ url: session.url }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        });
+      } catch (stripeError) {
+        logStep('Error creating checkout session', { error: stripeError.message });
+        throw new Error('Failed to create checkout session: ' + stripeError.message);
+      }
+    } catch (jsonError) {
+      logStep('JSON parsing error', { error: jsonError.message });
+      throw new Error('Invalid request format: ' + jsonError.message);
     }
-    logStep('Plan selected', { plan, priceId: PRICE_IDS[plan] });
-
-    // Check if user already has a Stripe customer ID
-    const { data: subscriber } = await supabase
-      .from('subscribers')
-      .select('stripe_customer_id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-    
-    logStep('Subscriber data', { subscriber });
-    let customerId = subscriber?.stripe_customer_id
-
-    // If no customer ID exists, create a new customer
-    if (!customerId) {
-      logStep('Creating new Stripe customer');
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: {
-          supabase_user_id: user.id,
-        },
-      })
-      customerId = customer.id
-      logStep('Customer created', { customerId });
-
-      // Store the customer ID in our database
-      await supabase.from('subscribers').upsert({
-        user_id: user.id,
-        email: user.email,
-        stripe_customer_id: customerId,
-      })
-      logStep('Customer ID stored in database');
-    }
-
-    // Create a Stripe checkout session
-    logStep('Creating checkout session');
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      line_items: [
-        {
-          price: PRICE_IDS[plan],
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: `${req.headers.get('origin')}/dashboard?success=true`,
-      cancel_url: `${req.headers.get('origin')}/pricing?canceled=true`,
-    })
-    logStep('Checkout session created', { sessionUrl: session.url });
-
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    })
   } catch (error) {
     logStep('ERROR', { message: error.message });
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
-    })
+    });
   }
 })

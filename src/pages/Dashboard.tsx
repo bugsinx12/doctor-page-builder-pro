@@ -7,17 +7,20 @@ import Footer from '@/components/Footer';
 import Onboarding from '@/components/onboarding/Onboarding';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { ArrowUpCircle } from 'lucide-react';
+import { ArrowUpCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Dashboard = () => {
   const { user, isLoaded } = useUser();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [subscription, setSubscription] = useState<{ subscribed: boolean; subscription_tier?: string } | null>(null);
   const [isLoadingSubscription, setIsLoadingSubscription] = useState(true);
+  const [subscriptionError, setSubscriptionError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [upgradingPlan, setUpgradingPlan] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -56,13 +59,16 @@ const Dashboard = () => {
   const checkSubscription = async () => {
     try {
       setIsLoadingSubscription(true);
+      setSubscriptionError(null);
+      
       const { data, error } = await supabase.functions.invoke('check-subscription');
       
       if (error) {
         console.error("Error checking subscription:", error);
+        setSubscriptionError("Could not check subscription status. Please try again.");
         toast({
           title: "Error",
-          description: "Could not check subscription status.",
+          description: "Could not check subscription status. Please try again.",
           variant: "destructive"
         });
       } else {
@@ -71,28 +77,43 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error("Error checking subscription:", error);
+      setSubscriptionError("Could not check subscription status. Please try again.");
     } finally {
       setIsLoadingSubscription(false);
     }
   };
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan: 'pro' | 'enterprise' = 'pro') => {
     try {
+      setUpgradingPlan(true);
       const { data, error } = await supabase.functions.invoke('create-checkout', {
-        body: { plan: 'pro' },
+        body: { plan },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Checkout error:", error);
+        toast({
+          title: "Error",
+          description: "Could not start upgrade process. Please try again.",
+          variant: "destructive"
+        });
+        throw error;
+      }
+      
       if (data?.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error("No checkout URL returned");
       }
     } catch (error) {
       console.error('Error:', error);
       toast({
         title: "Error",
-        description: "Could not start upgrade process. Please try again.",
+        description: "Could not process subscription. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setUpgradingPlan(false);
     }
   };
 
@@ -115,17 +136,64 @@ const Dashboard = () => {
           <div className="container py-12">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-3xl font-bold">Your Dashboard</h1>
-              {subscription && !subscription.subscribed && (
+              
+              {/* Upgrade button for free users */}
+              {subscription && !subscription.subscribed && !isLoadingSubscription && (
                 <Button 
-                  onClick={handleUpgrade}
+                  onClick={() => handleUpgrade('pro')}
                   className="bg-medical-600 hover:bg-medical-700"
+                  disabled={upgradingPlan}
                 >
-                  <ArrowUpCircle className="mr-2 h-4 w-4" />
-                  Upgrade to Pro
+                  {upgradingPlan ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowUpCircle className="mr-2 h-4 w-4" />
+                      Upgrade to Pro
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              {/* Refresh button for subscription status */}
+              {hasCompletedOnboarding && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={checkSubscription}
+                  disabled={isLoadingSubscription}
+                  className="ml-2"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingSubscription ? 'animate-spin' : ''}`} />
+                  {isLoadingSubscription ? 'Checking...' : 'Refresh Status'}
                 </Button>
               )}
             </div>
             
+            {/* Subscription error message */}
+            {subscriptionError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  {subscriptionError}
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={checkSubscription} 
+                    className="ml-2"
+                    disabled={isLoadingSubscription}
+                  >
+                    Try Again
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Subscription status */}
             {isLoadingSubscription ? (
               <div className="my-4 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-medical-600"></div>
@@ -142,6 +210,24 @@ const Dashboard = () => {
                 <p className="text-blue-700">
                   You are currently on the Free plan. Upgrade to access premium features.
                 </p>
+                <div className="mt-4">
+                  <Button 
+                    onClick={() => handleUpgrade('pro')}
+                    className="bg-medical-600 hover:bg-medical-700 mr-3"
+                    size="sm"
+                    disabled={upgradingPlan}
+                  >
+                    Upgrade to Pro
+                  </Button>
+                  <Button 
+                    onClick={() => handleUpgrade('enterprise')}
+                    variant="outline"
+                    size="sm"
+                    disabled={upgradingPlan}
+                  >
+                    Upgrade to Enterprise
+                  </Button>
+                </div>
               </div>
             )}
             

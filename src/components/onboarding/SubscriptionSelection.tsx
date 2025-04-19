@@ -1,9 +1,10 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Check } from 'lucide-react';
+import { Check, RefreshCw } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useUser } from '@clerk/clerk-react';
+import { supabase } from "@/integrations/supabase/client";
 
 // This would come from your Supabase/API in a real app
 const pricingPlans = [
@@ -89,6 +90,7 @@ const SubscriptionSelection = ({
           unsafeMetadata: {
             ...user.unsafeMetadata,
             plan: selectedPlan,
+            onboardingCompleted: true
           },
         });
         onComplete();
@@ -96,21 +98,42 @@ const SubscriptionSelection = ({
       }
 
       // For paid plans, redirect to Stripe checkout
-      // This would call your Supabase edge function in a real app
       toast({
         title: "Redirecting to checkout",
         description: "You'll be redirected to complete your payment securely.",
       });
       
-      // In a real implementation, you would call your Stripe checkout API
-      // For now, we're just simulating it with a timeout
-      setTimeout(() => {
-        // For demonstration purposes, we'll just complete the onboarding
-        // In a real app, this would happen after successful payment
-        onComplete();
-        setIsLoading(false);
-      }, 2000);
+      try {
+        const { data, error } = await supabase.functions.invoke('create-checkout', {
+          body: { 
+            plan: selectedPlan as 'pro' | 'enterprise'
+          },
+        });
 
+        if (error) {
+          console.error('Checkout error:', error);
+          throw new Error('Could not create checkout session');
+        }
+
+        if (data?.url) {
+          // First mark onboarding as completed before redirecting
+          await user?.update({
+            unsafeMetadata: {
+              ...user.unsafeMetadata,
+              plan: selectedPlan,
+              onboardingCompleted: true
+            },
+          });
+          
+          // Then redirect to Stripe checkout
+          window.location.href = data.url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
+      } catch (error) {
+        console.error('Error creating checkout:', error);
+        throw error;
+      }
     } catch (error) {
       console.error('Error during subscription selection:', error);
       toast({
@@ -118,6 +141,21 @@ const SubscriptionSelection = ({
         description: "Unable to process your request. Please try again.",
         variant: "destructive"
       });
+      
+      // For safety, mark onboarding as completed even on error
+      try {
+        await user?.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            plan: 'free', // Fallback to free plan on error
+            onboardingCompleted: true
+          },
+        });
+        onComplete();
+      } catch (updateError) {
+        console.error('Error updating user metadata:', updateError);
+      }
+    } finally {
       setIsLoading(false);
     }
   };
@@ -189,6 +227,7 @@ const SubscriptionSelection = ({
           type="button" 
           variant="outline" 
           onClick={onPrevious}
+          disabled={isLoading}
         >
           Back
         </Button>
@@ -196,7 +235,14 @@ const SubscriptionSelection = ({
           onClick={handleContinue}
           disabled={isLoading}
         >
-          {isLoading ? 'Processing...' : selectedPlan === 'free' ? 'Start Free Plan' : 'Continue to Payment'}
+          {isLoading ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : (
+            selectedPlan === 'free' ? 'Start Free Plan' : 'Continue to Payment'
+          )}
         </Button>
       </div>
     </div>

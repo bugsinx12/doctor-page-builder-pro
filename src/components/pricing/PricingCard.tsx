@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@clerk/clerk-react';
@@ -20,9 +20,10 @@ interface PricingCardProps {
   features: PricingFeature[];
   popular?: boolean;
   buttonText: string;
-  buttonLink: string;
+  buttonLink?: string;
   frequency?: string;
   planId?: 'pro' | 'enterprise';
+  isCurrentPlan?: boolean;
 }
 
 const PricingCard: React.FC<PricingCardProps> = ({
@@ -33,7 +34,8 @@ const PricingCard: React.FC<PricingCardProps> = ({
   popular = false,
   buttonText,
   planId,
-  frequency = 'month'
+  frequency = 'month',
+  isCurrentPlan = false
 }) => {
   const { isSignedIn } = useAuth();
   const navigate = useNavigate();
@@ -50,6 +52,12 @@ const PricingCard: React.FC<PricingCardProps> = ({
       navigate('/dashboard');
       return;
     }
+    
+    // Don't do anything if this is already the current plan
+    if (isCurrentPlan) {
+      navigate('/dashboard');
+      return;
+    }
 
     try {
       setIsLoading(true);
@@ -57,9 +65,15 @@ const PricingCard: React.FC<PricingCardProps> = ({
         body: { plan: planId },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Checkout error:', error);
+        throw error;
+      }
+      
       if (data?.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -77,12 +91,19 @@ const PricingCard: React.FC<PricingCardProps> = ({
     <div 
       className={cn(
         "rounded-lg border bg-card shadow-sm overflow-hidden",
-        popular && "border-medical-500 shadow-md"
+        popular && "border-medical-500 shadow-md",
+        isCurrentPlan && "ring-2 ring-green-500 shadow-md"
       )}
     >
       {popular && (
         <div className="bg-medical-500 py-1 text-center text-sm font-medium text-white">
           Most Popular
+        </div>
+      )}
+      
+      {isCurrentPlan && (
+        <div className="bg-green-500 py-1 text-center text-sm font-medium text-white">
+          Your Current Plan
         </div>
       )}
       
@@ -105,13 +126,23 @@ const PricingCard: React.FC<PricingCardProps> = ({
         <Button 
           className={cn(
             "mt-6 w-full",
-            popular ? "bg-medical-600 hover:bg-medical-700" : ""
+            popular ? "bg-medical-600 hover:bg-medical-700" : "",
+            isCurrentPlan ? "bg-green-600 hover:bg-green-700" : ""
           )}
-          variant={popular ? "default" : "outline"}
+          variant={popular || isCurrentPlan ? "default" : "outline"}
           onClick={handleSubscribe}
-          disabled={isLoading}
+          disabled={isLoading || isCurrentPlan}
         >
-          {isLoading ? "Processing..." : buttonText}
+          {isLoading ? (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+              Processing...
+            </>
+          ) : isCurrentPlan ? (
+            "Current Plan"
+          ) : (
+            buttonText
+          )}
         </Button>
       </div>
       

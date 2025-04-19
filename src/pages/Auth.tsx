@@ -43,6 +43,10 @@ const Auth = () => {
                     rootBox: "w-full",
                     card: "w-full shadow-none p-0",
                     form: "w-full",
+                    formButtonPrimary: "bg-medical-600 hover:bg-medical-700",
+                    formFieldInput: "border-gray-300 focus:border-medical-500 focus:ring-medical-500",
+                    identityPreviewEditButton: "text-medical-600",
+                    footerActionLink: "text-medical-600 hover:text-medical-700",
                   }
                 }}
               />
@@ -58,6 +62,11 @@ const Auth = () => {
                     rootBox: "w-full",
                     card: "w-full shadow-none p-0",
                     form: "w-full",
+                    formButtonPrimary: "bg-medical-600 hover:bg-medical-700",
+                    formFieldInput: "border-gray-300 focus:border-medical-500 focus:ring-medical-500",
+                    identityPreviewEditButton: "text-medical-600",
+                    footerActionLink: "text-medical-600 hover:text-medical-700",
+                    otpCodeFieldInput: "border-gray-300 focus:border-medical-500 focus:ring-medical-500",
                   }
                 }}
               />
