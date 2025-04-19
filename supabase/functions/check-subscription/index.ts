@@ -33,19 +33,45 @@ serve(async (req) => {
     logStep('Auth header', { authHeader: authHeader ? 'present' : 'missing' });
     
     if (!authHeader) {
-      throw new Error('No authorization header provided');
+      return new Response(JSON.stringify({ 
+        error: 'No authorization header provided',
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      logStep('Supabase credentials missing');
+      return new Response(JSON.stringify({ 
+        error: 'Supabase configuration is missing',
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      });
     }
     
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      supabaseAnonKey,
       { global: { headers: { Authorization: authHeader } } }
     )
     
     const { data: { user }, error } = await supabase.auth.getUser()
     if (error) {
       logStep('Auth error', { error: error.message });
-      throw new Error('User authentication error: ' + error.message);
+      return new Response(JSON.stringify({ 
+        error: 'User authentication error: ' + error.message,
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
     }
     
     if (!user) {
@@ -67,7 +93,13 @@ serve(async (req) => {
     
     if (subscriberError) {
       logStep('Error retrieving subscriber data', { error: subscriberError.message });
-      throw new Error('Database error: ' + subscriberError.message);
+      return new Response(JSON.stringify({ 
+        error: 'Database error: ' + subscriberError.message,
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500
+      });
     }
     
     logStep('Subscriber data', { subscriber });
@@ -75,14 +107,19 @@ serve(async (req) => {
     if (!subscriber?.stripe_customer_id) {
       logStep('No Stripe customer ID found');
       // Create a default subscriber record if one doesn't exist
-      await supabase.from('subscribers').upsert({
+      const { error: upsertError } = await supabase.from('subscribers').upsert({
         user_id: user.id,
         email: user.email,
         subscribed: false
       });
       
+      if (upsertError) {
+        logStep('Error creating subscriber record', { error: upsertError.message });
+      }
+      
       return new Response(JSON.stringify({ subscribed: false }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
       });
     }
 
@@ -101,9 +138,9 @@ serve(async (req) => {
         subscriptionId: subscription?.id 
       });
   
-      if (hasActiveSubscription) {
+      if (hasActiveSubscription && subscription) {
         // Update subscriber record with latest info
-        await supabase.from('subscribers').upsert({
+        const { error: upsertError } = await supabase.from('subscribers').upsert({
           user_id: user.id,
           email: user.email,
           stripe_customer_id: subscriber.stripe_customer_id,
@@ -112,13 +149,17 @@ serve(async (req) => {
           subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
         });
         
-        logStep('Updated subscriber record');
+        if (upsertError) {
+          logStep('Error updating subscriber record', { error: upsertError.message });
+        } else {
+          logStep('Updated subscriber record');
+        }
       }
   
       return new Response(
         JSON.stringify({
           subscribed: hasActiveSubscription,
-          subscription: hasActiveSubscription ? {
+          subscription: hasActiveSubscription && subscription ? {
             id: subscription.id,
             tier: subscription.items.data[0].price.nickname || 'pro',
             current_period_end: subscription.current_period_end
@@ -126,6 +167,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
         }
       );
     } catch (stripeError) {
@@ -137,6 +179,7 @@ serve(async (req) => {
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200, // Return 200 even for Stripe errors so the frontend can handle it
         }
       );
     }
@@ -147,7 +190,7 @@ serve(async (req) => {
       subscribed: false 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200, // Return 200 so the frontend can handle the error
     });
   }
 })
