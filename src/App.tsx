@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
+import { useState, useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -17,8 +18,16 @@ import './i18n';
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isSignedIn, isLoaded } = useAuth();
+  const [checking, setChecking] = useState(true);
   
-  if (!isLoaded) {
+  useEffect(() => {
+    // Wait for auth to load
+    if (isLoaded) {
+      setChecking(false);
+    }
+  }, [isLoaded]);
+  
+  if (checking || !isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medical-600"></div>

@@ -1,70 +1,53 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Onboarding from '@/components/onboarding/Onboarding';
 import { useToast } from '@/components/ui/use-toast';
 
 const Dashboard = () => {
-  const { user, isLoaded: isUserLoaded } = useUser();
-  const { isSignedIn, isLoaded: isAuthLoaded } = useAuth();
+  const { user, isLoaded } = useUser();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if auth is still loading
-    if (!isAuthLoaded || !isUserLoaded) {
-      return;
-    }
-
-    // Auth is loaded, now check if user is signed in
-    if (!isSignedIn) {
-      console.log("Not signed in, redirecting to auth page");
-      navigate('/auth');
-      return;
-    }
-
-    // User is signed in and loaded
-    if (user) {
-      console.log("User is signed in:", user.id);
-      // Check onboarding status
-      const hasCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
-      setHasCompletedOnboarding(hasCompleted || false);
-      
-      // Welcome message
-      if (user.firstName) {
-        toast({
-          title: `Welcome back, ${user.firstName}!`,
-          description: "Great to see you again.",
-        });
-      } else {
-        toast({
-          title: "Welcome back!",
-          description: "Great to see you again.",
-        });
-      }
+    if (!isLoaded) return;
+    
+    // User is guaranteed to be signed in here due to ProtectedRoute
+    console.log("Dashboard - User is signed in:", user?.id);
+    
+    // Check onboarding status
+    const hasCompleted = user?.unsafeMetadata?.onboardingCompleted as boolean;
+    setHasCompletedOnboarding(hasCompleted || false);
+    
+    // Welcome message
+    if (user?.firstName) {
+      toast({
+        title: `Welcome back, ${user.firstName}!`,
+        description: "Great to see you again.",
+      });
+    } else {
+      toast({
+        title: "Welcome back!",
+        description: "Great to see you again.",
+      });
     }
     
     // Loading complete
     setLoading(false);
-  }, [isAuthLoaded, isUserLoaded, isSignedIn, user, navigate, toast]);
+  }, [isLoaded, user, toast]);
 
   // Show loading state
-  if (loading || !isAuthLoaded || !isUserLoaded) {
+  if (loading || !isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medical-600"></div>
       </div>
     );
-  }
-
-  // If not signed in, show nothing (redirect will happen)
-  if (!isSignedIn || !user) {
-    return null;
   }
 
   return (

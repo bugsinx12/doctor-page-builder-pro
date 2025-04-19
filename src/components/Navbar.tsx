@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Stethoscope, Menu, X } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
-import { UserButton, useAuth } from '@clerk/clerk-react';
+import { UserButton, useAuth, useUser } from '@clerk/clerk-react';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { t } = useTranslation();
   const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
   
   return (
@@ -36,6 +37,11 @@ const Navbar = () => {
             <LanguageSwitcher />
             {isLoaded && isSignedIn ? (
               <div className="flex items-center space-x-4">
+                {user?.firstName && (
+                  <span className="text-medical-600 font-medium">
+                    Welcome, {user.firstName}!
+                  </span>
+                )}
                 <Button variant="outline" className="rounded-md" onClick={() => navigate('/dashboard')}>
                   Dashboard
                 </Button>
@@ -101,6 +107,11 @@ const Navbar = () => {
               </div>
               {isLoaded && isSignedIn ? (
                 <div className="flex flex-col items-center space-y-4">
+                  {user?.firstName && (
+                    <span className="text-medical-600 font-medium">
+                      Welcome, {user.firstName}!
+                    </span>
+                  )}
                   <Button variant="outline" className="w-full" onClick={() => {
                     navigate('/dashboard');
                     setIsMenuOpen(false);
