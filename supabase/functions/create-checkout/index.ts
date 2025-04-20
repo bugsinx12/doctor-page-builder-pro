@@ -30,6 +30,7 @@ serve(async (req) => {
     
     const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
     if (!stripeKey) {
+      logStep('Error: Missing Stripe Secret Key');
       return new Response(JSON.stringify({ 
         error: 'STRIPE_SECRET_KEY environment variable is not set'
       }), {
@@ -49,6 +50,7 @@ serve(async (req) => {
     logStep('Auth header', { authHeader: authHeader ? 'present' : 'missing' });
     
     if (!authHeader) {
+      logStep('Error: No auth header');
       return new Response(JSON.stringify({ 
         error: 'No authorization header provided'
       }), {
@@ -73,6 +75,7 @@ serve(async (req) => {
     }
     
     if (!authData.userId || !authData.userEmail) {
+      logStep('Error: Missing user data');
       return new Response(JSON.stringify({ 
         error: 'Invalid authorization data. Missing userId or userEmail',
         subscribed: false 
@@ -110,6 +113,7 @@ serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
+      logStep('Request body parsed', { body: requestBody });
     } catch (jsonError) {
       logStep('JSON parsing error', { error: jsonError.message });
       return new Response(JSON.stringify({ 
@@ -143,12 +147,18 @@ serve(async (req) => {
     
     if (subscriberError) {
       logStep('Error retrieving subscriber data', { error: subscriberError.message });
-      return new Response(JSON.stringify({ 
-        error: 'Database error: ' + subscriberError.message
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      });
+      
+      // Try to create the subscribers table if it doesn't exist
+      try {
+        const { error: createTableError } = await supabase.rpc('create_subscribers_table_if_not_exists');
+        if (createTableError) {
+          logStep('Error creating subscribers table', { error: createTableError.message });
+        } else {
+          logStep('Subscribers table created successfully');
+        }
+      } catch (tableError) {
+        logStep('Error handling subscribers table', { error: tableError.message });
+      }
     }
     
     logStep('Subscriber data', { subscriber });
@@ -172,19 +182,17 @@ serve(async (req) => {
           user_id: userId,
           email: userEmail,
           stripe_customer_id: customerId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
         
         if (upsertError) {
           logStep('Error storing customer ID', { error: upsertError.message });
-          return new Response(JSON.stringify({ 
-            error: 'Failed to store customer ID: ' + upsertError.message
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 500
-          });
+          // Continue anyway - we still want to create the checkout session
+          logStep('Continuing with checkout despite upsert error');
+        } else {
+          logStep('Customer ID stored in database');
         }
-        
-        logStep('Customer ID stored in database');
       } catch (stripeError) {
         logStep('Error creating Stripe customer', { error: stripeError.message });
         return new Response(JSON.stringify({ 
@@ -201,6 +209,7 @@ serve(async (req) => {
     try {
       // Get the origin from request headers or use a default
       const origin = req.headers.get('origin') || 'https://app.boost.doctor';
+      logStep('Using origin for redirect', { origin });
       
       // Create a checkout session with automatic tax calculation disabled
       const session = await stripe.checkout.sessions.create({
@@ -227,18 +236,27 @@ serve(async (req) => {
       });
     } catch (stripeError) {
       logStep('Error creating checkout session', { error: stripeError.message, errorObject: stripeError });
+      
+      if (stripeError.type === 'StripeInvalidRequestError') {
+        logStep('Stripe Invalid Request Error', { 
+          message: stripeError.message,
+          code: stripeError.code,
+          param: stripeError.param
+        });
+      }
+      
       return new Response(JSON.stringify({ 
         error: 'Failed to create checkout session: ' + stripeError.message
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200, // Return 200 to prevent browser error, but include the error message
+        status: 500
       });
     }
   } catch (error) {
     logStep('ERROR', { message: error.message });
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200, // Return 200 to prevent browser error, but include the error message
+      status: 500
     });
   }
 })

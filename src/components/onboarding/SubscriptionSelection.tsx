@@ -118,10 +118,21 @@ const SubscriptionSelection = ({
       });
       
       try {
+        // First mark onboarding as completed before redirecting
+        await user?.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            plan: selectedPlan,
+            onboardingCompleted: true
+          },
+        });
+        
         const authToken = getAuthToken();
         if (!authToken) {
           throw new Error("User authentication required");
         }
+        
+        console.log("Creating checkout session for plan:", selectedPlan);
         
         const { data, error } = await supabase.functions.invoke('create-checkout', {
           body: { 
@@ -137,23 +148,23 @@ const SubscriptionSelection = ({
           throw new Error('Could not create checkout session');
         }
 
+        console.log("Checkout response:", data);
+        
         if (data?.url) {
-          // First mark onboarding as completed before redirecting
-          await user?.update({
-            unsafeMetadata: {
-              ...user.unsafeMetadata,
-              plan: selectedPlan,
-              onboardingCompleted: true
-            },
-          });
-          
+          console.log("Redirecting to checkout URL:", data.url);
+          // Complete onboarding first so user can use the app even if checkout is canceled
+          onComplete();
           // Then redirect to Stripe checkout
           window.location.href = data.url;
+        } else if (data?.error) {
+          throw new Error(data.error);
         } else {
           throw new Error('No checkout URL returned');
         }
       } catch (error) {
         console.error('Error creating checkout:', error);
+        // Complete onboarding even if checkout fails
+        onComplete();
         throw error;
       }
     } catch (error) {

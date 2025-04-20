@@ -88,6 +88,13 @@ const PricingCard: React.FC<PricingCardProps> = ({
         return;
       }
       
+      toast({
+        title: "Processing",
+        description: "Creating checkout session...",
+      });
+      
+      console.log("Creating checkout session for plan:", planId);
+      
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { plan: planId },
         headers: {
@@ -97,11 +104,21 @@ const PricingCard: React.FC<PricingCardProps> = ({
 
       if (error) {
         console.error('Checkout error:', error);
-        throw error;
+        toast({
+          title: "Error",
+          description: "Could not create checkout session: " + error.message,
+          variant: "destructive"
+        });
+        return;
       }
       
+      console.log("Checkout response:", data);
+      
       if (data?.url) {
+        console.log("Redirecting to checkout URL:", data.url);
         window.location.href = data.url;
+      } else if (data?.error) {
+        throw new Error(data.error);
       } else {
         throw new Error('No checkout URL returned');
       }
