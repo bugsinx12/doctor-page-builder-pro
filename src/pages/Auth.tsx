@@ -2,7 +2,7 @@
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect } from "react";
 
@@ -11,7 +11,6 @@ const Auth = () => {
   const defaultTab = searchParams.get("tab") || "login";
   const { isSignedIn } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   
   // Redirect to dashboard if already signed in
   useEffect(() => {
@@ -38,8 +37,7 @@ const Auth = () => {
               <SignIn 
                 routing="path"
                 path="/sign-in"
-                signUpUrl="/sign-up"
-                afterSignInUrl="/dashboard"
+                signUpUrl="/auth?tab=signup"
                 redirectUrl="/dashboard"
                 appearance={{
                   elements: {
@@ -59,8 +57,7 @@ const Auth = () => {
               <SignUp 
                 routing="path"
                 path="/sign-up"
-                signInUrl="/sign-in"
-                afterSignUpUrl="/dashboard"
+                signInUrl="/auth?tab=login"
                 redirectUrl="/dashboard"
                 appearance={{
                   elements: {
