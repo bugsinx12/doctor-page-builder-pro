@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -304,8 +305,8 @@ const WebsiteManager = () => {
             slug: item.slug,
             templateId: item.templateid,
             customDomain: item.customdomain || undefined,
-            content: item.content as WebsiteContent,
-            settings: item.settings as WebsiteSettings,
+            content: item.content as unknown as WebsiteContent,
+            settings: item.settings as unknown as WebsiteSettings,
             createdAt: item.createdat,
             updatedAt: item.updatedat,
             publishedAt: item.publishedat || undefined,
@@ -393,8 +394,8 @@ const WebsiteManager = () => {
           slug: data.slug,
           templateId: data.templateid,
           customDomain: data.customdomain,
-          content: data.content as WebsiteContent,
-          settings: data.settings as WebsiteSettings,
+          content: data.content as unknown as WebsiteContent,
+          settings: data.settings as unknown as WebsiteSettings,
           createdAt: data.createdat,
           updatedAt: data.updatedat,
           publishedAt: data.publishedat || undefined,
