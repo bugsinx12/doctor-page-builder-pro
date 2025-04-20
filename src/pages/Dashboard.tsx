@@ -22,6 +22,44 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [upgradingPlan, setUpgradingPlan] = useState(false);
 
+  // Check if we just came back from Stripe checkout
+  const checkForStripeRedirect = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const stripeSuccess = urlParams.get('payment') === 'success';
+    const stripeCancel = urlParams.get('payment') === 'cancel';
+    
+    if (stripeSuccess) {
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      toast({
+        title: "Payment successful!",
+        description: "Your subscription has been activated. Refreshing your subscription status...",
+        variant: "default",
+      });
+      
+      // Force refresh subscription status after a short delay
+      setTimeout(() => {
+        checkSubscription();
+      }, 1000);
+      
+      return true;
+    } else if (stripeCancel) {
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      toast({
+        title: "Payment cancelled",
+        description: "Your subscription has not been changed.",
+        variant: "default",
+      });
+      
+      return true;
+    }
+    
+    return false;
+  };
+
   useEffect(() => {
     if (!isLoaded) return;
     
@@ -32,17 +70,22 @@ const Dashboard = () => {
     const hasCompleted = user?.unsafeMetadata?.onboardingCompleted as boolean;
     setHasCompletedOnboarding(hasCompleted || false);
     
-    // Welcome message
-    if (user?.firstName) {
-      toast({
-        title: `Welcome back, ${user.firstName}!`,
-        description: "Great to see you again.",
-      });
-    } else {
-      toast({
-        title: "Welcome back!",
-        description: "Great to see you again.",
-      });
+    // Check if we just came back from Stripe
+    const isStripeRedirect = checkForStripeRedirect();
+    
+    // Welcome message - only show if not redirected from Stripe
+    if (!isStripeRedirect) {
+      if (user?.firstName) {
+        toast({
+          title: `Welcome back, ${user.firstName}!`,
+          description: "Great to see you again.",
+        });
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "Great to see you again.",
+        });
+      }
     }
     
     // Check subscription status if onboarding is complete
@@ -97,8 +140,8 @@ const Dashboard = () => {
           variant: "destructive"
         });
       } else {
+        console.log("Subscription data received:", data);
         setSubscription(data);
-        console.log("Subscription data:", data);
       }
     } catch (error) {
       console.error("Error checking subscription:", error);

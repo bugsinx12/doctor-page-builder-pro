@@ -116,6 +116,74 @@ serve(async (req) => {
 
     if (!subscriber?.stripe_customer_id) {
       logStep('No Stripe customer ID found');
+      
+      // Check if there's a customer in Stripe with this email
+      const customers = await stripe.customers.list({
+        email: userEmail,
+        limit: 1,
+      });
+      
+      logStep('Stripe customers search result', { 
+        found: customers.data.length > 0,
+        customerId: customers.data.length > 0 ? customers.data[0].id : null 
+      });
+      
+      if (customers.data.length > 0) {
+        // We found a customer in Stripe but not in our database, let's create a record
+        const stripeCustomerId = customers.data[0].id;
+        
+        // Create a subscriber record
+        const { data: newSubscriber, error: createError } = await supabase
+          .from('subscribers')
+          .upsert({
+            user_id: userId,
+            email: userEmail,
+            stripe_customer_id: stripeCustomerId,
+          })
+          .select()
+          .single();
+        
+        if (createError) {
+          logStep('Error creating subscriber record', { error: createError.message });
+        } else {
+          logStep('Created subscriber record', { newSubscriber });
+          
+          // Now check for active subscriptions for this customer
+          const subscriptions = await stripe.subscriptions.list({
+            customer: stripeCustomerId,
+            status: 'active',
+            limit: 1,
+          });
+          
+          if (subscriptions.data.length > 0) {
+            const subscription = subscriptions.data[0];
+            logStep('Found active subscription in Stripe', { 
+              subscriptionId: subscription.id,
+              status: subscription.status
+            });
+            
+            // Update subscriber with subscription info
+            await supabase
+              .from('subscribers')
+              .update({
+                subscribed: true,
+                subscription_tier: subscription.items.data[0].price.nickname || 'pro',
+                subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              })
+              .eq('user_id', userId);
+            
+            return new Response(JSON.stringify({
+              subscribed: true,
+              subscription_tier: subscription.items.data[0].price.nickname || 'pro',
+              subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              status: 200,
+            });
+          }
+        }
+      }
+      
       // Create a default subscriber record if one doesn't exist
       const { error: upsertError } = await supabase.from('subscribers').upsert({
         user_id: userId,
@@ -164,16 +232,26 @@ serve(async (req) => {
         } else {
           logStep('Updated subscriber record');
         }
+      } else {
+        // No active subscription found, update record to reflect this
+        const { error: updateError } = await supabase.from('subscribers').update({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+        }).eq('user_id', userId);
+        
+        if (updateError) {
+          logStep('Error updating subscriber record to non-subscribed', { error: updateError.message });
+        }
       }
   
       return new Response(
         JSON.stringify({
           subscribed: hasActiveSubscription,
-          subscription: hasActiveSubscription && subscription ? {
-            id: subscription.id,
-            tier: subscription.items.data[0].price.nickname || 'pro',
-            current_period_end: subscription.current_period_end
-          } : null,
+          subscription_tier: hasActiveSubscription && subscription ? 
+            subscription.items.data[0].price.nickname || 'pro' : null,
+          subscription_end: hasActiveSubscription && subscription ? 
+            new Date(subscription.current_period_end * 1000).toISOString() : null,
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -39,6 +39,7 @@ const Auth = () => {
           <CardContent>
             <TabsContent value="login">
               <SignIn 
+                routing="path"
                 path="/auth"
                 signUpUrl="/auth?tab=signup"
                 afterSignInUrl="/dashboard"
@@ -59,6 +60,7 @@ const Auth = () => {
             
             <TabsContent value="signup">
               <SignUp 
+                routing="path"
                 path="/auth"
                 signInUrl="/auth?tab=login"
                 afterSignUpUrl="/dashboard"
