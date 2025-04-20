@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Navbar } from './Navbar';
-import { Footer } from './Footer';
+import Navbar from './Navbar';
+import Footer from './Footer';
 
 interface ShellProps {
   children: React.ReactNode;

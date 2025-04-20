@@ -249,9 +249,6 @@ const WebsiteManager = () => {
   const [practiceInfo, setPracticeInfo] = useState({
     name: '',
     specialty: '',
-    address: '',
-    phone: '',
-    email: '',
   });
 
   useEffect(() => {
@@ -295,10 +292,27 @@ const WebsiteManager = () => {
         const { data: websitesData, error: websitesError } = await supabase
           .from('websites')
           .select('*')
-          .eq('userId', userId);
+          .eq('userid', userId);
 
         if (websitesError) throw websitesError;
-        if (websitesData) setWebsites(websitesData as Website[]);
+        
+        if (websitesData) {
+          const transformedWebsites: Website[] = websitesData.map(item => ({
+            id: item.id,
+            userId: item.userid,
+            name: item.name,
+            slug: item.slug,
+            templateId: item.templateid,
+            customDomain: item.customdomain || undefined,
+            content: item.content as WebsiteContent,
+            settings: item.settings as WebsiteSettings,
+            createdAt: item.createdat,
+            updatedAt: item.updatedat,
+            publishedAt: item.publishedat || undefined,
+          }));
+          
+          setWebsites(transformedWebsites);
+        }
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -313,9 +327,6 @@ const WebsiteManager = () => {
           setPracticeInfo({
             name: profile.practice_name || '',
             specialty: profile.specialty || '',
-            address: profile.address || '',
-            phone: profile.phone || '',
-            email: profile.email || '',
           });
         }
       } catch (error) {
@@ -346,13 +357,13 @@ const WebsiteManager = () => {
         templateType = 'pediatric';
       }
       
-      const slug = practiceInfo.practice_name
+      const slug = practiceInfo.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
       const customContent = { ...defaultContent[templateType] };
-      customContent.hero.heading = `Welcome to ${practiceInfo.practice_name}`;
+      customContent.hero.heading = `Welcome to ${practiceInfo.name}`;
       if (practiceInfo.specialty) {
         customContent.hero.subheading = `Specialized ${practiceInfo.specialty} care for our patients`;
       }
@@ -361,11 +372,11 @@ const WebsiteManager = () => {
         .from('websites')
         .insert({
           userid: userId,
-          name: practiceInfo.practice_name,
+          name: practiceInfo.name,
           slug: slug,
           templateid: templateId,
-          content: customContent,
-          settings: defaultSettings[templateType],
+          content: customContent as any,
+          settings: defaultSettings[templateType] as any,
           createdat: new Date().toISOString(),
           updatedat: new Date().toISOString(),
         })
@@ -419,7 +430,7 @@ const WebsiteManager = () => {
         .from('websites')
         .delete()
         .eq('id', websiteId)
-        .eq('userId', userId);
+        .eq('userid', userId);
 
       if (error) throw error;
 
@@ -481,7 +492,12 @@ const WebsiteManager = () => {
               <p className="text-gray-600 mb-6">
                 You haven't created any websites yet. Choose a template to get started.
               </p>
-              <Button onClick={() => document.querySelector('[data-state="inactive"][value="templates"]')?.click()}>
+              <Button onClick={() => {
+                const tabTrigger = document.querySelector('[data-state="inactive"][value="templates"]');
+                if (tabTrigger instanceof HTMLButtonElement) {
+                  tabTrigger.click();
+                }
+              }}>
                 Browse Templates
               </Button>
             </div>
