@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +27,21 @@ const LandingView = () => {
         }
 
         if (data) {
-          setWebsite(data as Website);
+          // Transform the data to match our Website type
+          const transformedData: Website = {
+            id: data.id,
+            userId: data.userid,
+            name: data.name,
+            slug: data.slug,
+            templateId: data.templateid,
+            customDomain: data.customdomain,
+            content: data.content as WebsiteContent,
+            settings: data.settings as WebsiteSettings,
+            createdAt: data.createdat,
+            updatedAt: data.updatedat,
+            publishedAt: data.publishedat || undefined,
+          };
+          setWebsite(transformedData);
         } else {
           setError('Landing page not found');
         }

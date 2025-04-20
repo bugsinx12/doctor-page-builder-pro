@@ -24,7 +24,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// Default content and settings templates
 const defaultContent: Record<string, WebsiteContent> = {
   'general-practice': {
     hero: {
@@ -347,37 +346,28 @@ const WebsiteManager = () => {
         templateType = 'pediatric';
       }
       
-      const slug = practiceInfo.name
+      const slug = practiceInfo.practice_name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
       const customContent = { ...defaultContent[templateType] };
-      customContent.hero.heading = `Welcome to ${practiceInfo.name}`;
+      customContent.hero.heading = `Welcome to ${practiceInfo.practice_name}`;
       if (practiceInfo.specialty) {
         customContent.hero.subheading = `Specialized ${practiceInfo.specialty} care for our patients`;
-      }
-      if (practiceInfo.address) {
-        customContent.contact.address = practiceInfo.address;
-      }
-      if (practiceInfo.phone) {
-        customContent.contact.phone = practiceInfo.phone;
-      }
-      if (practiceInfo.email) {
-        customContent.contact.email = practiceInfo.email;
       }
 
       const { data, error } = await supabase
         .from('websites')
         .insert({
-          userId: userId,
-          name: practiceInfo.name,
+          userid: userId,
+          name: practiceInfo.practice_name,
           slug: slug,
-          templateId: templateId,
+          templateid: templateId,
           content: customContent,
           settings: defaultSettings[templateType],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          createdat: new Date().toISOString(),
+          updatedat: new Date().toISOString(),
         })
         .select()
         .single();
@@ -385,7 +375,21 @@ const WebsiteManager = () => {
       if (error) throw error;
 
       if (data) {
-        setWebsites([...websites, data as Website]);
+        const transformedData: Website = {
+          id: data.id,
+          userId: data.userid,
+          name: data.name,
+          slug: data.slug,
+          templateId: data.templateid,
+          customDomain: data.customdomain,
+          content: data.content as WebsiteContent,
+          settings: data.settings as WebsiteSettings,
+          createdAt: data.createdat,
+          updatedAt: data.updatedat,
+          publishedAt: data.publishedat || undefined,
+        };
+        
+        setWebsites([...websites, transformedData]);
         toast({
           title: 'Success!',
           description: 'Your website has been created',
@@ -443,6 +447,13 @@ const WebsiteManager = () => {
       title: 'URL copied',
       description: 'Landing page URL has been copied to clipboard',
     });
+  };
+
+  const handleTabChange = (value: string) => {
+    const tabTrigger = document.querySelector(`[data-state="inactive"][value="${value}"]`);
+    if (tabTrigger instanceof HTMLButtonElement) {
+      tabTrigger.click();
+    }
   };
 
   if (loading) {
