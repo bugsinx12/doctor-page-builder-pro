@@ -12,10 +12,7 @@ if (!PUBLISHABLE_KEY) {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <ClerkProvider 
-    publishableKey={PUBLISHABLE_KEY}
-    navigate={(to) => window.location.href = to} // Use window.location for navigation
-  >
+  <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
     <App />
   </ClerkProvider>
 );
