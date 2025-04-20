@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
-import { WebsiteContent, WebsiteSettings, Template } from '@/types';
+import { WebsiteContent, WebsiteSettings, Template, Website } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -24,7 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-// Default content templates
+// Default content and settings templates
 const defaultContent: Record<string, WebsiteContent> = {
   'general-practice': {
     hero: {
@@ -176,7 +176,6 @@ const defaultContent: Record<string, WebsiteContent> = {
   }
 };
 
-// Default settings templates
 const defaultSettings: Record<string, WebsiteSettings> = {
   'general-practice': {
     colors: {
@@ -245,7 +244,7 @@ const WebsiteManager = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [websites, setWebsites] = useState<WebsiteData[]>([]);
+  const [websites, setWebsites] = useState<Website[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [isPracticeInfoSet, setIsPracticeInfoSet] = useState(false);
   const [practiceInfo, setPracticeInfo] = useState({
@@ -264,9 +263,6 @@ const WebsiteManager = () => {
 
     async function fetchData() {
       try {
-        // Fetch templates
-        // In a real app, this would come from the database
-        // For now, we're using the same data from the TemplatesPage
         setTemplates([
           {
             id: 'general-practice-1',
@@ -297,20 +293,17 @@ const WebsiteManager = () => {
           },
         ]);
 
-        // Fetch user's websites
-        const token = await getToken({ template: 'supabase' });
-        const { data: websites, error: websitesError } = await supabase
+        const { data: websitesData, error: websitesError } = await supabase
           .from('websites')
           .select('*')
           .eq('userId', userId);
 
         if (websitesError) throw websitesError;
-        if (websites) setWebsites(websites);
+        if (websitesData) setWebsites(websitesData as Website[]);
 
-        // Fetch practice info
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('practice_name, specialty, avatar_url, full_name')
+          .select('*')
           .eq('id', userId)
           .maybeSingle();
 
@@ -321,10 +314,9 @@ const WebsiteManager = () => {
           setPracticeInfo({
             name: profile.practice_name || '',
             specialty: profile.specialty || '',
-            // Other fields would be populated if available in the profile
-            address: '',
-            phone: '',
-            email: '',
+            address: profile.address || '',
+            phone: profile.phone || '',
+            email: profile.email || '',
           });
         }
       } catch (error) {
@@ -340,7 +332,7 @@ const WebsiteManager = () => {
     }
 
     fetchData();
-  }, [userId, getToken, navigate, toast]);
+  }, [userId, navigate, toast]);
 
   const createWebsite = async (templateId: string) => {
     if (!userId) return;
@@ -348,23 +340,18 @@ const WebsiteManager = () => {
     try {
       setLoading(true);
 
-      // Default template type
       let templateType = 'general-practice';
-      
-      // Map template IDs to template types
       if (templateId.includes('specialist')) {
         templateType = 'specialist';
       } else if (templateId.includes('pediatric')) {
         templateType = 'pediatric';
       }
       
-      // Create slug from practice name
       const slug = practiceInfo.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '');
 
-      // Customize content with practice info
       const customContent = { ...defaultContent[templateType] };
       customContent.hero.heading = `Welcome to ${practiceInfo.name}`;
       if (practiceInfo.specialty) {
@@ -380,7 +367,6 @@ const WebsiteManager = () => {
         customContent.contact.email = practiceInfo.email;
       }
 
-      // Create website record
       const { data, error } = await supabase
         .from('websites')
         .insert({
@@ -399,7 +385,7 @@ const WebsiteManager = () => {
       if (error) throw error;
 
       if (data) {
-        setWebsites([...websites, data]);
+        setWebsites([...websites, data as Website]);
         toast({
           title: 'Success!',
           description: 'Your website has been created',

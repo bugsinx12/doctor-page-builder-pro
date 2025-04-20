@@ -1,24 +1,16 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { WebsiteContent, WebsiteSettings } from '@/types';
+import { Website } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 
-// This is a public view of a landing page created by a doctor
 const LandingView = () => {
   const { id } = useParams<{ id: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [website, setWebsite] = useState<{
-    id: string;
-    name: string;
-    content: WebsiteContent;
-    settings: WebsiteSettings;
-    templateId: string;
-  } | null>(null);
+  const [website, setWebsite] = useState<Website | null>(null);
 
   useEffect(() => {
     async function fetchLandingPage() {
@@ -34,7 +26,7 @@ const LandingView = () => {
         }
 
         if (data) {
-          setWebsite(data);
+          setWebsite(data as Website);
         } else {
           setError('Landing page not found');
         }
@@ -72,7 +64,6 @@ const LandingView = () => {
     );
   }
 
-  // Render the template based on content and settings
   return (
     <div className="min-h-screen">
       {/* Hero Section */}

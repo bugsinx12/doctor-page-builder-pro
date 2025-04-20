@@ -75,6 +75,48 @@ export type Database = {
         }
         Relationships: []
       }
+      websites: {
+        Row: {
+          content: Json
+          createdat: string
+          customdomain: string | null
+          id: string
+          name: string
+          publishedat: string | null
+          settings: Json
+          slug: string
+          templateid: string
+          updatedat: string
+          userid: string
+        }
+        Insert: {
+          content: Json
+          createdat: string
+          customdomain?: string | null
+          id?: string
+          name: string
+          publishedat?: string | null
+          settings: Json
+          slug: string
+          templateid: string
+          updatedat: string
+          userid: string
+        }
+        Update: {
+          content?: Json
+          createdat?: string
+          customdomain?: string | null
+          id?: string
+          name?: string
+          publishedat?: string | null
+          settings?: Json
+          slug?: string
+          templateid?: string
+          updatedat?: string
+          userid?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
