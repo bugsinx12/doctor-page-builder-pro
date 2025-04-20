@@ -43,8 +43,20 @@ serve(async (req) => {
     }
 
     // Extract user ID and email from the authorization header (from Clerk)
-    const authData = JSON.parse(atob(authHeader.split(' ')[1]));
-    logStep('Auth data extracted', { authData });
+    let authData;
+    try {
+      authData = JSON.parse(atob(authHeader.split(' ')[1]));
+      logStep('Auth data extracted', { authData });
+    } catch (error) {
+      logStep('Error parsing auth data', { error: error.message });
+      return new Response(JSON.stringify({ 
+        error: 'Invalid authorization data format', 
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
     
     if (!authData.userId || !authData.userEmail) {
       return new Response(JSON.stringify({ 
@@ -63,22 +75,23 @@ serve(async (req) => {
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
       logStep('Supabase credentials missing');
       return new Response(JSON.stringify({ 
         error: 'Supabase configuration is missing',
         subscribed: false 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 200 // Return 200 to prevent browser error
       });
     }
     
     // Using service role to bypass RLS since we're authenticating with Clerk
     const supabase = createClient(
       supabaseUrl,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+      supabaseServiceRoleKey
     )
     
     // Check for existing subscriber info
@@ -95,7 +108,7 @@ serve(async (req) => {
         subscribed: false 
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 200 // Return 200 to prevent browser error
       });
     }
     

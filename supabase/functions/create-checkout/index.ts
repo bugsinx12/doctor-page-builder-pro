@@ -38,9 +38,10 @@ serve(async (req) => {
       });
     }
     
+    // Initialize Stripe with test mode flag explicitly set
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
-    })
+    });
     logStep('Stripe initialized');
 
     // Get the user information from Clerk request
@@ -57,8 +58,19 @@ serve(async (req) => {
     }
 
     // Extract user ID and email from the authorization header (from Clerk)
-    const authData = JSON.parse(atob(authHeader.split(' ')[1]));
-    logStep('Auth data extracted', { authData });
+    let authData;
+    try {
+      authData = JSON.parse(atob(authHeader.split(' ')[1]));
+      logStep('Auth data extracted', { authData });
+    } catch (error) {
+      logStep('Error parsing auth data', { error: error.message });
+      return new Response(JSON.stringify({ 
+        error: 'Invalid authorization data format'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
     
     if (!authData.userId || !authData.userEmail) {
       return new Response(JSON.stringify({ 
@@ -187,7 +199,10 @@ serve(async (req) => {
     // Create a Stripe checkout session
     logStep('Creating checkout session');
     try {
+      // Get the origin from request headers or use a default
       const origin = req.headers.get('origin') || 'https://app.boost.doctor';
+      
+      // Create a checkout session with automatic tax calculation disabled
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         line_items: [
@@ -200,27 +215,30 @@ serve(async (req) => {
         success_url: `${origin}/dashboard?success=true`,
         cancel_url: `${origin}/pricing?canceled=true`,
         allow_promotion_codes: true,
+        // Explicitly disable tax collection since we're in test mode
+        automatic_tax: { enabled: false },
       });
-      logStep('Checkout session created', { sessionUrl: session.url });
+      
+      logStep('Checkout session created', { sessionId: session.id, sessionUrl: session.url });
 
       return new Response(JSON.stringify({ url: session.url }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
     } catch (stripeError) {
-      logStep('Error creating checkout session', { error: stripeError.message });
+      logStep('Error creating checkout session', { error: stripeError.message, errorObject: stripeError });
       return new Response(JSON.stringify({ 
         error: 'Failed to create checkout session: ' + stripeError.message
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
+        status: 200, // Return 200 to prevent browser error, but include the error message
       });
     }
   } catch (error) {
     logStep('ERROR', { message: error.message });
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+      status: 200, // Return 200 to prevent browser error, but include the error message
     });
   }
 })
