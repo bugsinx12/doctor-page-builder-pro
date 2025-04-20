@@ -13,6 +13,8 @@ import Pricing from "./pages/Pricing";
 import Templates from "./pages/Templates";
 import TemplateDetail from "./pages/TemplateDetail";
 import NotFound from "./pages/NotFound";
+import WebsiteManager from "./pages/WebsiteManager";
+import LandingView from "./pages/LandingView";
 import './i18n';
 
 // Protected route component
@@ -53,15 +55,31 @@ const App = () => {
           <Sonner />
           <Routes>
             <Route path="/" element={<Index />} />
+            
+            {/* Auth routes */}
             <Route path="/auth/*" element={<Auth />} />
+            <Route path="/sign-in/*" element={<Auth />} />
+            <Route path="/sign-up/*" element={<Auth />} />
+            
+            {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             } />
+            <Route path="/websites" element={
+              <ProtectedRoute>
+                <WebsiteManager />
+              </ProtectedRoute>
+            } />
+            
+            {/* Public routes */}
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/templates/:id" element={<TemplateDetail />} />
+            <Route path="/landings/:id" element={<LandingView />} />
+            
+            {/* Catch all route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

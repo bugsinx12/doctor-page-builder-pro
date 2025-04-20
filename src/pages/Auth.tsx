@@ -40,8 +40,8 @@ const Auth = () => {
             <TabsContent value="login">
               <SignIn 
                 routing="path"
-                path="/auth"
-                signUpUrl="/auth?tab=signup"
+                path="/sign-in"
+                signUpUrl="/sign-up"
                 afterSignInUrl="/dashboard"
                 redirectUrl="/dashboard"
                 appearance={{
@@ -61,8 +61,8 @@ const Auth = () => {
             <TabsContent value="signup">
               <SignUp 
                 routing="path"
-                path="/auth"
-                signInUrl="/auth?tab=login"
+                path="/sign-up"
+                signInUrl="/sign-in"
                 afterSignUpUrl="/dashboard"
                 redirectUrl="/dashboard"
                 appearance={{
