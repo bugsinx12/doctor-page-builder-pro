@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -631,12 +630,20 @@ const WebsiteManager = () => {
                           )}
                         </div>
                         <div className="flex justify-end gap-4">
-                          <Button variant="outline" onClick={() => document.querySelector('[data-state="open"] [role="dialog"] button.close')?.click()}>
+                          <Button variant="outline" onClick={() => {
+                            const closeButton = document.querySelector('[data-state="open"] [role="dialog"] button.close');
+                            if (closeButton instanceof HTMLButtonElement) {
+                              closeButton.click();
+                            }
+                          }}>
                             Cancel
                           </Button>
                           <Button onClick={() => {
                             createWebsite(template.id);
-                            document.querySelector('[data-state="open"] [role="dialog"] button.close')?.click();
+                            const closeButton = document.querySelector('[data-state="open"] [role="dialog"] button.close');
+                            if (closeButton instanceof HTMLButtonElement) {
+                              closeButton.click();
+                            }
                           }}>
                             Create Website
                           </Button>
