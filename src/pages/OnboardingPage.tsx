@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import Onboarding from '@/components/onboarding/Onboarding';
 import { Shell } from '@/components/Shell';
 import { useToast } from '@/components/ui/use-toast';
@@ -10,24 +10,32 @@ import { getUUIDFromClerkID } from '@/utils/auth-utils';
 
 const OnboardingPage = () => {
   const { user } = useUser();
+  const { userId } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (!user) return;
+      if (!user || !userId) {
+        console.log("No user or userId available in OnboardingPage");
+        return;
+      }
+      
+      console.log("OnboardingPage - User data:", user.id, user.firstName, user.lastName);
       
       // Check if user has already completed onboarding in metadata
       const onboardingCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
+      console.log("Onboarding completed from metadata:", onboardingCompleted);
       
       if (onboardingCompleted) {
         // If onboarding is already completed, redirect to dashboard
+        console.log("Onboarding already completed, redirecting to dashboard");
         navigate('/dashboard', { replace: true });
       } else {
         try {
           // Convert Clerk ID to Supabase UUID
-          const supabaseUserId = getUUIDFromClerkID(user.id);
+          const supabaseUserId = getUUIDFromClerkID(userId);
           console.log("Checking for existing profile for user ID:", supabaseUserId);
           
           // Try to create a profile record if it doesn't exist
@@ -36,6 +44,8 @@ const OnboardingPage = () => {
             .select('*')
             .eq('id', supabaseUserId)
             .maybeSingle();
+            
+          console.log("Profile check result:", existingProfile, fetchError);
             
           if (fetchError && fetchError.code !== 'PGRST116') {
             console.error('Error checking profile:', fetchError);
@@ -57,13 +67,20 @@ const OnboardingPage = () => {
             while (retryCount < maxRetries && !success) {
               try {
                 console.log(`Attempt ${retryCount + 1} to create profile`);
-                const { error: insertError } = await supabase
+                const profileData = {
+                  id: supabaseUserId,
+                  full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
+                  avatar_url: user.imageUrl || null
+                };
+                
+                console.log("Profile data to insert:", profileData);
+                
+                const { data: insertData, error: insertError } = await supabase
                   .from('profiles')
-                  .insert({
-                    id: supabaseUserId,
-                    full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
-                    avatar_url: user.imageUrl || null
-                  });
+                  .insert(profileData)
+                  .select();
+                  
+                console.log("Insert result:", insertData, insertError);
                   
                 if (insertError) {
                   console.error(`Attempt ${retryCount + 1}: Error creating profile:`, insertError);
@@ -97,6 +114,8 @@ const OnboardingPage = () => {
             .eq('user_id', supabaseUserId)
             .maybeSingle();
             
+          console.log("Subscriber check result:", existingSubscriber, subFetchError);
+            
           if (subFetchError) {
             console.error('Error checking subscriber:', subFetchError);
           }
@@ -104,13 +123,20 @@ const OnboardingPage = () => {
           // If no subscriber record exists, create one
           if (!existingSubscriber) {
             console.log("Creating subscriber record");
-            const { error: insertError } = await supabase
+            const subscriberData = {
+              user_id: supabaseUserId,
+              email: user.primaryEmailAddress?.emailAddress || "",
+              subscribed: false
+            };
+            
+            console.log("Subscriber data to insert:", subscriberData);
+            
+            const { data: insertData, error: insertError } = await supabase
               .from('subscribers')
-              .insert({
-                user_id: supabaseUserId,
-                email: user.primaryEmailAddress?.emailAddress || "",
-                subscribed: false
-              });
+              .insert(subscriberData)
+              .select();
+              
+            console.log("Subscriber insert result:", insertData, insertError);
               
             if (insertError) {
               console.error('Error creating subscriber record:', insertError);
@@ -129,7 +155,7 @@ const OnboardingPage = () => {
     };
     
     checkOnboardingStatus();
-  }, [user, navigate, toast]);
+  }, [user, userId, navigate, toast]);
   
   const handleOnboardingComplete = () => {
     navigate('/dashboard', { replace: true });

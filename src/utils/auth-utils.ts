@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
@@ -9,6 +10,7 @@ export const getUUIDFromClerkID = (clerkId: string): string => {
   // Check if the ID is already a valid UUID
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (uuidPattern.test(clerkId)) {
+    console.log("Clerk ID is already a valid UUID:", clerkId);
     return clerkId;
   }
   
@@ -28,8 +30,9 @@ export const getUUIDFromClerkID = (clerkId: string): string => {
     seed[i] = (absHash >> ((i % 4) * 8)) & 0xff;
   }
 
-  // Use the seed array directly instead of converting it to a regular array
-  return uuidv4({ random: seed });
+  const generatedUuid = uuidv4({ random: seed });
+  console.log("Generated UUID for Clerk ID:", clerkId, "->", generatedUuid);
+  return generatedUuid;
 };
 
 export const useSyncUserProfile = () => {
@@ -44,7 +47,10 @@ export const useSyncUserProfile = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId || !user) return;
+    if (!userId || !user) {
+      console.log("No user ID or user object available");
+      return;
+    }
 
     const syncProfile = async () => {
       try {
@@ -60,6 +66,8 @@ export const useSyncUserProfile = () => {
           .select("*")
           .eq("id", supabaseUserId)
           .maybeSingle();
+
+        console.log("Fetch profile result:", existingProfile, fetchError);
 
         if (fetchError && fetchError.code !== "PGRST116") {
           console.error("Error checking profile:", fetchError);
@@ -88,7 +96,12 @@ export const useSyncUserProfile = () => {
               };
               console.log("Inserting profile data:", profileData);
               
-              const { error: insertError } = await supabase.from("profiles").insert(profileData);
+              const { data: insertData, error: insertError } = await supabase
+                .from("profiles")
+                .insert(profileData)
+                .select();
+                
+              console.log("Insert result:", insertData, insertError);
 
               if (insertError) {
                 console.error(`Attempt ${retryCount + 1}: Error creating profile:`, insertError);
@@ -112,6 +125,7 @@ export const useSyncUserProfile = () => {
                   .eq("id", supabaseUserId)
                   .maybeSingle();
                 
+                console.log("Fetched new profile:", newProfile);
                 if (newProfile) {
                   setProfile(newProfile);
                 }

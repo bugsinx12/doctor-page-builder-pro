@@ -5,20 +5,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect } from "react";
+import { getUUIDFromClerkID } from "@/utils/auth-utils";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "login";
   const templateId = searchParams.get("template");
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, userId } = useAuth();
   const navigate = useNavigate();
+  
+  // Debug function to check if user data is being properly saved to Supabase
+  const checkUserData = async (userId: string) => {
+    try {
+      console.log("Checking user data for Clerk ID:", userId);
+      const supabaseUserId = getUUIDFromClerkID(userId);
+      console.log("Converted to Supabase UUID:", supabaseUserId);
+      
+      // Check profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", supabaseUserId)
+        .maybeSingle();
+        
+      console.log("Profile data:", profileData, profileError);
+      
+      // Check subscribers table
+      const { data: subscriberData, error: subscriberError } = await supabase
+        .from("subscribers")
+        .select("*")
+        .eq("user_id", supabaseUserId)
+        .maybeSingle();
+        
+      console.log("Subscriber data:", subscriberData, subscriberError);
+    } catch (error) {
+      console.error("Error checking user data:", error);
+    }
+  };
   
   // Redirect to onboarding if already signed in
   useEffect(() => {
-    if (isSignedIn) {
+    if (isSignedIn && userId) {
+      console.log("User is signed in with Clerk ID:", userId);
+      
+      // Check if the data exists in Supabase
+      checkUserData(userId);
+      
+      // Navigate to onboarding
       navigate("/onboarding", { replace: true });
     }
-  }, [isSignedIn, navigate]);
+  }, [isSignedIn, userId, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
