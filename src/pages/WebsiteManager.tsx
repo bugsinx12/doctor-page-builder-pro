@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -268,6 +269,9 @@ const WebsiteManager = () => {
             category: 'general',
             features: ['Patient portal', 'Appointment booking', 'Staff profiles'],
             popular: true,
+            preview: '/placeholder.svg', // Added required property
+            screenshots: ['/placeholder.svg', '/placeholder.svg'], // Added required property
+            tags: ['modern', 'clean', 'professional'], // Added required property
           },
           {
             id: 'specialist-1',
@@ -277,6 +281,9 @@ const WebsiteManager = () => {
             category: 'specialist',
             features: ['Procedures section', 'Research highlights', 'Patient testimonials'],
             new: true,
+            preview: '/placeholder.svg', // Added required property
+            screenshots: ['/placeholder.svg', '/placeholder.svg'], // Added required property
+            tags: ['specialist', 'professional', 'focused'], // Added required property
           },
           {
             id: 'pediatric-1',
@@ -286,6 +293,9 @@ const WebsiteManager = () => {
             category: 'pediatric',
             features: ['Child-friendly UI', 'Parent resources', 'Vaccination info'],
             new: true,
+            preview: '/placeholder.svg', // Added required property
+            screenshots: ['/placeholder.svg', '/placeholder.svg'], // Added required property
+            tags: ['pediatric', 'friendly', 'colorful'], // Added required property
           },
         ]);
 
