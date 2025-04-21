@@ -25,6 +25,8 @@ const OnboardingPage = () => {
         navigate('/dashboard', { replace: true });
       } else {
         try {
+          console.log("Checking for existing profile for user ID:", user.id);
+          
           // Try to create a profile record if it doesn't exist
           const { data: existingProfile, error: fetchError } = await supabase
             .from('profiles')
@@ -43,6 +45,7 @@ const OnboardingPage = () => {
           
           // If profile doesn't exist, create one with retry
           if (!existingProfile) {
+            console.log("No existing profile found, creating one");
             // Set up retry logic
             let retryCount = 0;
             const maxRetries = 3;
@@ -50,6 +53,7 @@ const OnboardingPage = () => {
             
             while (retryCount < maxRetries && !success) {
               try {
+                console.log(`Attempt ${retryCount + 1} to create profile`);
                 const { error: insertError } = await supabase
                   .from('profiles')
                   .insert({
@@ -71,6 +75,7 @@ const OnboardingPage = () => {
                   // Wait a bit before retrying
                   await new Promise(resolve => setTimeout(resolve, 1000));
                 } else {
+                  console.log("Profile created successfully");
                   success = true;
                 }
               } catch (error) {
@@ -78,6 +83,39 @@ const OnboardingPage = () => {
                 retryCount++;
               }
             }
+          } else {
+            console.log("Existing profile found:", existingProfile);
+          }
+          
+          // Also check for subscriber record
+          const { data: existingSubscriber, error: subFetchError } = await supabase
+            .from('subscribers')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          if (subFetchError) {
+            console.error('Error checking subscriber:', subFetchError);
+          }
+          
+          // If no subscriber record exists, create one
+          if (!existingSubscriber) {
+            console.log("Creating subscriber record");
+            const { error: insertError } = await supabase
+              .from('subscribers')
+              .insert({
+                user_id: user.id,
+                email: user.primaryEmailAddress?.emailAddress || "",
+                subscribed: false
+              });
+              
+            if (insertError) {
+              console.error('Error creating subscriber record:', insertError);
+            } else {
+              console.log("Subscriber record created successfully");
+            }
+          } else {
+            console.log("Existing subscriber found:", existingSubscriber);
           }
         } catch (error) {
           console.error('Unexpected error:', error);

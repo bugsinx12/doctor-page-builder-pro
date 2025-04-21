@@ -56,25 +56,20 @@ serve(async (req) => {
       logStep('Error parsing auth data', { error: error.message });
       return new Response(JSON.stringify({ 
         error: 'Invalid authorization data format', 
-        subscribed: true,  // Force true for testing/fixing
-        subscription_tier: "Premium",
-        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        subscribed: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        status: 400
       });
     }
     
     if (!authData.userId || !authData.userEmail) {
-      // Return a default subscription for testing
       return new Response(JSON.stringify({ 
         error: 'Invalid authorization data. Missing userId or userEmail',
-        subscribed: true,  // Force true for testing/fixing
-        subscription_tier: "Premium",
-        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        subscribed: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        status: 400
       });
     }
     
@@ -88,14 +83,12 @@ serve(async (req) => {
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       logStep('Supabase credentials missing');
-      // Return default subscription data for testing
       return new Response(JSON.stringify({ 
-        subscribed: true,  // Force true for testing/fixing
-        subscription_tier: "Premium",
-        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        error: 'Supabase configuration is missing',
+        subscribed: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        status: 500
       });
     }
     
@@ -108,44 +101,78 @@ serve(async (req) => {
     // Check for existing subscriber info
     const { data: subscriber, error: subscriberError } = await supabase
       .from('subscribers')
-      .select('stripe_customer_id')
+      .select('*')
       .eq('user_id', userId)
       .maybeSingle()
     
     if (subscriberError) {
       logStep('Error retrieving subscriber data', { error: subscriberError.message });
-      // Return default subscription data for testing
       return new Response(JSON.stringify({ 
-        subscribed: true,  // Force true for testing/fixing
-        subscription_tier: "Premium",
-        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        error: 'Error retrieving subscriber data',
+        subscribed: false
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
+        status: 500
       });
     }
     
     logStep('Subscriber data', { subscriber });
 
-    // For testing and fixing, always return subscribed status
+    // For development/testing purposes:
+    // If no subscription record exists, create one
+    if (!subscriber) {
+      logStep('No subscriber record found, creating one');
+      
+      // Insert a new subscriber record
+      const { error: insertError } = await supabase
+        .from('subscribers')
+        .insert({
+          user_id: userId,
+          email: userEmail,
+          subscribed: true, // For testing we're setting this to true
+          subscription_tier: 'Premium',
+          subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        });
+        
+      if (insertError) {
+        logStep('Error creating subscriber record', { error: insertError.message });
+        return new Response(JSON.stringify({ 
+          error: 'Error creating subscriber record',
+          subscribed: false
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500
+        });
+      }
+      
+      // Return the newly created subscription data
+      return new Response(JSON.stringify({
+        subscribed: true,
+        subscription_tier: "Premium",
+        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    // Return the subscription data from the database
     return new Response(JSON.stringify({
-      subscribed: true,
-      subscription_tier: "Premium",
-      subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      subscribed: subscriber.subscribed,
+      subscription_tier: subscriber.subscription_tier,
+      subscription_end: subscriber.subscription_end,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
     logStep('ERROR', { message: error.message });
-    // Return default subscription data for testing
     return new Response(JSON.stringify({ 
-      subscribed: true,  // Force true for testing/fixing
-      subscription_tier: "Premium",
-      subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      error: error.message,
+      subscribed: false
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
+      status: 500
     });
   }
 })

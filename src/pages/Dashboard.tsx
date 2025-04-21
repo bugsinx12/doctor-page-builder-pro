@@ -13,16 +13,22 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useSyncUserProfile();
   const { subscriptionStatus, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
-
+  
   useEffect(() => {
     if (!userId) {
       navigate("/auth");
     }
   }, [userId, navigate]);
 
+  useEffect(() => {
+    // Log state for debugging
+    console.log("Dashboard - Profile:", profile);
+    console.log("Dashboard - Subscription:", subscriptionStatus);
+  }, [profile, subscriptionStatus]);
+
   return (
     <Shell>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid gap-6">
           <ProfileHeader
             isLoading={isProfileLoading}
@@ -31,12 +37,14 @@ const Dashboard = () => {
             avatarUrl={profile?.avatar_url || null}
           />
 
-          <NavigationItems />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <NavigationItems />
 
-          <SubscriptionStatus
-            isLoading={isSubscriptionLoading}
-            subscriptionStatus={subscriptionStatus}
-          />
+            <SubscriptionStatus
+              isLoading={isSubscriptionLoading}
+              subscriptionStatus={subscriptionStatus}
+            />
+          </div>
         </div>
       </div>
     </Shell>

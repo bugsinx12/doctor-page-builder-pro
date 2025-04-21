@@ -22,7 +22,21 @@ export const useSyncUserProfile = () => {
       try {
         setIsLoading(true);
         
-        // First check if profile exists
+        // First check if Clerk user is in the clerk_users foreign table
+        // This uses the Clerk Wrapper extension
+        const { data: clerkUser, error: clerkError } = await supabase
+          .from("clerk_users")
+          .select("id, email_addresses")
+          .eq("id", userId)
+          .maybeSingle();
+          
+        if (clerkError) {
+          console.error("Error checking Clerk user:", clerkError);
+        }
+        
+        console.log("Clerk user from foreign table:", clerkUser);
+        
+        // Check if profile exists
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
@@ -41,6 +55,7 @@ export const useSyncUserProfile = () => {
 
         // If profile doesn't exist, create one with retry logic
         if (!existingProfile) {
+          console.log("Creating new profile for user:", userId);
           let retryCount = 0;
           const maxRetries = 3;
           let success = false;
@@ -120,6 +135,33 @@ export const useSubscriptionStatus = () => {
     const checkSubscription = async () => {
       try {
         setIsLoading(true);
+        
+        // Check if subscriber record exists first
+        const { data: existingSubscriber, error: fetchError } = await supabase
+          .from("subscribers")
+          .select("*")
+          .eq("user_id", userId)
+          .maybeSingle();
+          
+        if (fetchError) {
+          console.error("Error checking subscriber:", fetchError);
+        }
+        
+        // If no subscriber record exists, create one with basic info
+        if (!existingSubscriber) {
+          console.log("Creating new subscriber record for:", userId);
+          const { error: insertError } = await supabase
+            .from("subscribers")
+            .insert({
+              user_id: userId,
+              email: user.primaryEmailAddress?.emailAddress || "",
+              subscribed: false
+            });
+            
+          if (insertError) {
+            console.error("Error creating subscriber record:", insertError);
+          }
+        }
         
         // Create an auth token that includes the necessary user info
         const authData = {
