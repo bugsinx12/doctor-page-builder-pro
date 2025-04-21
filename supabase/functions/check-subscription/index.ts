@@ -1,178 +1,136 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
-import Stripe from 'https://esm.sh/stripe@14.21.0'
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.9.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Helper function for logging
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
-}
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 serve(async (req) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+  // Handle CORS preflight request
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      headers: corsHeaders,
+    });
   }
 
   try {
-    logStep('Function started');
-    
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-      apiVersion: '2023-10-16',
-    })
-    logStep('Stripe initialized');
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get the user information from Clerk request
-    const authHeader = req.headers.get('Authorization')
-    logStep('Auth header', { authHeader: authHeader ? 'present' : 'missing' });
-    
-    if (!authHeader) {
-      return new Response(JSON.stringify({ 
-        error: 'No authorization header provided',
-        subscribed: false 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
+    // Get authorization header
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Missing or invalid authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Extract user ID and email from the authorization header (from Clerk)
-    let authData;
+    // Decode the auth token (simple base64 decode)
+    const token = authHeader.split(" ")[1];
+    let decodedData;
     try {
-      // Proper handling of bearer token format
-      const token = authHeader.startsWith('Bearer ') 
-        ? authHeader.slice(7) 
-        : authHeader;
-        
-      authData = JSON.parse(atob(token));
-      logStep('Auth data extracted', { authData });
+      decodedData = JSON.parse(atob(token));
     } catch (error) {
-      logStep('Error parsing auth data', { error: error.message });
-      return new Response(JSON.stringify({ 
-        error: 'Invalid authorization data format', 
-        subscribed: false
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      });
+      return new Response(
+        JSON.stringify({ error: "Invalid token format" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
-    
-    if (!authData.userId || !authData.userEmail) {
-      return new Response(JSON.stringify({ 
-        error: 'Invalid authorization data. Missing userId or userEmail',
-        subscribed: false
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      });
-    }
-    
-    const userId = authData.userId;
-    const userEmail = authData.userEmail;
-    
-    logStep('User authenticated', { userId, email: userEmail });
-    
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseServiceRoleKey) {
-      logStep('Supabase credentials missing');
-      return new Response(JSON.stringify({ 
-        error: 'Supabase configuration is missing',
-        subscribed: false
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      });
-    }
-    
-    // Using service role to bypass RLS since we're authenticating with Clerk
-    const supabase = createClient(
-      supabaseUrl,
-      supabaseServiceRoleKey
-    )
-    
-    // Check for existing subscriber info
-    const { data: subscriber, error: subscriberError } = await supabase
-      .from('subscribers')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle()
-    
-    if (subscriberError) {
-      logStep('Error retrieving subscriber data', { error: subscriberError.message });
-      return new Response(JSON.stringify({ 
-        error: 'Error retrieving subscriber data',
-        subscribed: false
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      });
-    }
-    
-    logStep('Subscriber data', { subscriber });
 
-    // For development/testing purposes:
-    // If no subscription record exists, create one
+    const { userId, userEmail } = decodedData;
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "User ID is required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Check for existing subscriber record
+    const { data: subscriber, error: fetchError } = await supabase
+      .from("subscribers")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("Error fetching subscriber:", fetchError);
+      return new Response(
+        JSON.stringify({ error: "Error fetching subscription data" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // If no subscriber record exists, create one
     if (!subscriber) {
-      logStep('No subscriber record found, creating one');
-      
-      // Insert a new subscriber record
+      console.log("No subscriber record found, creating one");
       const { error: insertError } = await supabase
-        .from('subscribers')
+        .from("subscribers")
         .insert({
           user_id: userId,
-          email: userEmail,
-          subscribed: true, // For testing we're setting this to true
-          subscription_tier: 'Premium',
-          subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          email: userEmail || "",
+          subscribed: false,
         });
-        
+
       if (insertError) {
-        logStep('Error creating subscriber record', { error: insertError.message });
-        return new Response(JSON.stringify({ 
-          error: 'Error creating subscriber record',
-          subscribed: false
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500
-        });
+        console.error("Error creating subscriber record:", insertError);
+        return new Response(
+          JSON.stringify({ error: "Error creating subscription record" }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
-      
-      // Return the newly created subscription data
-      return new Response(JSON.stringify({
-        subscribed: true,
-        subscription_tier: "Premium",
-        subscription_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
+
+      // Return default subscription data for new users
+      return new Response(
+        JSON.stringify({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // Return the subscription data from the database
-    return new Response(JSON.stringify({
-      subscribed: subscriber.subscribed,
-      subscription_tier: subscriber.subscription_tier,
-      subscription_end: subscriber.subscription_end,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
-    });
+    // Return subscription data
+    return new Response(
+      JSON.stringify({
+        subscribed: subscriber.subscribed,
+        subscription_tier: subscriber.subscription_tier,
+        subscription_end: subscriber.subscription_end,
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
-    logStep('ERROR', { message: error.message });
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      subscribed: false
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500
-    });
+    console.error("Unexpected error:", error);
+    return new Response(
+      JSON.stringify({ error: "An unexpected error occurred" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
-})
+});

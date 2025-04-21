@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
@@ -22,19 +21,9 @@ export const useSyncUserProfile = () => {
       try {
         setIsLoading(true);
         
-        // First check if Clerk user is in the clerk_users foreign table
-        // This uses the Clerk Wrapper extension
-        const { data: clerkUser, error: clerkError } = await supabase
-          .from("clerk_users")
-          .select("id, email_addresses")
-          .eq("id", userId)
-          .maybeSingle();
-          
-        if (clerkError) {
-          console.error("Error checking Clerk user:", clerkError);
-        }
-        
-        console.log("Clerk user from foreign table:", clerkUser);
+        // We'll skip the Clerk Wrapper check since it's causing type issues
+        // Instead directly check if profile exists
+        console.log("Checking for existing profile for user ID:", userId);
         
         // Check if profile exists
         const { data: existingProfile, error: fetchError } = await supabase
