@@ -1,0 +1,168 @@
+
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth, useUser } from "@clerk/clerk-react";
+import { useEffect, useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
+
+export const useSyncUserProfile = () => {
+  const { userId } = useAuth();
+  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<{
+    practice_name: string | null;
+    specialty: string | null;
+    avatar_url: string | null;
+  } | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!userId || !user) return;
+
+    const syncProfile = async () => {
+      try {
+        setIsLoading(true);
+        
+        // First check if profile exists
+        const { data: existingProfile, error: fetchError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (fetchError && fetchError.code !== "PGRST116") {
+          console.error("Error checking profile:", fetchError);
+          toast({
+            title: "Error",
+            description: "Could not check your profile. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // If profile doesn't exist, create one with retry logic
+        if (!existingProfile) {
+          let retryCount = 0;
+          const maxRetries = 3;
+          let success = false;
+
+          while (retryCount < maxRetries && !success) {
+            try {
+              const { error: insertError } = await supabase.from("profiles").insert({
+                id: userId,
+                full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
+                avatar_url: user.imageUrl || null,
+              });
+
+              if (insertError) {
+                console.error(`Attempt ${retryCount + 1}: Error creating profile:`, insertError);
+                retryCount++;
+                if (retryCount === maxRetries) {
+                  toast({
+                    title: "Profile Creation Error",
+                    description: "Could not create your profile. Some features may be limited.",
+                    variant: "destructive",
+                  });
+                }
+                // Wait before retrying
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+              } else {
+                success = true;
+                // Fetch the newly created profile
+                const { data: newProfile } = await supabase
+                  .from("profiles")
+                  .select("*")
+                  .eq("id", userId)
+                  .maybeSingle();
+                
+                if (newProfile) {
+                  setProfile(newProfile);
+                }
+              }
+            } catch (error) {
+              console.error(`Attempt ${retryCount + 1}: Unexpected error:`, error);
+              retryCount++;
+            }
+          }
+        } else {
+          setProfile(existingProfile);
+        }
+      } catch (error) {
+        console.error("Error syncing profile:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    syncProfile();
+  }, [userId, user, toast]);
+
+  return { profile, isLoading };
+};
+
+export const useSubscriptionStatus = () => {
+  const { userId } = useAuth();
+  const { user } = useUser();
+  const [isLoading, setIsLoading] = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<{
+    subscribed: boolean;
+    subscription_tier: string | null;
+    subscription_end: string | null;
+  }>({
+    subscribed: false,
+    subscription_tier: null,
+    subscription_end: null,
+  });
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!userId || !user) return;
+
+    const checkSubscription = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Create an auth token that includes the necessary user info
+        const authData = {
+          userId: userId,
+          userEmail: user.primaryEmailAddress?.emailAddress
+        };
+        
+        // Base64 encode the data
+        const authToken = btoa(JSON.stringify(authData));
+
+        const response = await fetch("/api/check-subscription", {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          console.error("Failed to check subscription:", response.statusText);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("Subscription data:", data);
+        
+        setSubscriptionStatus({
+          subscribed: data.subscribed,
+          subscription_tier: data.subscription_tier,
+          subscription_end: data.subscription_end,
+        });
+      } catch (error) {
+        console.error("Error checking subscription:", error);
+        toast({
+          title: "Subscription Check Failed",
+          description: "Unable to verify your subscription status.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkSubscription();
+  }, [userId, user, toast]);
+
+  return { subscriptionStatus, isLoading };
+};

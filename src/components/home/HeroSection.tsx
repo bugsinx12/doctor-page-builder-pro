@@ -21,9 +21,6 @@ const HeroSection = () => {
               <Button size="lg" className="bg-white text-medical-700 hover:bg-blue-50" asChild>
                 <Link to="/signup">Get Started</Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-medical-700/20" asChild>
-                <Link to="/templates">View Templates</Link>
-              </Button>
             </div>
             <p className="text-sm text-blue-100">
               No credit card required • Set up in minutes • Cancel anytime

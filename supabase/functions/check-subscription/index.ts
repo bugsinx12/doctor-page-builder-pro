@@ -45,7 +45,12 @@ serve(async (req) => {
     // Extract user ID and email from the authorization header (from Clerk)
     let authData;
     try {
-      authData = JSON.parse(atob(authHeader.split(' ')[1]));
+      // Proper handling of bearer token format
+      const token = authHeader.startsWith('Bearer ') 
+        ? authHeader.slice(7) 
+        : authHeader;
+        
+      authData = JSON.parse(atob(token));
       logStep('Auth data extracted', { authData });
     } catch (error) {
       logStep('Error parsing auth data', { error: error.message });
@@ -79,7 +84,6 @@ serve(async (req) => {
     logStep('User authenticated', { userId, email: userEmail });
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!supabaseUrl || !supabaseServiceRoleKey) {
@@ -132,163 +136,6 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
-    
-    /* Original code commented out for now
-    if (!subscriber?.stripe_customer_id) {
-      logStep('No Stripe customer ID found');
-      
-      // Check if there's a customer in Stripe with this email
-      const customers = await stripe.customers.list({
-        email: userEmail,
-        limit: 1,
-      });
-      
-      logStep('Stripe customers search result', { 
-        found: customers.data.length > 0,
-        customerId: customers.data.length > 0 ? customers.data[0].id : null 
-      });
-      
-      if (customers.data.length > 0) {
-        // We found a customer in Stripe but not in our database, let's create a record
-        const stripeCustomerId = customers.data[0].id;
-        
-        // Create a subscriber record
-        const { data: newSubscriber, error: createError } = await supabase
-          .from('subscribers')
-          .upsert({
-            user_id: userId,
-            email: userEmail,
-            stripe_customer_id: stripeCustomerId,
-          })
-          .select()
-          .single();
-        
-        if (createError) {
-          logStep('Error creating subscriber record', { error: createError.message });
-        } else {
-          logStep('Created subscriber record', { newSubscriber });
-          
-          // Now check for active subscriptions for this customer
-          const subscriptions = await stripe.subscriptions.list({
-            customer: stripeCustomerId,
-            status: 'active',
-            limit: 1,
-          });
-          
-          if (subscriptions.data.length > 0) {
-            const subscription = subscriptions.data[0];
-            logStep('Found active subscription in Stripe', { 
-              subscriptionId: subscription.id,
-              status: subscription.status
-            });
-            
-            // Update subscriber with subscription info
-            await supabase
-              .from('subscribers')
-              .update({
-                subscribed: true,
-                subscription_tier: subscription.items.data[0].price.nickname || 'pro',
-                subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
-              })
-              .eq('user_id', userId);
-            
-            return new Response(JSON.stringify({
-              subscribed: true,
-              subscription_tier: subscription.items.data[0].price.nickname || 'pro',
-              subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            }), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 200,
-            });
-          }
-        }
-      }
-      
-      // Create a default subscriber record if one doesn't exist
-      const { error: upsertError } = await supabase.from('subscribers').upsert({
-        user_id: userId,
-        email: userEmail,
-        subscribed: false
-      }, { onConflict: 'email' });
-      
-      if (upsertError) {
-        logStep('Error creating subscriber record', { error: upsertError.message });
-      }
-      
-      return new Response(JSON.stringify({ subscribed: false }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    }
-
-    // Check for active Stripe subscriptions
-    try {
-      const subscriptions = await stripe.subscriptions.list({
-        customer: subscriber.stripe_customer_id,
-        status: 'active',
-      });
-  
-      const hasActiveSubscription = subscriptions.data.length > 0;
-      const subscription = hasActiveSubscription ? subscriptions.data[0] : null;
-      
-      logStep('Subscription status', { 
-        hasActiveSubscription, 
-        subscriptionId: subscription?.id 
-      });
-  
-      if (hasActiveSubscription && subscription) {
-        // Update subscriber record with latest info
-        const { error: upsertError } = await supabase.from('subscribers').upsert({
-          user_id: userId,
-          email: userEmail,
-          stripe_customer_id: subscriber.stripe_customer_id,
-          subscribed: true,
-          subscription_tier: subscription.items.data[0].price.nickname || 'pro',
-          subscription_end: new Date(subscription.current_period_end * 1000).toISOString(),
-        }, { onConflict: 'email' });
-        
-        if (upsertError) {
-          logStep('Error updating subscriber record', { error: upsertError.message });
-        } else {
-          logStep('Updated subscriber record');
-        }
-      } else {
-        // No active subscription found, update record to reflect this
-        const { error: updateError } = await supabase.from('subscribers').update({
-          subscribed: false,
-          subscription_tier: null,
-          subscription_end: null,
-        }).eq('user_id', userId);
-        
-        if (updateError) {
-          logStep('Error updating subscriber record to non-subscribed', { error: updateError.message });
-        }
-      }
-  
-      return new Response(JSON.stringify({
-        subscribed: hasActiveSubscription,
-        subscription_tier: hasActiveSubscription && subscription ? 
-          subscription.items.data[0].price.nickname || 'pro' : null,
-        subscription_end: hasActiveSubscription && subscription ? 
-          new Date(subscription.current_period_end * 1000).toISOString() : null,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      });
-    } catch (stripeError) {
-      logStep('Stripe API error', { error: stripeError.message });
-      return new Response(
-        JSON.stringify({ 
-          subscribed: false, 
-          error: 'Stripe API error: ' + stripeError.message 
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200, // Return 200 even for Stripe errors so the frontend can handle it
-        }
-      );
-    }
-    */
   } catch (error) {
     logStep('ERROR', { message: error.message });
     // Return default subscription data for testing

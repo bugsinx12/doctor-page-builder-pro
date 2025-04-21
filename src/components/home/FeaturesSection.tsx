@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowUpRight, Brush, Globe, CreditCard, Clock, Award, Users } from 'lucide-react';
+import { Brush, Globe, CreditCard, Clock, Award, Users } from 'lucide-react';
 
 const features = [
   {
@@ -62,16 +62,6 @@ const FeaturesSection = () => {
               <p className="text-gray-600">{feature.description}</p>
             </div>
           ))}
-        </div>
-
-        <div className="mt-12 text-center">
-          <a
-            href="/features"
-            className="inline-flex items-center text-medical-600 font-medium hover:text-medical-700"
-          >
-            See all features
-            <ArrowUpRight className="ml-2 h-4 w-4" />
-          </a>
         </div>
       </div>
     </section>
