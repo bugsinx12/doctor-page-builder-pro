@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";

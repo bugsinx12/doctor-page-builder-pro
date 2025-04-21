@@ -1,3 +1,4 @@
+
 // User types
 export interface User {
   id: string;
@@ -66,6 +67,9 @@ export interface Template {
   features: string[];
   popular?: boolean;
   new?: boolean;
+  preview: string;
+  screenshots: string[];
+  tags: string[];
 }
 
 // Website/Landing page types
