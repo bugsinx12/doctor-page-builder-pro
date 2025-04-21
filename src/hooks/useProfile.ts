@@ -34,17 +34,28 @@ export const useProfile = () => {
         if (fetchError) throw fetchError;
 
         if (!existingProfile) {
-          const profileData = {
-            id: supabaseUserId,
-            full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
-            avatar_url: user.imageUrl || null,
-          };
-
-          const { error: insertError } = await supabase
+          // Check if profile_exists first to avoid foreign key constraint errors
+          const { count, error: countError } = await supabase
             .from("profiles")
-            .insert(profileData);
+            .select("*", { count: "exact", head: true })
+            .eq("id", supabaseUserId);
+            
+          if (countError) throw countError;
+          
+          // Only insert if profile doesn't exist
+          if (count === 0) {
+            const profileData = {
+              id: supabaseUserId,
+              full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
+              avatar_url: user.imageUrl || null,
+            };
 
-          if (insertError) throw insertError;
+            const { error: insertError } = await supabase
+              .from("profiles")
+              .insert(profileData);
+
+            if (insertError) throw insertError;
+          }
 
           // Get the newly created profile
           const { data: newProfile } = await supabase

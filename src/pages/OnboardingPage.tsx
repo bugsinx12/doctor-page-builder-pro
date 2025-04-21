@@ -38,18 +38,18 @@ const OnboardingPage = () => {
         const supabaseUserId = getUUIDFromClerkID(userId);
         console.log("Checking for existing profile for user ID:", supabaseUserId);
         
-        // Check if profile exists and create if needed
-        const { data: existingProfile, error: fetchError } = await supabase
+        // Check if profile already exists
+        const { count: profileCount, error: profileCountError } = await supabase
           .from('profiles')
-          .select('*')
-          .eq('id', supabaseUserId)
-          .maybeSingle();
+          .select('*', { count: 'exact', head: true })
+          .eq('id', supabaseUserId);
           
-        if (fetchError && fetchError.code !== 'PGRST116') {
-          console.error("Error checking profile:", fetchError);
+        if (profileCountError) {
+          console.error("Error checking profile:", profileCountError);
         }
         
-        if (!existingProfile) {
+        // Only create profile if it doesn't exist
+        if (profileCount === 0) {
           console.log("Creating new profile for user");
           const profileData = {
             id: supabaseUserId,
@@ -70,18 +70,18 @@ const OnboardingPage = () => {
           console.log("Existing profile found");
         }
 
-        // Check if subscriber record exists and create if needed
-        const { data: existingSubscriber, error: subFetchError } = await supabase
+        // Check if subscriber record exists
+        const { count: subscriberCount, error: subCountError } = await supabase
           .from('subscribers')
-          .select('*')
-          .eq('user_id', supabaseUserId)
-          .maybeSingle();
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', supabaseUserId);
           
-        if (subFetchError) {
-          console.error('Error checking subscriber:', subFetchError);
+        if (subCountError) {
+          console.error('Error checking subscriber:', subCountError);
         }
         
-        if (!existingSubscriber) {
+        // Only create subscriber if it doesn't exist
+        if (subscriberCount === 0) {
           console.log("Creating new subscriber record");
           const subscriberData = {
             user_id: supabaseUserId,

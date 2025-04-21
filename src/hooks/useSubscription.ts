@@ -32,15 +32,16 @@ export const useSubscription = () => {
       try {
         setIsLoading(true);
 
-        const { data: existingSubscriber, error: fetchError } = await supabase
+        // Check if subscriber exists first
+        const { count, error: countError } = await supabase
           .from("subscribers")
-          .select("*")
-          .eq("user_id", supabaseUserId)
-          .maybeSingle();
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", supabaseUserId);
+          
+        if (countError) throw countError;
 
-        if (fetchError) throw fetchError;
-
-        if (!existingSubscriber) {
+        // Only create a new subscriber if one doesn't exist
+        if (count === 0) {
           const subscriberData = {
             user_id: supabaseUserId,
             email: user.primaryEmailAddress?.emailAddress || "",
@@ -52,11 +53,22 @@ export const useSubscription = () => {
             .insert(subscriberData);
             
           if (insertError) throw insertError;
-        } else {
+        }
+
+        // Now get the subscriber data
+        const { data: subscriberData, error: fetchError } = await supabase
+          .from("subscribers")
+          .select("*")
+          .eq("user_id", supabaseUserId)
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        if (subscriberData) {
           setSubscriptionStatus({
-            subscribed: existingSubscriber.subscribed || false,
-            subscription_tier: existingSubscriber.subscription_tier,
-            subscription_end: existingSubscriber.subscription_end,
+            subscribed: subscriberData.subscribed || false,
+            subscription_tier: subscriberData.subscription_tier,
+            subscription_end: subscriberData.subscription_end,
           });
         }
 
