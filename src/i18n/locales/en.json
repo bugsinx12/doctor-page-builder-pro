@@ -11,6 +11,16 @@
     "login": "Login",
     "getStarted": "Get Started"
   },
+  "hero": {
+    "title": {
+      "part1": "Beautiful websites for",
+      "part2": "healthcare professionals"
+    },
+    "description": "Create a professional website for your medical practice in minutes. No coding required.",
+    "cta": {
+      "primary": "Get Started Free"
+    }
+  },
   "footer": {
     "tagline": "Creating beautiful websites for medical professionals",
     "product": "Product",

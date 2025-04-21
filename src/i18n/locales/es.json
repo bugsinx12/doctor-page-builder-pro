@@ -11,6 +11,16 @@
     "login": "Iniciar Sesión",
     "getStarted": "Comenzar"
   },
+  "hero": {
+    "title": {
+      "part1": "Sitios web hermosos para",
+      "part2": "profesionales de la salud"
+    },
+    "description": "Crea un sitio web profesional para tu consultorio médico en minutos. No requiere programación.",
+    "cta": {
+      "primary": "Comienza Gratis"
+    }
+  },
   "footer": {
     "tagline": "Creando hermosos sitios web para profesionales médicos",
     "product": "Producto",
