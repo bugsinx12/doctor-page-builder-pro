@@ -3,7 +3,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { Shell } from "@/components/Shell";
-import { useSyncUserProfile, useSubscriptionStatus } from "@/utils/auth-utils";
+import { useSyncUserProfile } from "@/hooks/useSyncUserProfile";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import NavigationItems from "@/components/dashboard/NavigationItems";
 import SubscriptionStatus from "@/components/dashboard/SubscriptionStatus";
@@ -21,7 +22,6 @@ const Dashboard = () => {
   }, [userId, navigate]);
 
   useEffect(() => {
-    // Log state for debugging
     console.log("Dashboard - Profile:", profile);
     console.log("Dashboard - Subscription:", subscriptionStatus);
   }, [profile, subscriptionStatus]);

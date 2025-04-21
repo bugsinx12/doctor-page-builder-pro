@@ -1,11 +1,10 @@
-
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect } from "react";
-import { getUUIDFromClerkID } from "@/utils/auth-utils";
+import getUUIDFromClerkID from "@/utils/getUUIDFromClerkID";
 import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
@@ -48,11 +47,7 @@ const Auth = () => {
   useEffect(() => {
     if (isSignedIn && userId) {
       console.log("User is signed in with Clerk ID:", userId);
-      
-      // Check if the data exists in Supabase
       checkUserData(userId);
-      
-      // Navigate to onboarding
       navigate("/onboarding", { replace: true });
     }
   }, [isSignedIn, userId, navigate]);

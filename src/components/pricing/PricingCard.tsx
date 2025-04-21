@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/components/ui/use-toast';
 import { useUser } from '@clerk/clerk-react';
+import { useSyncUserProfile } from "@/hooks/useSyncUserProfile";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 
 interface PricingFeature {
   text: string;
@@ -44,17 +45,14 @@ const PricingCard: React.FC<PricingCardProps> = ({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // Create auth data for Supabase edge functions
   const getAuthToken = () => {
     if (!user) return null;
     
-    // Create an auth token that includes the necessary user info
     const authData = {
       userId: user.id,
       userEmail: user.primaryEmailAddress?.emailAddress
     };
     
-    // Base64 encode the data
     return `Bearer ${btoa(JSON.stringify(authData))}`;
   };
 
@@ -69,7 +67,6 @@ const PricingCard: React.FC<PricingCardProps> = ({
       return;
     }
     
-    // Don't do anything if this is already the current plan
     if (isCurrentPlan) {
       navigate('/dashboard');
       return;
