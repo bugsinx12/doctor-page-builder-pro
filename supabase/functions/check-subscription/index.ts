@@ -59,6 +59,8 @@ serve(async (req) => {
       );
     }
 
+    console.log("Checking subscription for user:", userId);
+
     // Check for existing subscriber record
     const { data: subscriber, error: fetchError } = await supabase
       .from("subscribers")
@@ -83,7 +85,7 @@ serve(async (req) => {
       const { error: insertError } = await supabase
         .from("subscribers")
         .insert({
-          user_id: userId, // Already converted to UUID in the frontend
+          user_id: userId,
           email: userEmail || "",
           subscribed: false,
         });
@@ -111,6 +113,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log("Found subscriber record:", subscriber);
 
     // Return subscription data
     return new Response(

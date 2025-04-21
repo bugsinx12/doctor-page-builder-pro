@@ -77,11 +77,15 @@ export const useSyncUserProfile = () => {
 
           while (retryCount < maxRetries && !success) {
             try {
-              const { error: insertError } = await supabase.from("profiles").insert({
+              // Log the exact data being inserted
+              const profileData = {
                 id: supabaseUserId,
                 full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
                 avatar_url: user.imageUrl || null,
-              });
+              };
+              console.log("Inserting profile data:", profileData);
+              
+              const { error: insertError } = await supabase.from("profiles").insert(profileData);
 
               if (insertError) {
                 console.error(`Attempt ${retryCount + 1}: Error creating profile:`, insertError);
@@ -97,6 +101,7 @@ export const useSyncUserProfile = () => {
                 await new Promise((resolve) => setTimeout(resolve, 1000));
               } else {
                 success = true;
+                console.log("Profile created successfully");
                 // Fetch the newly created profile
                 const { data: newProfile } = await supabase
                   .from("profiles")
@@ -114,6 +119,7 @@ export const useSyncUserProfile = () => {
             }
           }
         } else {
+          console.log("Existing profile found:", existingProfile);
           setProfile(existingProfile);
         }
       } catch (error) {
@@ -153,6 +159,7 @@ export const useSubscriptionStatus = () => {
         
         // Generate UUID for Supabase based on Clerk userId
         const supabaseUserId = getUUIDFromClerkID(userId);
+        console.log("Using Supabase User ID for subscription:", supabaseUserId);
         
         // Check if subscriber record exists first
         const { data: existingSubscriber, error: fetchError } = await supabase
@@ -168,22 +175,30 @@ export const useSubscriptionStatus = () => {
         // If no subscriber record exists, create one with basic info
         if (!existingSubscriber) {
           console.log("Creating new subscriber record for:", supabaseUserId);
+          
+          const subscriberData = {
+            user_id: supabaseUserId,
+            email: user.primaryEmailAddress?.emailAddress || "",
+            subscribed: false
+          };
+          console.log("Inserting subscriber data:", subscriberData);
+          
           const { error: insertError } = await supabase
             .from("subscribers")
-            .insert({
-              user_id: supabaseUserId,
-              email: user.primaryEmailAddress?.emailAddress || "",
-              subscribed: false
-            });
+            .insert(subscriberData);
             
           if (insertError) {
             console.error("Error creating subscriber record:", insertError);
+          } else {
+            console.log("Subscriber record created successfully");
           }
+        } else {
+          console.log("Existing subscriber found:", existingSubscriber);
         }
         
         // Create an auth token that includes the necessary user info
         const authData = {
-          userId: supabaseUserId, // Use Supabase UUID
+          userId: supabaseUserId,
           userEmail: user.primaryEmailAddress?.emailAddress
         };
         
