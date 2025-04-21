@@ -277,7 +277,7 @@ serve(async (req) => {
       subscribed: false 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200, // Return 200 so the frontend can handle the error
+      status: 200 // Return 200 to prevent browser error
     });
   }
 })

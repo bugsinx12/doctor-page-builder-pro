@@ -15,7 +15,7 @@ const Auth = () => {
   // Redirect to dashboard if already signed in
   useEffect(() => {
     if (isSignedIn) {
-      navigate("/dashboard", { replace: true });
+      navigate("/onboarding", { replace: true });
     }
   }, [isSignedIn, navigate]);
 
@@ -54,7 +54,7 @@ const Auth = () => {
             <TabsContent value="signup">
               <SignUp 
                 signInUrl="/auth?tab=login"
-                redirectUrl="/dashboard"
+                redirectUrl="/onboarding"
                 appearance={{
                   elements: {
                     rootBox: "w-full",

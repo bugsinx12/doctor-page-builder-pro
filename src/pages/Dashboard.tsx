@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 import { CalendarDays, BarChart2, Settings, LayoutTemplate } from "lucide-react";
 import { Shell } from "@/components/Shell";
@@ -20,6 +21,7 @@ interface NavItem {
 
 const Dashboard = () => {
   const { userId, getToken } = useAuth();
+  const { user } = useUser();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [practiceName, setPracticeName] = useState<string | null>(null);
@@ -48,19 +50,39 @@ const Dashboard = () => {
           .from("profiles")
           .select("practice_name, specialty, avatar_url")
           .eq("id", userId)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("Error fetching profile:", error);
-          toast({
-            title: "Error",
-            description: "Failed to load your profile. Please try again.",
-            variant: "destructive",
-          });
+          
+          // Only show toast for real errors, not just missing data
+          if (error.code !== 'PGRST116') {
+            toast({
+              title: "Error",
+              description: "Failed to load your profile. Please try again.",
+              variant: "destructive",
+            });
+          }
+          
+          // If we couldn't find a profile, check if onboarding is completed
+          if (error.code === 'PGRST116' || error.message.includes('no rows')) {
+            const onboardingCompleted = user?.unsafeMetadata?.onboardingCompleted as boolean;
+            if (!onboardingCompleted) {
+              navigate("/onboarding", { replace: true });
+              return;
+            }
+          }
         } else if (data) {
           setPracticeName(data.practice_name);
           setSpecialty(data.specialty);
           setAvatarUrl(data.avatar_url);
+        } else {
+          // If no profile found, redirect to onboarding
+          const onboardingCompleted = user?.unsafeMetadata?.onboardingCompleted as boolean;
+          if (!onboardingCompleted) {
+            navigate("/onboarding", { replace: true });
+            return;
+          }
         }
       } catch (error) {
         console.error("Unexpected error:", error);
@@ -74,11 +96,20 @@ const Dashboard = () => {
 
     const checkSubscription = async () => {
       try {
-        const token = await getToken({ template: "supabase" });
+        if (!user) return;
+        
+        // Create an auth token that includes the necessary user info
+        const authData = {
+          userId: userId,
+          userEmail: user.primaryEmailAddress?.emailAddress
+        };
+        
+        // Base64 encode the data
+        const authToken = `Bearer ${btoa(JSON.stringify(authData))}`;
 
         const response = await fetch("/api/check-subscription", {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: authToken,
           },
         });
 
@@ -117,7 +148,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [userId, navigate, toast, getToken]);
+  }, [userId, navigate, toast, user]);
 
   const navigationItems = [
     {
@@ -148,87 +179,98 @@ const Dashboard = () => {
 
   return (
     <Shell>
-      <div className="grid gap-6">
-        <div className="flex items-center gap-4">
-          <Avatar>
-            {isLoading ? (
-              <Skeleton className="h-12 w-12 rounded-full" />
-            ) : avatarUrl ? (
-              <AvatarImage src={avatarUrl} alt={practiceName || "Avatar"} />
-            ) : (
-              <AvatarFallback>{practiceName?.charAt(0) || "P"}</AvatarFallback>
-            )}
-          </Avatar>
-          <div className="flex flex-col gap-1">
-            <CardTitle className="text-2xl font-bold">
+      <div className="container py-6">
+        <div className="grid gap-6">
+          <div className="flex items-center gap-4">
+            <Avatar>
               {isLoading ? (
-                <Skeleton className="h-6 w-48" />
+                <Skeleton className="h-12 w-12 rounded-full" />
+              ) : avatarUrl ? (
+                <AvatarImage src={avatarUrl} alt={practiceName || "Avatar"} />
               ) : (
-                practiceName || "Loading..."
+                <AvatarFallback>{practiceName?.charAt(0) || user?.firstName?.charAt(0) || "P"}</AvatarFallback>
               )}
-            </CardTitle>
-            <CardContent className="text-sm text-muted-foreground">
+            </Avatar>
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-2xl font-bold">
+                {isLoading ? (
+                  <Skeleton className="h-6 w-48" />
+                ) : (
+                  practiceName || user?.firstName || "Welcome"
+                )}
+              </CardTitle>
+              <CardContent className="p-0 text-sm text-muted-foreground">
+                {isLoading ? (
+                  <Skeleton className="h-4 w-32" />
+                ) : (
+                  specialty || (user?.unsafeMetadata?.onboardingCompleted ? "No specialty set" : "Please complete onboarding")
+                )}
+                {!user?.unsafeMetadata?.onboardingCompleted && (
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-sm text-medical-600"
+                    onClick={() => navigate("/onboarding")}
+                  >
+                    Complete your profile
+                  </Button>
+                )}
+              </CardContent>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {navigationItems.map((item) => (
+              <Card key={item.name} className="overflow-hidden">
+                <CardHeader className="flex items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {item.name}
+                  </CardTitle>
+                  <item.icon className={`h-4 w-4 ${item.color}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    <Button asChild variant="link">
+                      <Link to={item.href}>Go to {item.name}</Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Subscription Status</CardTitle>
+            </CardHeader>
+            <CardContent>
               {isLoading ? (
                 <Skeleton className="h-4 w-32" />
+              ) : subscriptionStatus.subscribed ? (
+                <>
+                  <p className="text-green-600 font-bold">Subscribed</p>
+                  <p>
+                    Tier: {subscriptionStatus.subscription_tier || "Unknown"}
+                  </p>
+                  {subscriptionStatus.subscription_end && (
+                    <p>
+                      Renews:{" "}
+                      {new Date(
+                        subscriptionStatus.subscription_end
+                      ).toLocaleDateString()}
+                    </p>
+                  )}
+                </>
               ) : (
-                specialty || "Loading..."
+                <>
+                  <p className="text-amber-600 font-bold">Not Subscribed</p>
+                  <Button asChild className="mt-2">
+                    <Link to="/pricing">View Pricing</Link>
+                  </Button>
+                </>
               )}
             </CardContent>
-          </div>
+          </Card>
         </div>
-
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {navigationItems.map((item) => (
-            <Card key={item.name} className="overflow-hidden">
-              <CardHeader className="flex items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {item.name}
-                </CardTitle>
-                <item.icon className={`h-4 w-4 ${item.color}`} />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  <Button asChild variant="link">
-                    <Link to={item.href}>Go to {item.name}</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Subscription Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <Skeleton className="h-4 w-32" />
-            ) : subscriptionStatus.subscribed ? (
-              <>
-                <p className="text-green-600 font-bold">Subscribed</p>
-                <p>
-                  Tier: {subscriptionStatus.subscription_tier || "Unknown"}
-                </p>
-                {subscriptionStatus.subscription_end && (
-                  <p>
-                    Renews:{" "}
-                    {new Date(
-                      subscriptionStatus.subscription_end
-                    ).toLocaleDateString()}
-                  </p>
-                )}
-              </>
-            ) : (
-              <>
-                <p className="text-red-600 font-bold">Not Subscribed</p>
-                <Button asChild>
-                  <Link to="/pricing">View Pricing</Link>
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
       </div>
     </Shell>
   );

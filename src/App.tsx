@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useAuth, RedirectToSignIn } from "@clerk/clerk-react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useAuth, RedirectToSignIn, useUser } from "@clerk/clerk-react";
 import { useState, useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -15,19 +15,30 @@ import TemplateDetail from "./pages/TemplateDetail";
 import NotFound from "./pages/NotFound";
 import WebsiteManager from "./pages/WebsiteManager";
 import LandingView from "./pages/LandingView";
+import OnboardingPage from "./pages/OnboardingPage";
 import './i18n';
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isSignedIn, isLoaded } = useAuth();
+  const { user } = useUser();
+  const navigate = useNavigate();
   const [checking, setChecking] = useState(true);
   
   useEffect(() => {
     // Wait for auth to load
     if (isLoaded) {
+      if (isSignedIn && user) {
+        // Check if the user has completed onboarding
+        const onboardingCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
+        if (!onboardingCompleted) {
+          // Redirect to onboarding if not completed
+          navigate("/onboarding", { replace: true });
+        }
+      }
       setChecking(false);
     }
-  }, [isLoaded]);
+  }, [isLoaded, isSignedIn, user, navigate]);
   
   if (checking || !isLoaded) {
     return (
@@ -60,6 +71,13 @@ const App = () => {
             <Route path="/auth/*" element={<Auth />} />
             <Route path="/sign-in/*" element={<Auth />} />
             <Route path="/sign-up/*" element={<Auth />} />
+            
+            {/* Onboarding */}
+            <Route path="/onboarding" element={
+              <ProtectedRoute>
+                <OnboardingPage />
+              </ProtectedRoute>
+            } />
             
             {/* Protected routes */}
             <Route path="/dashboard" element={
