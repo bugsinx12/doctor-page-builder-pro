@@ -22,11 +22,14 @@ export const getUUIDFromClerkID = (clerkId: string): string => {
     hash = hash & hash; // Convert to 32bit integer
   }
   
-  // Seed a UUID v4 with the hash
-  const seed = Math.abs(hash).toString();
-  return uuidv4({ random: Array.from({ length: 16 }, (_, i) => 
-    parseInt(seed.charAt(i % seed.length) || '0') % 256) 
-  });
+  // Convert the hash to a seed array of 16 bytes for UUID v4
+  const seed = new Uint8Array(16);
+  const absHash = Math.abs(hash);
+  for (let i = 0; i < 16; i++) {
+    seed[i] = (absHash >> ((i % 4) * 8)) & 0xff;
+  }
+
+  return uuidv4({ random: Array.from(seed) });
 };
 
 export const useSyncUserProfile = () => {
@@ -241,3 +244,4 @@ export const useSubscriptionStatus = () => {
 
   return { subscriptionStatus, isLoading };
 };
+
