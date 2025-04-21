@@ -19,11 +19,9 @@ const HeroSection = () => {
             </p>
             <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
               <Button size="lg" className="bg-white text-medical-700 hover:bg-blue-50" asChild>
-                <Link to="/signup">Get Started</Link>
+                <Link to="/auth?tab=signup">Get Started</Link>
               </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-medical-700/20" asChild>
-                <Link to="/templates">View Templates</Link>
-              </Button>
+              {/* Removed "View Templates" button */}
             </div>
             <p className="text-sm text-blue-100">
               No credit card required • Set up in minutes • Cancel anytime

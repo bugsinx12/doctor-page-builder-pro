@@ -1,11 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 
-// Template preview images would be imported here in a real implementation
 const templates = [
   {
     id: 'general-practice',
@@ -69,12 +67,6 @@ const TemplatesSection = () => {
               </CardContent>
             </Card>
           ))}
-        </div>
-
-        <div className="mt-12 text-center">
-          <Button size="lg" asChild>
-            <Link to="/templates">View All Templates</Link>
-          </Button>
         </div>
       </div>
     </section>

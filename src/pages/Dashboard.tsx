@@ -169,7 +169,7 @@ const Dashboard = () => {
 
   return (
     <Shell>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-6">
         <div className="grid gap-6">
           <div className="flex items-center gap-4">
             <Avatar>
@@ -208,7 +208,8 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* Improved responsive grid on mobile: 1 column on xs, 2 columns on sm, 4 on lg */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {navigationItems.map((item) => (
               <Card key={item.name} className="overflow-hidden">
                 <CardHeader className="flex items-center justify-between space-y-0 pb-2">
@@ -219,7 +220,7 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
-                    <Button asChild variant="link">
+                    <Button asChild variant="link" className="break-words text-sky-600">
                       <Link to={item.href}>Go to {item.name}</Link>
                     </Button>
                   </div>
