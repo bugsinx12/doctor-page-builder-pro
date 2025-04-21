@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,7 +5,7 @@ import { WebsiteContent, WebsiteSettings, Template, Website } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { defaultContent, defaultSettings } from '@/pages/websiteManagerUtils';
-import { getUUIDFromClerkID } from '@/utils/auth-utils';
+import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 
 export const useWebsiteManager = () => {
   const { userId } = useAuth();
