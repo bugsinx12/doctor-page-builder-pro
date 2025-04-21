@@ -21,53 +21,83 @@ export const useSubscriptionStatus = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId || !user) return;
+    if (!userId || !user) {
+      setIsLoading(false);
+      return;
+    }
 
     const checkSubscription = async () => {
       try {
         setIsLoading(true);
-
         const supabaseUserId = getUUIDFromClerkID(userId);
 
+        // First, check if subscriber record exists
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
           .eq("user_id", supabaseUserId)
           .maybeSingle();
 
+        if (fetchError) {
+          console.error("Error checking subscriber:", fetchError);
+        }
+
+        // If subscriber doesn't exist, create it
         if (!existingSubscriber) {
           const subscriberData = {
             user_id: supabaseUserId,
             email: user.primaryEmailAddress?.emailAddress || "",
             subscribed: false
           };
-          await supabase.from("subscribers").insert(subscriberData);
+          
+          const { error: insertError } = await supabase
+            .from("subscribers")
+            .insert(subscriberData);
+            
+          if (insertError) {
+            console.error("Error creating subscriber record:", insertError);
+          } else {
+            console.log("Subscriber record created successfully");
+          }
+        } else {
+          console.log("Subscriber record found:", existingSubscriber);
+          
+          // If we found a subscription record, update the state
+          setSubscriptionStatus({
+            subscribed: existingSubscriber.subscribed || false,
+            subscription_tier: existingSubscriber.subscription_tier,
+            subscription_end: existingSubscriber.subscription_end,
+          });
         }
 
-        const authData = {
-          userId: supabaseUserId,
-          userEmail: user.primaryEmailAddress?.emailAddress
-        };
-        const authToken = btoa(JSON.stringify(authData));
+        // We'll still try to fetch subscription from edge function if it exists
+        try {
+          const authData = {
+            userId: supabaseUserId,
+            userEmail: user.primaryEmailAddress?.emailAddress
+          };
+          const authToken = btoa(JSON.stringify(authData));
 
-        const response = await fetch("/api/check-subscription", {
-          headers: {
-            Authorization: `Bearer ${authToken}`,
-          },
-        });
+          const response = await fetch("/api/check-subscription", {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
 
-        if (!response.ok) {
-          return;
+          if (response.ok) {
+            const data = await response.json();
+            setSubscriptionStatus({
+              subscribed: data.subscribed,
+              subscription_tier: data.subscription_tier,
+              subscription_end: data.subscription_end,
+            });
+          }
+        } catch (apiError) {
+          console.log("API subscription check skipped or failed:", apiError);
+          // Fall back to the data we already have from the database
         }
-
-        const data = await response.json();
-
-        setSubscriptionStatus({
-          subscribed: data.subscribed,
-          subscription_tier: data.subscription_tier,
-          subscription_end: data.subscription_end,
-        });
       } catch (error) {
+        console.error("Error in subscription check:", error);
         toast({
           title: "Subscription Check Failed",
           description: "Unable to verify your subscription status.",

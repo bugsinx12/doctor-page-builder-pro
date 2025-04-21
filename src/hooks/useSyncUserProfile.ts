@@ -19,6 +19,7 @@ export const useSyncUserProfile = () => {
   useEffect(() => {
     if (!userId || !user) {
       console.log("No user ID or user object available");
+      setIsLoading(false);
       return;
     }
 
@@ -27,68 +28,61 @@ export const useSyncUserProfile = () => {
         setIsLoading(true);
         const supabaseUserId = getUUIDFromClerkID(userId);
 
+        // First, make sure the user profile exists
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", supabaseUserId)
           .maybeSingle();
 
-        if (fetchError && fetchError.code !== "PGRST116") {
+        if (fetchError) {
+          console.error("Error fetching profile:", fetchError);
           toast({
             title: "Error",
             description: "Could not check your profile. Please try again.",
             variant: "destructive",
           });
+          setIsLoading(false);
           return;
         }
 
-        // If profile doesn't exist, create one with retry logic
+        // If profile doesn't exist, create it through direct insert
         if (!existingProfile) {
-          let retryCount = 0;
-          const maxRetries = 3;
-          let success = false;
+          const profileData = {
+            id: supabaseUserId,
+            full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
+            avatar_url: user.imageUrl || null,
+          };
 
-          while (retryCount < maxRetries && !success) {
-            try {
-              const profileData = {
-                id: supabaseUserId,
-                full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
-                avatar_url: user.imageUrl || null,
-              };
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert(profileData);
 
-              const { data: insertData, error: insertError } = await supabase
-                .from("profiles")
-                .insert(profileData)
-                .select();
-
-              if (insertError) {
-                retryCount++;
-                if (retryCount === maxRetries) {
-                  toast({
-                    title: "Profile Creation Error",
-                    description: "Could not create your profile. Some features may be limited.",
-                    variant: "destructive",
-                  });
-                }
-                await new Promise((resolve) => setTimeout(resolve, 1000));
-              } else {
-                success = true;
-                const { data: newProfile } = await supabase
-                  .from("profiles")
-                  .select("*")
-                  .eq("id", supabaseUserId)
-                  .maybeSingle();
-                if (newProfile) setProfile(newProfile);
-              }
-            } catch (error) {
-              retryCount++;
-            }
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+            toast({
+              title: "Profile Creation Error",
+              description: "Could not create your profile. Some features may be limited.",
+              variant: "destructive",
+            });
+          } else {
+            console.log("Profile created successfully");
+            
+            // Get the newly created profile
+            const { data: newProfile } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", supabaseUserId)
+              .maybeSingle();
+              
+            if (newProfile) setProfile(newProfile);
           }
         } else {
+          console.log("Profile found:", existingProfile);
           setProfile(existingProfile);
         }
       } catch (error) {
-        // log and fall through
+        console.error("Unexpected error in profile sync:", error);
       } finally {
         setIsLoading(false);
       }

@@ -2,6 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
+import doctorHeroImage from "@/assets/doctor-hero.svg";
 
 export default function HeroSection() {
   const { t } = useTranslation();
@@ -49,7 +50,7 @@ export default function HeroSection() {
       <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
         <img
           className="h-56 w-full object-cover sm:h-72 md:h-96 lg:h-full lg:w-full"
-          src="/src/assets/doctor-hero.svg"
+          src={doctorHeroImage}
           alt="Doctor"
         />
       </div>

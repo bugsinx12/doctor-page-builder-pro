@@ -1,7 +1,8 @@
 
-import { v4 as uuidv4 } from 'uuid';
+import { v5 as uuidv5 } from 'uuid';
 
 // Helper function to convert Clerk ID to a valid UUID for Supabase
+// Using UUID v5 with a namespace for more deterministic results
 const getUUIDFromClerkID = (clerkId: string): string => {
   // Check if the ID is already a valid UUID
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -10,22 +11,12 @@ const getUUIDFromClerkID = (clerkId: string): string => {
     return clerkId;
   }
 
-  // If not a valid UUID, generate a deterministic UUID based on the Clerk ID
-  let hash = 0;
-  for (let i = 0; i < clerkId.length; i++) {
-    const char = clerkId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
+  // Create a namespace based on the application name - this should remain constant
+  const NAMESPACE = "d6d51b5a-34c4-4a0d-8c2f-3bd278c80080"; // Just a static UUID for our app
 
-  // Correct: create a Uint8Array for the uuidv4 random param
-  const seed = new Uint8Array(16);
-  const absHash = Math.abs(hash);
-  for (let i = 0; i < 16; i++) {
-    seed[i] = (absHash >> ((i % 4) * 8)) & 0xff;
-  }
-
-  const generatedUuid = uuidv4({ random: seed });
+  // Generate a deterministic UUID based on the Clerk ID using the namespace
+  const generatedUuid = uuidv5(clerkId, NAMESPACE);
+  
   console.log("Generated UUID for Clerk ID:", clerkId, "->", generatedUuid);
   return generatedUuid;
 };
