@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +23,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import WebsiteTemplateCard from './WebsiteTemplateCard';
+import WebsiteCard from './WebsiteCard';
+import { defaultContent, defaultSettings } from './websiteManagerUtils';
 
 const defaultContent: Record<string, WebsiteContent> = {
   'general-practice': {
@@ -269,9 +271,9 @@ const WebsiteManager = () => {
             category: 'general',
             features: ['Patient portal', 'Appointment booking', 'Staff profiles'],
             popular: true,
-            preview: '/placeholder.svg', // Added required property
-            screenshots: ['/placeholder.svg', '/placeholder.svg'], // Added required property
-            tags: ['modern', 'clean', 'professional'], // Added required property
+            preview: '/placeholder.svg',
+            screenshots: ['/placeholder.svg', '/placeholder.svg'],
+            tags: ['modern', 'clean', 'professional'],
           },
           {
             id: 'specialist-1',
@@ -281,9 +283,9 @@ const WebsiteManager = () => {
             category: 'specialist',
             features: ['Procedures section', 'Research highlights', 'Patient testimonials'],
             new: true,
-            preview: '/placeholder.svg', // Added required property
-            screenshots: ['/placeholder.svg', '/placeholder.svg'], // Added required property
-            tags: ['specialist', 'professional', 'focused'], // Added required property
+            preview: '/placeholder.svg',
+            screenshots: ['/placeholder.svg', '/placeholder.svg'],
+            tags: ['specialist', 'professional', 'focused'],
           },
           {
             id: 'pediatric-1',
@@ -293,9 +295,9 @@ const WebsiteManager = () => {
             category: 'pediatric',
             features: ['Child-friendly UI', 'Parent resources', 'Vaccination info'],
             new: true,
-            preview: '/placeholder.svg', // Added required property
-            screenshots: ['/placeholder.svg', '/placeholder.svg'], // Added required property
-            tags: ['pediatric', 'friendly', 'colorful'], // Added required property
+            preview: '/placeholder.svg',
+            screenshots: ['/placeholder.svg', '/placeholder.svg'],
+            tags: ['pediatric', 'friendly', 'colorful'],
           },
         ]);
 
@@ -477,85 +479,18 @@ const WebsiteManager = () => {
     }
   };
 
-  const renderTemplateCards = () => {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {templates.map(template => (
-          <Card key={template.id} className="overflow-hidden">
-            <div className="aspect-video relative bg-gray-100">
-              <img
-                src={template.thumbnail}
-                alt={template.name}
-                className="w-full h-full object-cover"
-              />
-              {template.popular && (
-                <div className="absolute top-2 right-2 bg-medical-600 text-white text-xs font-bold px-2 py-1 rounded">
-                  Popular
-                </div>
-              )}
-              {template.new && (
-                <div className="absolute top-2 right-2 bg-green-600 text-white text-xs font-bold px-2 py-1 rounded">
-                  New
-                </div>
-              )}
-            </div>
-            <CardHeader>
-              <CardTitle>{template.name}</CardTitle>
-              <CardDescription>{template.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <h4 className="font-medium mb-2">Features:</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
-                {template.features.map((feature, i) => (
-                  <li key={i}>• {feature}</li>
-                ))}
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="w-full">Use this template</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create website with this template?</DialogTitle>
-                    <DialogDescription>
-                      This will create a new website using {template.name} template with your practice information.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="py-4">
-                    <p className="mb-4"><span className="font-medium">Practice name:</span> {practiceInfo.name}</p>
-                    {practiceInfo.specialty && (
-                      <p className="mb-4"><span className="font-medium">Specialty:</span> {practiceInfo.specialty}</p>
-                    )}
-                  </div>
-                  <div className="flex justify-end gap-4">
-                    <Button variant="outline" onClick={() => {
-                      const closeButton = document.querySelector('[data-state="open"] [role="dialog"] button.close');
-                      if (closeButton instanceof HTMLButtonElement) {
-                        closeButton.click();
-                      }
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button onClick={() => {
-                      createWebsite(template.id);
-                      const closeButton = document.querySelector('[data-state="open"] [role="dialog"] button.close');
-                      if (closeButton instanceof HTMLButtonElement) {
-                        closeButton.click();
-                      }
-                    }}>
-                      Create Website
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    );
-  };
+  const renderTemplateCards = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {templates.map(template => (
+        <WebsiteTemplateCard
+          key={template.id}
+          template={template}
+          practiceInfo={practiceInfo}
+          onCreate={createWebsite}
+        />
+      ))}
+    </div>
+  );
 
   if (loading) {
     return (
@@ -584,9 +519,7 @@ const WebsiteManager = () => {
               </p>
               <Button onClick={() => {
                 const tabTrigger = document.querySelector('[data-state="inactive"][value="templates"]');
-                if (tabTrigger instanceof HTMLButtonElement) {
-                  tabTrigger.click();
-                }
+                if (tabTrigger instanceof HTMLButtonElement) tabTrigger.click();
               }}>
                 Browse Templates
               </Button>
@@ -594,64 +527,13 @@ const WebsiteManager = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {websites.map(website => (
-                <Card key={website.id} className="overflow-hidden">
-                  <CardHeader className="pb-4">
-                    <CardTitle>{website.name}</CardTitle>
-                    <CardDescription>
-                      Created: {new Date(website.createdAt).toLocaleDateString()}
-                    </CardDescription>
-                  </CardHeader>
-                  <div className="aspect-video bg-gray-100 px-6">
-                    <img
-                      src="/placeholder.svg"
-                      alt={website.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="pt-6">
-                    <p className="text-sm text-gray-600 mb-4">
-                      Template: {templates.find(t => t.id === website.templateId)?.name || website.templateId}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="flex items-center gap-1"
-                        onClick={() => copyLandingPageUrl(website.id)}
-                      >
-                        <Copy className="h-4 w-4" /> Copy URL
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="flex items-center gap-1"
-                        asChild
-                      >
-                        <Link to={`/landings/${website.id}`} target="_blank">
-                          <ExternalLink className="h-4 w-4" /> View
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                      disabled
-                    >
-                      <Edit className="h-4 w-4" /> Edit
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      className="flex items-center gap-1"
-                      onClick={() => deleteWebsite(website.id)}
-                    >
-                      <Trash2 className="h-4 w-4" /> Delete
-                    </Button>
-                  </CardFooter>
-                </Card>
+                <WebsiteCard
+                  key={website.id}
+                  website={website}
+                  templateName={templates.find(t => t.id === website.templateId)?.name || website.templateId}
+                  onCopyUrl={copyLandingPageUrl}
+                  onDelete={deleteWebsite}
+                />
               ))}
             </div>
           )}
