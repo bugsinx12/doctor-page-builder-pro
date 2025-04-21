@@ -25,6 +25,8 @@ export const useProfile = () => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
+        
+        // Check if profile exists
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
@@ -33,40 +35,35 @@ export const useProfile = () => {
 
         if (fetchError) throw fetchError;
 
-        if (!existingProfile) {
-          // Check if profile_exists first to avoid foreign key constraint errors
-          const { count, error: countError } = await supabase
+        if (existingProfile) {
+          // Profile exists, use it
+          setProfile(existingProfile);
+        } else {
+          // Profile doesn't exist, create it
+          const profileData = {
+            id: supabaseUserId,
+            full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
+            avatar_url: user.imageUrl || null,
+          };
+
+          const { error: insertError } = await supabase
             .from("profiles")
-            .select("*", { count: "exact", head: true })
-            .eq("id", supabaseUserId);
-            
-          if (countError) throw countError;
-          
-          // Only insert if profile doesn't exist
-          if (count === 0) {
-            const profileData = {
-              id: supabaseUserId,
-              full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
-              avatar_url: user.imageUrl || null,
-            };
+            .insert(profileData);
 
-            const { error: insertError } = await supabase
-              .from("profiles")
-              .insert(profileData);
-
-            if (insertError) throw insertError;
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+            throw insertError;
           }
 
-          // Get the newly created profile
-          const { data: newProfile } = await supabase
+          // Fetch the newly created profile
+          const { data: newProfile, error: newProfileError } = await supabase
             .from("profiles")
             .select("*")
             .eq("id", supabaseUserId)
             .maybeSingle();
 
+          if (newProfileError) throw newProfileError;
           if (newProfile) setProfile(newProfile);
-        } else {
-          setProfile(existingProfile);
         }
       } catch (error) {
         console.error("Error in profile operations:", error);

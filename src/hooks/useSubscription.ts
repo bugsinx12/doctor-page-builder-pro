@@ -32,16 +32,24 @@ export const useSubscription = () => {
       try {
         setIsLoading(true);
 
-        // Check if subscriber exists first
-        const { count, error: countError } = await supabase
+        // Check if subscriber exists
+        const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", supabaseUserId);
-          
-        if (countError) throw countError;
+          .select("*")
+          .eq("user_id", supabaseUserId)
+          .maybeSingle();
 
-        // Only create a new subscriber if one doesn't exist
-        if (count === 0) {
+        if (fetchError) throw fetchError;
+
+        if (existingSubscriber) {
+          // Subscriber exists, use it
+          setSubscriptionStatus({
+            subscribed: existingSubscriber.subscribed || false,
+            subscription_tier: existingSubscriber.subscription_tier,
+            subscription_end: existingSubscriber.subscription_end,
+          });
+        } else {
+          // Subscriber doesn't exist, create it
           const subscriberData = {
             user_id: supabaseUserId,
             email: user.primaryEmailAddress?.emailAddress || "",
@@ -52,24 +60,12 @@ export const useSubscription = () => {
             .from("subscribers")
             .insert(subscriberData);
             
-          if (insertError) throw insertError;
-        }
+          if (insertError) {
+            console.error("Error creating subscriber:", insertError);
+            throw insertError;
+          }
 
-        // Now get the subscriber data
-        const { data: subscriberData, error: fetchError } = await supabase
-          .from("subscribers")
-          .select("*")
-          .eq("user_id", supabaseUserId)
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-
-        if (subscriberData) {
-          setSubscriptionStatus({
-            subscribed: subscriberData.subscribed || false,
-            subscription_tier: subscriberData.subscription_tier,
-            subscription_end: subscriberData.subscription_end,
-          });
+          // Using default subscription status since we just created a new record
         }
 
         // Check subscription status from edge function if available

@@ -28,6 +28,7 @@ export const useSupabaseAuth = () => {
       const supabaseUserId = getUUIDFromClerkID(userId);
       setState({ supabaseUserId, isLoading: false, error: null });
     } catch (error) {
+      console.error("Error converting Clerk ID to UUID:", error);
       setState({ 
         supabaseUserId: null, 
         isLoading: false, 

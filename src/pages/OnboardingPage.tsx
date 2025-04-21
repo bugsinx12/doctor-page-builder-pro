@@ -39,17 +39,18 @@ const OnboardingPage = () => {
         console.log("Checking for existing profile for user ID:", supabaseUserId);
         
         // Check if profile already exists
-        const { count: profileCount, error: profileCountError } = await supabase
+        const { data: existingProfile, error: profileError } = await supabase
           .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('id', supabaseUserId);
+          .select('*')
+          .eq('id', supabaseUserId)
+          .maybeSingle();
           
-        if (profileCountError) {
-          console.error("Error checking profile:", profileCountError);
+        if (profileError) {
+          console.error("Error checking profile:", profileError);
         }
         
         // Only create profile if it doesn't exist
-        if (profileCount === 0) {
+        if (!existingProfile) {
           console.log("Creating new profile for user");
           const profileData = {
             id: supabaseUserId,
@@ -71,17 +72,18 @@ const OnboardingPage = () => {
         }
 
         // Check if subscriber record exists
-        const { count: subscriberCount, error: subCountError } = await supabase
+        const { data: existingSubscriber, error: subError } = await supabase
           .from('subscribers')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', supabaseUserId);
+          .select('*')
+          .eq('user_id', supabaseUserId)
+          .maybeSingle();
           
-        if (subCountError) {
-          console.error('Error checking subscriber:', subCountError);
+        if (subError) {
+          console.error('Error checking subscriber:', subError);
         }
         
         // Only create subscriber if it doesn't exist
-        if (subscriberCount === 0) {
+        if (!existingSubscriber) {
           console.log("Creating new subscriber record");
           const subscriberData = {
             user_id: supabaseUserId,
