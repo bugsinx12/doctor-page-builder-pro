@@ -6,6 +6,7 @@ import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { defaultContent, defaultSettings } from '@/pages/websiteManagerUtils';
+import { Json } from '@/integrations/supabase/types';
 
 export const useWebsiteOperations = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
   const { userId } = useAuth();
@@ -44,8 +45,8 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           name: practiceInfo.name,
           slug: slug,
           templateid: templateId,
-          content: customContent,
-          settings: defaultSettings[templateType],
+          content: customContent as unknown as Json,
+          settings: defaultSettings[templateType] as unknown as Json,
           createdat: new Date().toISOString(),
           updatedat: new Date().toISOString(),
         })
@@ -62,8 +63,8 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           slug: data.slug,
           templateId: data.templateid,
           customDomain: data.customdomain,
-          content: data.content as WebsiteContent,
-          settings: data.settings as WebsiteSettings,
+          content: data.content as unknown as WebsiteContent,
+          settings: data.settings as unknown as WebsiteSettings,
           createdAt: data.createdat,
           updatedAt: data.updatedat,
           publishedAt: data.publishedat || undefined,
