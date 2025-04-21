@@ -24,8 +24,8 @@ const OnboardingPage = () => {
         // If onboarding is already completed, redirect to dashboard
         navigate('/dashboard', { replace: true });
       } else {
-        // Try to create a profile record if it doesn't exist
         try {
+          // Try to create a profile record if it doesn't exist
           const { data: existingProfile, error: fetchError } = await supabase
             .from('profiles')
             .select('*')
@@ -41,23 +41,42 @@ const OnboardingPage = () => {
             });
           }
           
-          // If profile doesn't exist, create one
+          // If profile doesn't exist, create one with retry
           if (!existingProfile) {
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: user.id,
-                full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
-                avatar_url: user.imageUrl || null
-              });
-              
-            if (insertError) {
-              console.error('Error creating profile:', insertError);
-              toast({
-                title: 'Profile Creation Error',
-                description: 'Could not create your profile. Some features may be limited.',
-                variant: 'destructive'
-              });
+            // Set up retry logic
+            let retryCount = 0;
+            const maxRetries = 3;
+            let success = false;
+            
+            while (retryCount < maxRetries && !success) {
+              try {
+                const { error: insertError } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: user.id,
+                    full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
+                    avatar_url: user.imageUrl || null
+                  });
+                  
+                if (insertError) {
+                  console.error(`Attempt ${retryCount + 1}: Error creating profile:`, insertError);
+                  retryCount++;
+                  if (retryCount === maxRetries) {
+                    toast({
+                      title: 'Profile Creation Error',
+                      description: 'Could not create your profile. Some features may be limited.',
+                      variant: 'destructive'
+                    });
+                  }
+                  // Wait a bit before retrying
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                } else {
+                  success = true;
+                }
+              } catch (error) {
+                console.error(`Attempt ${retryCount + 1}: Unexpected error:`, error);
+                retryCount++;
+              }
             }
           }
         } catch (error) {

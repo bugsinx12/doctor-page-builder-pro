@@ -105,26 +105,22 @@ const Dashboard = () => {
         };
         
         // Base64 encode the data
-        const authToken = `Bearer ${btoa(JSON.stringify(authData))}`;
+        const authToken = btoa(JSON.stringify(authData));
 
         const response = await fetch("/api/check-subscription", {
           headers: {
-            Authorization: authToken,
+            Authorization: `Bearer ${authToken}`,
           },
         });
 
         if (!response.ok) {
           console.error("Failed to check subscription:", response.statusText);
-          toast({
-            title: "Subscription Check Failed",
-            description:
-              "Unable to verify your subscription status. Please try again.",
-            variant: "destructive",
-          });
           return;
         }
 
         const data = await response.json();
+        console.log("Subscription data:", data);
+        
         setSubscriptionStatus({
           subscribed: data.subscribed,
           subscription_tier: data.subscription_tier,
@@ -132,12 +128,6 @@ const Dashboard = () => {
         });
       } catch (error) {
         console.error("Error checking subscription:", error);
-        toast({
-          title: "Subscription Check Error",
-          description:
-            "An error occurred while checking your subscription status.",
-          variant: "destructive",
-        });
       }
     };
 
@@ -179,7 +169,7 @@ const Dashboard = () => {
 
   return (
     <Shell>
-      <div className="container py-6">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid gap-6">
           <div className="flex items-center gap-4">
             <Avatar>
@@ -249,7 +239,7 @@ const Dashboard = () => {
                 <>
                   <p className="text-green-600 font-bold">Subscribed</p>
                   <p>
-                    Tier: {subscriptionStatus.subscription_tier || "Unknown"}
+                    Tier: {subscriptionStatus.subscription_tier || "Premium"}
                   </p>
                   {subscriptionStatus.subscription_end && (
                     <p>

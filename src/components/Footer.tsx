@@ -25,11 +25,6 @@ const Footer = () => {
             <h3 className="font-medium text-gray-900 mb-4">{t('footer.product')}</h3>
             <ul className="space-y-3">
               <li>
-                <Link to="/features" className="text-gray-600 hover:text-medical-600 text-sm transition-colors">
-                  {t('footer.productLinks.features')}
-                </Link>
-              </li>
-              <li>
                 <Link to="/pricing" className="text-gray-600 hover:text-medical-600 text-sm transition-colors">
                   {t('footer.productLinks.pricing')}
                 </Link>
@@ -53,11 +48,6 @@ const Footer = () => {
               <li>
                 <Link to="/about" className="text-gray-600 hover:text-medical-600 text-sm transition-colors">
                   {t('footer.companyLinks.about')}
-                </Link>
-              </li>
-              <li>
-                <Link to="/blog" className="text-gray-600 hover:text-medical-600 text-sm transition-colors">
-                  {t('footer.companyLinks.blog')}
                 </Link>
               </li>
               <li>

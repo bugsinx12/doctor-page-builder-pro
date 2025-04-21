@@ -16,6 +16,10 @@ import NotFound from "./pages/NotFound";
 import WebsiteManager from "./pages/WebsiteManager";
 import LandingView from "./pages/LandingView";
 import OnboardingPage from "./pages/OnboardingPage";
+import AboutUs from "./pages/AboutUs";
+import Contact from "./pages/Contact";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import './i18n';
 
 // Protected route component
@@ -96,6 +100,12 @@ const App = () => {
             <Route path="/templates" element={<Templates />} />
             <Route path="/templates/:id" element={<TemplateDetail />} />
             <Route path="/landings/:id" element={<LandingView />} />
+            
+            {/* New pages */}
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
             
             {/* Catch all route */}
             <Route path="*" element={<NotFound />} />

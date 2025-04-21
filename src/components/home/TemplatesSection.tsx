@@ -64,7 +64,7 @@ const TemplatesSection = () => {
                 <h3 className="text-lg font-semibold mb-2">{template.name}</h3>
                 <p className="text-gray-600 text-sm mb-4">{template.description}</p>
                 <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link to={`/templates/${template.id}`}>Preview</Link>
+                  <Link to={`/auth?tab=signup&template=${template.id}`}>Use Template</Link>
                 </Button>
               </CardContent>
             </Card>

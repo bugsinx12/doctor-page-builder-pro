@@ -9,10 +9,11 @@ import { useEffect } from "react";
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "login";
+  const templateId = searchParams.get("template");
   const { isSignedIn } = useAuth();
   const navigate = useNavigate();
   
-  // Redirect to dashboard if already signed in
+  // Redirect to onboarding if already signed in
   useEffect(() => {
     if (isSignedIn) {
       navigate("/onboarding", { replace: true });
@@ -35,8 +36,8 @@ const Auth = () => {
           <CardContent>
             <TabsContent value="login">
               <SignIn 
-                signUpUrl="/auth?tab=signup"
-                redirectUrl="/dashboard"
+                signUpUrl={`/auth?tab=signup${templateId ? `&template=${templateId}` : ''}`}
+                redirectUrl="/onboarding"
                 appearance={{
                   elements: {
                     rootBox: "w-full",
@@ -53,7 +54,7 @@ const Auth = () => {
             
             <TabsContent value="signup">
               <SignUp 
-                signInUrl="/auth?tab=login"
+                signInUrl={`/auth?tab=login${templateId ? `&template=${templateId}` : ''}`}
                 redirectUrl="/onboarding"
                 appearance={{
                   elements: {

@@ -30,8 +30,11 @@ const Navbar = () => {
           <Link to="/templates" className="text-sm font-medium text-gray-700 hover:text-medical-600 transition-colors">
             {t('navbar.templates')}
           </Link>
-          <Link to="/features" className="text-sm font-medium text-gray-700 hover:text-medical-600 transition-colors">
-            {t('navbar.features')}
+          <Link to="/about" className="text-sm font-medium text-gray-700 hover:text-medical-600 transition-colors">
+            About
+          </Link>
+          <Link to="/contact" className="text-sm font-medium text-gray-700 hover:text-medical-600 transition-colors">
+            Contact
           </Link>
           <div className="ml-3 flex items-center space-x-3">
             <LanguageSwitcher />
@@ -53,7 +56,7 @@ const Navbar = () => {
                   <Link to="/auth">{t('navbar.login')}</Link>
                 </Button>
                 <Button className="rounded-md bg-medical-600 hover:bg-medical-700" asChild>
-                  <Link to="/auth">{t('navbar.getStarted')}</Link>
+                  <Link to="/auth?tab=signup">{t('navbar.getStarted')}</Link>
                 </Button>
               </>
             )}
@@ -95,11 +98,18 @@ const Navbar = () => {
               {t('navbar.templates')}
             </Link>
             <Link
-              to="/features"
+              to="/about"
               className="w-full py-3 text-center text-lg font-medium text-gray-700 hover:text-medical-600 transition-colors"
               onClick={() => setIsMenuOpen(false)}
             >
-              {t('navbar.features')}
+              About
+            </Link>
+            <Link
+              to="/contact"
+              className="w-full py-3 text-center text-lg font-medium text-gray-700 hover:text-medical-600 transition-colors"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Contact
             </Link>
             <div className="mt-6 flex flex-col w-full space-y-3">
               <div className="flex justify-center mb-2">
@@ -130,7 +140,7 @@ const Navbar = () => {
                     </Link>
                   </Button>
                   <Button className="w-full py-6 bg-medical-600 hover:bg-medical-700" asChild>
-                    <Link to="/auth" onClick={() => setIsMenuOpen(false)}>
+                    <Link to="/auth?tab=signup" onClick={() => setIsMenuOpen(false)}>
                       {t('navbar.getStarted')}
                     </Link>
                   </Button>
