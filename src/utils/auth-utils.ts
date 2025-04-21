@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
@@ -29,7 +28,8 @@ export const getUUIDFromClerkID = (clerkId: string): string => {
     seed[i] = (absHash >> ((i % 4) * 8)) & 0xff;
   }
 
-  return uuidv4({ random: Array.from(seed) });
+  // Use the seed array directly instead of converting it to a regular array
+  return uuidv4({ random: seed });
 };
 
 export const useSyncUserProfile = () => {
@@ -244,4 +244,3 @@ export const useSubscriptionStatus = () => {
 
   return { subscriptionStatus, isLoading };
 };
-
