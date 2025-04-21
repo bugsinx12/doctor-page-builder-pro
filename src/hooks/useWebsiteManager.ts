@@ -6,6 +6,7 @@ import { WebsiteContent, WebsiteSettings, Template, Website } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { defaultContent, defaultSettings } from '@/pages/websiteManagerUtils';
+import { getUUIDFromClerkID } from '@/utils/auth-utils';
 
 export const useWebsiteManager = () => {
   const { userId } = useAuth();
@@ -67,10 +68,13 @@ export const useWebsiteManager = () => {
           },
         ]);
 
+        // Convert Clerk ID to Supabase UUID
+        const supabaseUserId = getUUIDFromClerkID(userId);
+
         const { data: websitesData, error: websitesError } = await supabase
           .from('websites')
           .select('*')
-          .eq('userid', userId);
+          .eq('userid', supabaseUserId);
 
         if (websitesError) throw websitesError;
         
@@ -95,7 +99,7 @@ export const useWebsiteManager = () => {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', userId)
+          .eq('id', supabaseUserId)
           .maybeSingle();
 
         if (profileError) throw profileError;
@@ -128,6 +132,9 @@ export const useWebsiteManager = () => {
     try {
       setLoading(true);
 
+      // Convert Clerk ID to Supabase UUID
+      const supabaseUserId = getUUIDFromClerkID(userId);
+
       let templateType = 'general-practice';
       if (templateId.includes('specialist')) {
         templateType = 'specialist';
@@ -149,7 +156,7 @@ export const useWebsiteManager = () => {
       const { data, error } = await supabase
         .from('websites')
         .insert({
-          userid: userId,
+          userid: supabaseUserId,
           name: practiceInfo.name,
           slug: slug,
           templateid: templateId,
@@ -203,12 +210,15 @@ export const useWebsiteManager = () => {
 
     try {
       setLoading(true);
+      
+      // Convert Clerk ID to Supabase UUID
+      const supabaseUserId = getUUIDFromClerkID(userId!);
 
       const { error } = await supabase
         .from('websites')
         .delete()
         .eq('id', websiteId)
-        .eq('userid', userId);
+        .eq('userid', supabaseUserId);
 
       if (error) throw error;
 

@@ -83,7 +83,7 @@ serve(async (req) => {
       const { error: insertError } = await supabase
         .from("subscribers")
         .insert({
-          user_id: userId,
+          user_id: userId, // Already converted to UUID in the frontend
           email: userEmail || "",
           subscribed: false,
         });

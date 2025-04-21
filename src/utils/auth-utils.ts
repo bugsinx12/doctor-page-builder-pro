@@ -3,6 +3,31 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
+import { v4 as uuidv4 } from 'uuid';
+
+// Helper function to convert Clerk ID to a valid UUID for Supabase
+export const getUUIDFromClerkID = (clerkId: string): string => {
+  // Check if the ID is already a valid UUID
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidPattern.test(clerkId)) {
+    return clerkId;
+  }
+  
+  // If not a valid UUID, generate a deterministic UUID based on the Clerk ID
+  // We use a hash of the Clerk ID to maintain consistency
+  let hash = 0;
+  for (let i = 0; i < clerkId.length; i++) {
+    const char = clerkId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  
+  // Seed a UUID v4 with the hash
+  const seed = Math.abs(hash).toString();
+  return uuidv4({ random: Array.from({ length: 16 }, (_, i) => 
+    parseInt(seed.charAt(i % seed.length) || '0') % 256) 
+  });
+};
 
 export const useSyncUserProfile = () => {
   const { userId } = useAuth();
@@ -22,15 +47,15 @@ export const useSyncUserProfile = () => {
       try {
         setIsLoading(true);
         
-        // We'll skip the Clerk Wrapper check since it's causing type issues
-        // Instead directly check if profile exists
-        console.log("Checking for existing profile for user ID:", userId);
+        // Generate a UUID for Supabase based on the Clerk userId
+        const supabaseUserId = getUUIDFromClerkID(userId);
+        console.log("Checking for existing profile for Supabase user ID:", supabaseUserId);
         
         // Check if profile exists
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", userId)
+          .eq("id", supabaseUserId)
           .maybeSingle();
 
         if (fetchError && fetchError.code !== "PGRST116") {
@@ -45,7 +70,7 @@ export const useSyncUserProfile = () => {
 
         // If profile doesn't exist, create one with retry logic
         if (!existingProfile) {
-          console.log("Creating new profile for user:", userId);
+          console.log("Creating new profile for user:", supabaseUserId);
           let retryCount = 0;
           const maxRetries = 3;
           let success = false;
@@ -53,7 +78,7 @@ export const useSyncUserProfile = () => {
           while (retryCount < maxRetries && !success) {
             try {
               const { error: insertError } = await supabase.from("profiles").insert({
-                id: userId,
+                id: supabaseUserId,
                 full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
                 avatar_url: user.imageUrl || null,
               });
@@ -76,7 +101,7 @@ export const useSyncUserProfile = () => {
                 const { data: newProfile } = await supabase
                   .from("profiles")
                   .select("*")
-                  .eq("id", userId)
+                  .eq("id", supabaseUserId)
                   .maybeSingle();
                 
                 if (newProfile) {
@@ -126,11 +151,14 @@ export const useSubscriptionStatus = () => {
       try {
         setIsLoading(true);
         
+        // Generate UUID for Supabase based on Clerk userId
+        const supabaseUserId = getUUIDFromClerkID(userId);
+        
         // Check if subscriber record exists first
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
-          .eq("user_id", userId)
+          .eq("user_id", supabaseUserId)
           .maybeSingle();
           
         if (fetchError) {
@@ -139,11 +167,11 @@ export const useSubscriptionStatus = () => {
         
         // If no subscriber record exists, create one with basic info
         if (!existingSubscriber) {
-          console.log("Creating new subscriber record for:", userId);
+          console.log("Creating new subscriber record for:", supabaseUserId);
           const { error: insertError } = await supabase
             .from("subscribers")
             .insert({
-              user_id: userId,
+              user_id: supabaseUserId,
               email: user.primaryEmailAddress?.emailAddress || "",
               subscribed: false
             });
@@ -155,7 +183,7 @@ export const useSubscriptionStatus = () => {
         
         // Create an auth token that includes the necessary user info
         const authData = {
-          userId: userId,
+          userId: supabaseUserId, // Use Supabase UUID
           userEmail: user.primaryEmailAddress?.emailAddress
         };
         

@@ -6,6 +6,7 @@ import Onboarding from '@/components/onboarding/Onboarding';
 import { Shell } from '@/components/Shell';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { getUUIDFromClerkID } from '@/utils/auth-utils';
 
 const OnboardingPage = () => {
   const { user } = useUser();
@@ -25,13 +26,15 @@ const OnboardingPage = () => {
         navigate('/dashboard', { replace: true });
       } else {
         try {
-          console.log("Checking for existing profile for user ID:", user.id);
+          // Convert Clerk ID to Supabase UUID
+          const supabaseUserId = getUUIDFromClerkID(user.id);
+          console.log("Checking for existing profile for user ID:", supabaseUserId);
           
           // Try to create a profile record if it doesn't exist
           const { data: existingProfile, error: fetchError } = await supabase
             .from('profiles')
             .select('*')
-            .eq('id', user.id)
+            .eq('id', supabaseUserId)
             .maybeSingle();
             
           if (fetchError && fetchError.code !== 'PGRST116') {
@@ -57,7 +60,7 @@ const OnboardingPage = () => {
                 const { error: insertError } = await supabase
                   .from('profiles')
                   .insert({
-                    id: user.id,
+                    id: supabaseUserId,
                     full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
                     avatar_url: user.imageUrl || null
                   });
@@ -91,7 +94,7 @@ const OnboardingPage = () => {
           const { data: existingSubscriber, error: subFetchError } = await supabase
             .from('subscribers')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', supabaseUserId)
             .maybeSingle();
             
           if (subFetchError) {
@@ -104,7 +107,7 @@ const OnboardingPage = () => {
             const { error: insertError } = await supabase
               .from('subscribers')
               .insert({
-                user_id: user.id,
+                user_id: supabaseUserId,
                 email: user.primaryEmailAddress?.emailAddress || "",
                 subscribed: false
               });
