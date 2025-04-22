@@ -33,59 +33,38 @@ export const useSubscription = () => {
         setIsLoading(true);
         console.log("Checking subscription for user ID:", supabaseUserId);
 
-        // Check if subscriber exists
+        // First, check if subscriber exists
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
           .eq("user_id", supabaseUserId)
           .maybeSingle();
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+          console.error("Error fetching subscriber:", fetchError);
+        }
 
-        if (existingSubscriber) {
-          console.log("Found existing subscriber:", existingSubscriber);
-          // Subscriber exists, use it
-          setSubscriptionStatus({
-            subscribed: existingSubscriber.subscribed || false,
-            subscription_tier: existingSubscriber.subscription_tier,
-            subscription_end: existingSubscriber.subscription_end,
-          });
-          
-          // Update email if needed
-          if (existingSubscriber.email !== user.primaryEmailAddress?.emailAddress) {
-            console.log("Updating subscriber email");
-            const { error: updateError } = await supabase
-              .from("subscribers")
-              .update({ email: user.primaryEmailAddress?.emailAddress })
-              .eq("user_id", supabaseUserId);
-              
-            if (updateError) {
-              console.error("Error updating subscriber email:", updateError);
-            }
-          }
-        } else {
+        // If no subscriber exists, create one
+        if (!existingSubscriber) {
           console.log("No subscriber found, creating new record");
-          // Subscriber doesn't exist, create it
-          const subscriberData = {
-            user_id: supabaseUserId,
-            email: user.primaryEmailAddress?.emailAddress || "",
-            subscribed: false
-          };
-
           const { data: newSubscriber, error: insertError } = await supabase
             .from("subscribers")
-            .insert(subscriberData)
+            .insert({
+              user_id: supabaseUserId,
+              email: user.primaryEmailAddress?.emailAddress || "",
+              subscribed: false
+            })
             .select()
             .single();
 
           if (insertError) {
             console.error("Error creating subscriber:", insertError);
-            throw insertError;
+          } else {
+            console.log("Created new subscriber:", newSubscriber);
           }
-          console.log("Created new subscriber:", newSubscriber);
         }
 
-        // Check subscription status from edge function if available
+        // Check subscription status from edge function
         try {
           const authData = {
             userId: supabaseUserId,

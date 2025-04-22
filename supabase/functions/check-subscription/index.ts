@@ -94,41 +94,8 @@ serve(async (req) => {
 
       if (insertError) {
         console.error("Error creating subscriber record:", insertError);
-        
-        // Check if it's a duplicate key error (which could happen in race conditions)
-        if (insertError.code === "23505") {
-          // Try to fetch the record again
-          const { data: existingSubscriber, error: refetchError } = await supabase
-            .from("subscribers")
-            .select("*")
-            .eq("user_id", userId)
-            .maybeSingle();
-            
-          if (refetchError || !existingSubscriber) {
-            return new Response(
-              JSON.stringify({ error: "Error creating subscription record" }),
-              {
-                status: 500,
-                headers: { ...corsHeaders, "Content-Type": "application/json" },
-              }
-            );
-          }
-          
-          // Return the found record
-          return new Response(
-            JSON.stringify({
-              subscribed: existingSubscriber.subscribed,
-              subscription_tier: existingSubscriber.subscription_tier,
-              subscription_end: existingSubscriber.subscription_end,
-            }),
-            {
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            }
-          );
-        }
-        
         return new Response(
-          JSON.stringify({ error: "Error creating subscription record" }),
+          JSON.stringify({ error: "Error creating subscriber record" }),
           {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -136,7 +103,6 @@ serve(async (req) => {
         );
       }
 
-      // Return newly created subscription data
       return new Response(
         JSON.stringify({
           subscribed: false,
