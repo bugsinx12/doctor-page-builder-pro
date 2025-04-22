@@ -46,23 +46,13 @@ export const useProfile = () => {
             avatar_url: user.imageUrl || null,
           };
 
-          const { error: insertError } = await supabase
+          const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
-            .insert(profileData);
+            .insert(profileData)
+            .select()
+            .single();
 
-          if (insertError) {
-            console.error("Error creating profile:", insertError);
-            throw insertError;
-          }
-
-          // Fetch the newly created profile
-          const { data: newProfile, error: newProfileError } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", supabaseUserId)
-            .maybeSingle();
-
-          if (newProfileError) throw newProfileError;
+          if (insertError) throw insertError;
           if (newProfile) setProfile(newProfile);
         }
       } catch (error) {

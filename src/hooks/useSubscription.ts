@@ -55,16 +55,14 @@ export const useSubscription = () => {
             email: user.primaryEmailAddress?.emailAddress || "",
             subscribed: false
           };
-          
-          const { error: insertError } = await supabase
-            .from("subscribers")
-            .insert(subscriberData);
-            
-          if (insertError) {
-            console.error("Error creating subscriber:", insertError);
-            throw insertError;
-          }
 
+          const { data: newSubscriber, error: insertError } = await supabase
+            .from("subscribers")
+            .insert(subscriberData)
+            .select()
+            .single();
+
+          if (insertError) throw insertError;
           // Using default subscription status since we just created a new record
         }
 
