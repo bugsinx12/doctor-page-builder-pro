@@ -33,7 +33,7 @@ export const useSubscription = () => {
         setIsLoading(true);
         console.log("Checking subscription for user ID:", supabaseUserId);
 
-        // First, check if subscriber exists
+        // First, check if subscriber exists in Supabase
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
@@ -62,6 +62,14 @@ export const useSubscription = () => {
           } else {
             console.log("Created new subscriber:", newSubscriber);
           }
+        } else {
+          console.log("Found existing subscriber:", existingSubscriber);
+          // Use the existing data while we wait for the API check
+          setSubscriptionStatus({
+            subscribed: existingSubscriber.subscribed || false,
+            subscription_tier: existingSubscriber.subscription_tier,
+            subscription_end: existingSubscriber.subscription_end,
+          });
         }
 
         // Check subscription status from edge function
@@ -72,22 +80,33 @@ export const useSubscription = () => {
           };
           const authToken = btoa(JSON.stringify(authData));
 
-          const response = await fetch("/api/check-subscription", {
+          console.log("Calling check-subscription edge function");
+          const { data, error } = await supabase.functions.invoke('check-subscription', {
             headers: {
               Authorization: `Bearer ${authToken}`,
             },
           });
 
-          if (response.ok) {
-            const data = await response.json();
+          if (error) {
+            console.error("Error calling check-subscription:", error);
+            throw error;
+          }
+
+          console.log("Subscription check response:", data);
+          if (data) {
             setSubscriptionStatus({
-              subscribed: data.subscribed,
+              subscribed: data.subscribed || false,
               subscription_tier: data.subscription_tier,
               subscription_end: data.subscription_end,
             });
           }
         } catch (apiError) {
-          console.log("API subscription check skipped or failed:", apiError);
+          console.error("API subscription check error:", apiError);
+          toast({
+            title: "Subscription Check Error",
+            description: "Unable to verify your subscription status from our server.",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error("Error in subscription check:", error);
