@@ -25,6 +25,7 @@ export const useProfile = () => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
+        console.log("Fetching profile for user ID:", supabaseUserId);
         
         // Check if profile exists
         const { data: existingProfile, error: fetchError } = await supabase
@@ -36,9 +37,32 @@ export const useProfile = () => {
         if (fetchError) throw fetchError;
 
         if (existingProfile) {
-          // Profile exists, use it
-          setProfile(existingProfile);
+          console.log("Found existing profile:", existingProfile);
+          // Profile exists, check if it needs updating
+          const needsUpdate = 
+            existingProfile.full_name !== `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+            existingProfile.avatar_url !== user.imageUrl;
+          
+          if (needsUpdate) {
+            console.log("Updating existing profile");
+            const { data: updatedProfile, error: updateError } = await supabase
+              .from("profiles")
+              .update({
+                full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
+                avatar_url: user.imageUrl || null,
+              })
+              .eq("id", supabaseUserId)
+              .select()
+              .single();
+              
+            if (updateError) throw updateError;
+            setProfile(updatedProfile);
+          } else {
+            // Use existing profile as is
+            setProfile(existingProfile);
+          }
         } else {
+          console.log("No profile found, creating new profile");
           // Profile doesn't exist, create it
           const profileData = {
             id: supabaseUserId,
@@ -52,7 +76,11 @@ export const useProfile = () => {
             .select()
             .single();
 
-          if (insertError) throw insertError;
+          if (insertError) {
+            console.error("Error creating profile:", insertError);
+            throw insertError;
+          }
+          console.log("Created new profile:", newProfile);
           if (newProfile) setProfile(newProfile);
         }
       } catch (error) {

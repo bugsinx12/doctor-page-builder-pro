@@ -31,6 +31,7 @@ export const useSubscription = () => {
     const checkSubscription = async () => {
       try {
         setIsLoading(true);
+        console.log("Checking subscription for user ID:", supabaseUserId);
 
         // Check if subscriber exists
         const { data: existingSubscriber, error: fetchError } = await supabase
@@ -42,13 +43,28 @@ export const useSubscription = () => {
         if (fetchError) throw fetchError;
 
         if (existingSubscriber) {
+          console.log("Found existing subscriber:", existingSubscriber);
           // Subscriber exists, use it
           setSubscriptionStatus({
             subscribed: existingSubscriber.subscribed || false,
             subscription_tier: existingSubscriber.subscription_tier,
             subscription_end: existingSubscriber.subscription_end,
           });
+          
+          // Update email if needed
+          if (existingSubscriber.email !== user.primaryEmailAddress?.emailAddress) {
+            console.log("Updating subscriber email");
+            const { error: updateError } = await supabase
+              .from("subscribers")
+              .update({ email: user.primaryEmailAddress?.emailAddress })
+              .eq("user_id", supabaseUserId);
+              
+            if (updateError) {
+              console.error("Error updating subscriber email:", updateError);
+            }
+          }
         } else {
+          console.log("No subscriber found, creating new record");
           // Subscriber doesn't exist, create it
           const subscriberData = {
             user_id: supabaseUserId,
@@ -62,8 +78,11 @@ export const useSubscription = () => {
             .select()
             .single();
 
-          if (insertError) throw insertError;
-          // Using default subscription status since we just created a new record
+          if (insertError) {
+            console.error("Error creating subscriber:", insertError);
+            throw insertError;
+          }
+          console.log("Created new subscriber:", newSubscriber);
         }
 
         // Check subscription status from edge function if available
