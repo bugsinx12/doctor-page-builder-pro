@@ -8,8 +8,11 @@ interface TemplatesGridProps {
   practiceInfo: {
     name: string;
     specialty: string;
+    address: string;
+    phone: string;
+    email: string;
   };
-  onCreate: (templateId: string) => Promise<void>;
+  onCreate: (templateId: string, practiceInfo: TemplatesGridProps['practiceInfo']) => Promise<void>;
 }
 
 const TemplatesGrid = ({ templates, practiceInfo, onCreate }: TemplatesGridProps) => {

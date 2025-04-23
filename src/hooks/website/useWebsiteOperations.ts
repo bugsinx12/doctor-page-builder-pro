@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +12,16 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
-  const createWebsite = async (templateId: string, practiceInfo: { name: string; specialty: string }) => {
+  const createWebsite = async (
+    templateId: string, 
+    practiceInfo: { 
+      name: string; 
+      specialty: string; 
+      address: string; 
+      phone: string; 
+      email: string 
+    }
+  ) => {
     if (!userId) return;
 
     try {
@@ -33,10 +41,23 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         .replace(/(^-|-$)/g, '');
 
       const customContent = { ...defaultContent[templateType] };
+      
       customContent.hero.heading = `Welcome to ${practiceInfo.name}`;
       if (practiceInfo.specialty) {
-        customContent.hero.subheading = `Specialized ${practiceInfo.specialty} care for our patients`;
+        customContent.hero.subheading = `Expert ${practiceInfo.specialty} Care`;
       }
+
+      customContent.contact = {
+        heading: 'Contact Us',
+        subheading: 'Get in Touch with Our Practice',
+        address: practiceInfo.address,
+        phone: practiceInfo.phone,
+        email: practiceInfo.email,
+        hours: 'Monday - Friday: 9am - 5pm'
+      };
+
+      customContent.about.content = `${practiceInfo.name} is a dedicated medical practice specializing in ${practiceInfo.specialty}. 
+        We are committed to providing high-quality, personalized healthcare to our patients.`;
 
       const { data, error } = await supabase
         .from('websites')
@@ -62,27 +83,29 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           name: data.name,
           slug: data.slug,
           templateId: data.templateid,
-          customDomain: data.customdomain,
           content: data.content as unknown as WebsiteContent,
           settings: data.settings as unknown as WebsiteSettings,
           createdAt: data.createdat,
           updatedAt: data.updatedat,
-          publishedAt: data.publishedat || undefined,
         };
         
         setWebsites([...websites, transformedData]);
+        
         toast({
-          title: 'Success!',
-          description: 'Your website has been created',
+          title: 'Website Created!',
+          description: `Your ${practiceInfo.specialty} practice website is ready.`,
         });
+
+        return transformedData;
       }
     } catch (error) {
       console.error('Error creating website:', error);
       toast({
         title: 'Error',
-        description: 'Failed to create website',
+        description: 'Failed to create website. Please try again.',
         variant: 'destructive',
       });
+      return null;
     } finally {
       setLoading(false);
     }

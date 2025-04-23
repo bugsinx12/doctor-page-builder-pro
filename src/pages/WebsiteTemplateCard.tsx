@@ -3,14 +3,25 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Template } from "@/types";
 
 interface WebsiteTemplateCardProps {
-  template: any; // Use the Template type if possible
-  practiceInfo: { name: string; specialty: string };
-  onCreate: (templateId: string) => void;
+  template: Template;
+  practiceInfo: { 
+    name: string; 
+    specialty: string; 
+    address: string; 
+    phone: string; 
+    email: string;
+  };
+  onCreate: (templateId: string, practiceInfo: WebsiteTemplateCardProps['practiceInfo']) => void;
 }
 
-const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({ template, practiceInfo, onCreate }) => {
+const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({ 
+  template, 
+  practiceInfo, 
+  onCreate 
+}) => {
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video relative bg-gray-100">
@@ -33,7 +44,7 @@ const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({ template, pra
       <CardContent>
         <h4 className="font-medium mb-2">Features:</h4>
         <ul className="text-sm text-gray-600 space-y-1">
-          {template.features.map((feature: string, i: number) => (
+          {template.features.map((feature, i) => (
             <li key={i}>• {feature}</li>
           ))}
         </ul>
@@ -55,13 +66,18 @@ const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({ template, pra
               {practiceInfo.specialty && (
                 <p className="mb-4"><span className="font-medium">Specialty:</span> {practiceInfo.specialty}</p>
               )}
+              <p className="mb-4"><span className="font-medium">Address:</span> {practiceInfo.address}</p>
+              <p className="mb-4"><span className="font-medium">Phone:</span> {practiceInfo.phone}</p>
+              <p className="mb-4"><span className="font-medium">Email:</span> {practiceInfo.email}</p>
             </div>
             <div className="flex justify-end gap-4">
-              {/* The close button should trigger closing via dialog logic */}
               <Button variant="outline" data-dialog-close>
                 Cancel
               </Button>
-              <Button onClick={() => onCreate(template.id)} data-dialog-close>
+              <Button 
+                onClick={() => onCreate(template.id, practiceInfo)} 
+                data-dialog-close
+              >
                 Create Website
               </Button>
             </div>
