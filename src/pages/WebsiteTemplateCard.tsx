@@ -14,7 +14,7 @@ interface WebsiteTemplateCardProps {
     phone: string; 
     email: string;
   };
-  onCreate: (templateId: string, practiceInfo: WebsiteTemplateCardProps['practiceInfo']) => void;
+  onCreate: (templateId: string, practiceInfo: WebsiteTemplateCardProps['practiceInfo']) => Promise<void>;
 }
 
 const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({ 
@@ -22,6 +22,11 @@ const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({
   practiceInfo, 
   onCreate 
 }) => {
+  // Create a handler for onClick to handle the Promise return type
+  const handleCreateClick = async () => {
+    await onCreate(template.id, practiceInfo);
+  };
+
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video relative bg-gray-100">
@@ -75,7 +80,7 @@ const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({
                 Cancel
               </Button>
               <Button 
-                onClick={() => onCreate(template.id, practiceInfo)} 
+                onClick={handleCreateClick} 
                 data-dialog-close
               >
                 Create Website

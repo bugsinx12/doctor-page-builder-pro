@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,7 +22,7 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       phone: string; 
       email: string 
     }
-  ) => {
+  ): Promise<void> => {
     if (!userId) return;
 
     try {
@@ -95,8 +96,6 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           title: 'Website Created!',
           description: `Your ${practiceInfo.specialty} practice website is ready.`,
         });
-
-        return transformedData;
       }
     } catch (error) {
       console.error('Error creating website:', error);
@@ -105,7 +104,6 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         description: 'Failed to create website. Please try again.',
         variant: 'destructive',
       });
-      return null;
     } finally {
       setLoading(false);
     }

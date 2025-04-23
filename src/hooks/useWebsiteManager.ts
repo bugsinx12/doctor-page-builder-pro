@@ -70,7 +70,8 @@ export const useWebsiteManager = () => {
     templates,
     isPracticeInfoSet,
     practiceInfo,
-    createWebsite: (templateId: string) => createWebsite(templateId, practiceInfo),
+    // Pass the complete practiceInfo object to createWebsite
+    createWebsite,
     deleteWebsite,
     copyLandingPageUrl,
   };
