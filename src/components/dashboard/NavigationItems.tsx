@@ -56,7 +56,7 @@ const NavigationItems: React.FC<NavigationItemsProps> = ({ className }) => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <Button asChild variant="link">
+              <Button asChild variant="link" className="p-0">
                 <Link to={item.href}>Go to {item.name}</Link>
               </Button>
             </div>

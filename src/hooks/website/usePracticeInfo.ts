@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 
 export const usePracticeInfo = () => {
   const { userId } = useAuth();
-  const [isPracticeInfoSet, setIsPracticeInfoSet] = useState(false);
+  const { toast } = useToast();
   const [practiceInfo, setPracticeInfo] = useState({
     name: '',
     specialty: '',
@@ -14,38 +15,59 @@ export const usePracticeInfo = () => {
     phone: '',
     email: '',
   });
+  const [loading, setLoading] = useState(true);
+  const [isPracticeInfoSet, setIsPracticeInfoSet] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
 
     const fetchPracticeInfo = async () => {
       try {
+        setLoading(true);
         const supabaseUserId = getUUIDFromClerkID(userId);
+        
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select('practice_name, specialty, address, phone, email')
           .eq('id', supabaseUserId)
-          .maybeSingle();
-
+          .single();
+          
         if (error) throw error;
         
-        if (profile && profile.practice_name) {
-          setIsPracticeInfoSet(true);
+        if (profile) {
           setPracticeInfo({
             name: profile.practice_name || '',
             specialty: profile.specialty || '',
             address: profile.address || '',
             phone: profile.phone || '',
-            email: profile.email || '',
+            email: profile.email || ''
           });
+          
+          const hasRequiredInfo = Boolean(
+            profile.practice_name && 
+            profile.specialty
+          );
+          
+          setIsPracticeInfoSet(hasRequiredInfo);
         }
       } catch (error) {
         console.error('Error fetching practice info:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load practice information',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchPracticeInfo();
-  }, [userId]);
+  }, [userId, toast]);
 
-  return { isPracticeInfoSet, practiceInfo };
+  return {
+    practiceInfo,
+    isPracticeInfoSet,
+    loading
+  };
 };

@@ -30,7 +30,12 @@ const WebsiteTemplateCard: React.FC<WebsiteTemplateCardProps> = ({
   return (
     <Card className="overflow-hidden">
       <div className="aspect-video relative bg-gray-100">
-        <img src={template.thumbnail} alt={template.name} className="w-full h-full object-cover" />
+        {/* Use the doctor-hero.svg for templates without images */}
+        <img 
+          src={template.thumbnail !== '/placeholder.svg' ? template.thumbnail : '/doctor-hero.svg'} 
+          alt={template.name} 
+          className="w-full h-full object-cover" 
+        />
         {template.popular && (
           <div className="absolute top-2 right-2 bg-medical-600 text-white text-xs font-bold px-2 py-1 rounded">
             Popular

@@ -27,8 +27,9 @@ const WebsiteCard: React.FC<WebsiteCardProps> = ({
       </CardDescription>
     </CardHeader>
     <div className="aspect-video bg-gray-100 px-6">
+      {/* Use doctor-hero.svg instead of placeholder.svg */}
       <img
-        src="/placeholder.svg"
+        src="/doctor-hero.svg"
         alt={website.name}
         className="w-full h-full object-cover"
       />
