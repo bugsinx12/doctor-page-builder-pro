@@ -27,6 +27,15 @@ const WebsiteManager = () => {
     }
   };
 
+  // Ensure practiceInfo has all required fields with defaults if needed
+  const completePracticeInfo = {
+    name: practiceInfo.name,
+    specialty: practiceInfo.specialty,
+    address: practiceInfo.address || 'Address not provided',
+    phone: practiceInfo.phone || 'Phone not provided',
+    email: practiceInfo.email || 'Email not provided'
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -66,7 +75,7 @@ const WebsiteManager = () => {
           ) : (
             <TemplatesGrid
               templates={templates}
-              practiceInfo={practiceInfo}
+              practiceInfo={completePracticeInfo}
               onCreate={createWebsite}
             />
           )}

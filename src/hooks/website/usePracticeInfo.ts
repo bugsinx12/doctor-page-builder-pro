@@ -10,6 +10,9 @@ export const usePracticeInfo = () => {
   const [practiceInfo, setPracticeInfo] = useState({
     name: '',
     specialty: '',
+    address: '',
+    phone: '',
+    email: '',
   });
 
   useEffect(() => {
@@ -31,6 +34,9 @@ export const usePracticeInfo = () => {
           setPracticeInfo({
             name: profile.practice_name || '',
             specialty: profile.specialty || '',
+            address: profile.address || '',
+            phone: profile.phone || '',
+            email: profile.email || '',
           });
         }
       } catch (error) {
