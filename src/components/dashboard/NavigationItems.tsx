@@ -63,7 +63,11 @@ const NavigationItems: React.FC<NavigationItemsProps> = ({ className }) => {
           </CardHeader>
           <CardContent>
             <div className="text-center mt-4">
-              <Button asChild variant="outline" className={`px-4 py-2 rounded-md font-medium ${item.color} hover:${item.bgClass} hover:border-${item.color.replace('text-', '')} transition-colors`}>
+              <Button 
+                asChild 
+                variant="outline" 
+                className={`px-4 py-2 rounded-md font-medium ${item.color} hover:${item.bgClass} hover:border-${item.color.replace('text-', '')} transition-colors`}
+              >
                 <Link to={item.href}>Go to {item.name}</Link>
               </Button>
             </div>

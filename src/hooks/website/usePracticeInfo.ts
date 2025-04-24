@@ -35,18 +35,28 @@ export const usePracticeInfo = () => {
         if (error) throw error;
         
         if (profile) {
-          setPracticeInfo({
+          const profileData = {
             name: profile.practice_name || '',
             specialty: profile.specialty || '',
             address: profile.address || '',
             phone: profile.phone || '',
             email: profile.email || ''
-          });
+          };
           
+          setPracticeInfo(profileData);
+          
+          // Consider practice info set if at least practice name and specialty are provided
           const hasRequiredInfo = Boolean(
             profile.practice_name && 
             profile.specialty
           );
+          
+          console.log('Practice info check:', {
+            profileData,
+            hasRequiredInfo,
+            practice_name: profile.practice_name,
+            specialty: profile.specialty
+          });
           
           setIsPracticeInfoSet(hasRequiredInfo);
         }

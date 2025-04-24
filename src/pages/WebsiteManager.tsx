@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { useWebsiteManager } from '@/hooks/useWebsiteManager';
@@ -29,8 +29,8 @@ const WebsiteManager = () => {
 
   // Ensure practiceInfo has all required fields with defaults if needed
   const completePracticeInfo = {
-    name: practiceInfo.name,
-    specialty: practiceInfo.specialty,
+    name: practiceInfo.name || '',
+    specialty: practiceInfo.specialty || '',
     address: practiceInfo.address || 'Address not provided',
     phone: practiceInfo.phone || 'Phone not provided',
     email: practiceInfo.email || 'Email not provided'
