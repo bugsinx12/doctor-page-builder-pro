@@ -30,12 +30,19 @@ export const useWebsiteManager = () => {
         setLoading(true);
         const supabaseUserId = getUUIDFromClerkID(userId);
 
+        console.log("Fetching websites for user:", supabaseUserId);
+
         const { data: websitesData, error: websitesError } = await supabase
           .from('websites')
           .select('*')
           .eq('userid', supabaseUserId);
 
-        if (websitesError) throw websitesError;
+        if (websitesError) {
+          console.error('Error fetching websites:', websitesError);
+          throw websitesError;
+        }
+        
+        console.log("Websites data from API:", websitesData);
         
         if (websitesData) {
           const transformedWebsites: Website[] = websitesData.map(item => ({
@@ -52,6 +59,7 @@ export const useWebsiteManager = () => {
             publishedAt: item.publishedat || undefined,
           }));
           
+          console.log("Processed websites:", transformedWebsites);
           setWebsites(transformedWebsites);
         }
       } catch (error) {
@@ -70,7 +78,6 @@ export const useWebsiteManager = () => {
     templates,
     isPracticeInfoSet,
     practiceInfo,
-    // Pass the complete practiceInfo object to createWebsite
     createWebsite,
     deleteWebsite,
     copyLandingPageUrl,

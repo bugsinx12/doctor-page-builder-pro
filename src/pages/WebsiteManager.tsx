@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { useWebsiteManager } from '@/hooks/useWebsiteManager';
@@ -19,6 +19,12 @@ const WebsiteManager = () => {
     deleteWebsite,
     copyLandingPageUrl
   } = useWebsiteManager();
+  
+  useEffect(() => {
+    console.log("WebsiteManager - Websites:", websites);
+    console.log("WebsiteManager - Templates:", templates);
+    console.log("WebsiteManager - isPracticeInfoSet:", isPracticeInfoSet);
+  }, [websites, templates, isPracticeInfoSet]);
 
   const handleTabChange = (value: string) => {
     const tabTrigger = document.querySelector(`[data-state="inactive"][value="${value}"]`);
@@ -29,11 +35,11 @@ const WebsiteManager = () => {
 
   // Ensure practiceInfo has all required fields with defaults if needed
   const completePracticeInfo = {
-    name: practiceInfo.name || '',
-    specialty: practiceInfo.specialty || '',
-    address: practiceInfo.address || 'Address not provided',
-    phone: practiceInfo.phone || 'Phone not provided',
-    email: practiceInfo.email || 'Email not provided'
+    name: practiceInfo?.name || '',
+    specialty: practiceInfo?.specialty || '',
+    address: practiceInfo?.address || 'Address not provided',
+    phone: practiceInfo?.phone || 'Phone not provided',
+    email: practiceInfo?.email || 'Email not provided'
   };
 
   if (loading) {

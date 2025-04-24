@@ -26,6 +26,8 @@ export const usePracticeInfo = () => {
         setLoading(true);
         const supabaseUserId = getUUIDFromClerkID(userId);
         
+        console.log("Fetching practice info for user:", supabaseUserId);
+        
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')

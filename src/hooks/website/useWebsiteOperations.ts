@@ -23,11 +23,17 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       email: string 
     }
   ): Promise<void> => {
-    if (!userId) return;
+    if (!userId) {
+      console.error("No user ID available");
+      return;
+    }
 
     try {
       setLoading(true);
       const supabaseUserId = getUUIDFromClerkID(userId);
+
+      console.log("Creating website with template:", templateId, "for user:", supabaseUserId);
+      console.log("Practice info:", practiceInfo);
 
       let templateType = 'general-practice';
       if (templateId.includes('specialist')) {
@@ -37,9 +43,22 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       }
       
       const slug = practiceInfo.name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '');
+        ? practiceInfo.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '')
+        : `practice-${Date.now()}`;
+
+      console.log("Generated slug:", slug);
+      console.log("Using template type:", templateType);
+
+      // Make sure we have default content
+      if (!defaultContent[templateType]) {
+        console.error("No default content for template type:", templateType);
+        console.log("Available content types:", Object.keys(defaultContent));
+        // Fallback to general-practice if the specific template type isn't available
+        templateType = 'general-practice';
+      }
 
       const customContent = { ...defaultContent[templateType] };
       
@@ -60,11 +79,13 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       customContent.about.content = `${practiceInfo.name} is a dedicated medical practice specializing in ${practiceInfo.specialty}. 
         We are committed to providing high-quality, personalized healthcare to our patients.`;
 
+      console.log("Prepared content:", customContent);
+
       const { data, error } = await supabase
         .from('websites')
         .insert({
           userid: supabaseUserId,
-          name: practiceInfo.name,
+          name: practiceInfo.name || 'My Medical Practice',
           slug: slug,
           templateid: templateId,
           content: customContent as unknown as Json,
@@ -75,7 +96,12 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating website:", error);
+        throw error;
+      }
+
+      console.log("Website created successfully:", data);
 
       if (data) {
         const transformedData: Website = {

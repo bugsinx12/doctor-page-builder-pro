@@ -61,6 +61,11 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
       return;
     }
     
+    console.log("Starting onboarding completion with:", {
+      selectedTemplate,
+      practiceInfo
+    });
+    
     try {
       // 1. Save data to Clerk user metadata
       await user?.update({
@@ -70,6 +75,8 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
           practiceInfo
         }
       });
+      
+      console.log("Updated Clerk metadata");
       
       // 2. Update profile in Supabase with practice information
       const supabaseUserId = getUUIDFromClerkID(userId);
@@ -89,8 +96,12 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         throw profileError;
       }
       
+      console.log("Updated Supabase profile");
+      
       // 3. Create website in Supabase using the selected template
       await createWebsite(selectedTemplate, practiceInfo);
+      
+      console.log("Website created successfully");
       
       toast({
         title: "Onboarding completed!",
