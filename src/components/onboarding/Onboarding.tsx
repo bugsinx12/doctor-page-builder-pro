@@ -138,9 +138,9 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
               setPracticeInfo({
                 name: values.name,
                 specialty: values.specialty,
-                address: values.address,
-                phone: values.phone,
-                email: values.email
+                address: values.address || '',
+                phone: values.phone || '',
+                email: values.email || ''
               });
             }}
             onNext={handleNext}

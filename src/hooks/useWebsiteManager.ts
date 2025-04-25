@@ -15,7 +15,7 @@ export const useWebsiteManager = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [websites, setWebsites] = useState<Website[]>([]);
-  const { templates } = useTemplates();
+  const { templates, loading: templatesLoading } = useTemplates();
   const { isPracticeInfoSet, practiceInfo } = usePracticeInfo();
   const { loading: operationsLoading, createWebsite, deleteWebsite, copyLandingPageUrl } = useWebsiteOperations(websites, setWebsites);
 
@@ -44,7 +44,7 @@ export const useWebsiteManager = () => {
         
         console.log("Websites data from API:", websitesData);
         
-        if (websitesData) {
+        if (websitesData && websitesData.length > 0) {
           const transformedWebsites: Website[] = websitesData.map(item => ({
             id: item.id,
             userId: item.userid,
@@ -61,6 +61,9 @@ export const useWebsiteManager = () => {
           
           console.log("Processed websites:", transformedWebsites);
           setWebsites(transformedWebsites);
+        } else {
+          console.log("No websites found for user");
+          setWebsites([]);
         }
       } catch (error) {
         console.error('Error fetching websites:', error);
@@ -73,7 +76,7 @@ export const useWebsiteManager = () => {
   }, [userId, navigate]);
 
   return {
-    loading: loading || operationsLoading,
+    loading: loading || operationsLoading || templatesLoading,
     websites,
     templates,
     isPracticeInfoSet,

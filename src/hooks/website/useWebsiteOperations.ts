@@ -25,6 +25,11 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
   ): Promise<void> => {
     if (!userId) {
       console.error("No user ID available");
+      toast({
+        title: "Error",
+        description: "User ID not available. Please try again.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -35,13 +40,17 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       console.log("Creating website with template:", templateId, "for user:", supabaseUserId);
       console.log("Practice info:", practiceInfo);
 
+      // Determine template type from templateId
       let templateType = 'general-practice';
       if (templateId.includes('specialist')) {
         templateType = 'specialist';
       } else if (templateId.includes('pediatric')) {
         templateType = 'pediatric';
+      } else if (templateId.includes('clinic')) {
+        templateType = 'clinic';
       }
       
+      // Generate a slug from practice name or use a timestamp
       const slug = practiceInfo.name
         ? practiceInfo.name
             .toLowerCase()
@@ -60,8 +69,10 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         templateType = 'general-practice';
       }
 
-      const customContent = { ...defaultContent[templateType] };
+      // Create custom content based on practice info
+      const customContent = JSON.parse(JSON.stringify(defaultContent[templateType]));
       
+      // Customize content with practice info
       customContent.hero.heading = `Welcome to ${practiceInfo.name}`;
       if (practiceInfo.specialty) {
         customContent.hero.subheading = `Expert ${practiceInfo.specialty} Care`;
@@ -80,6 +91,7 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         We are committed to providing high-quality, personalized healthcare to our patients.`;
 
       console.log("Prepared content:", customContent);
+      console.log("Using settings template:", defaultSettings[templateType]);
 
       const { data, error } = await supabase
         .from('websites')
@@ -116,6 +128,7 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           updatedAt: data.updatedat,
         };
         
+        console.log("Transformed website data:", transformedData);
         setWebsites([...websites, transformedData]);
         
         toast({

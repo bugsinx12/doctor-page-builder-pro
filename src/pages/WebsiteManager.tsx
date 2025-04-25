@@ -24,7 +24,8 @@ const WebsiteManager = () => {
     console.log("WebsiteManager - Websites:", websites);
     console.log("WebsiteManager - Templates:", templates);
     console.log("WebsiteManager - isPracticeInfoSet:", isPracticeInfoSet);
-  }, [websites, templates, isPracticeInfoSet]);
+    console.log("WebsiteManager - practiceInfo:", practiceInfo);
+  }, [websites, templates, isPracticeInfoSet, practiceInfo]);
 
   const handleTabChange = (value: string) => {
     const tabTrigger = document.querySelector(`[data-state="inactive"][value="${value}"]`);
@@ -50,18 +51,20 @@ const WebsiteManager = () => {
     );
   }
 
+  const hasWebsites = websites && websites.length > 0;
+
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-8">Website Manager</h1>
 
-      <Tabs defaultValue={websites.length > 0 ? "my-websites" : "templates"}>
+      <Tabs defaultValue={hasWebsites ? "my-websites" : "templates"}>
         <TabsList className="mb-6">
           <TabsTrigger value="my-websites">My Websites</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
         </TabsList>
 
         <TabsContent value="my-websites">
-          {websites.length === 0 ? (
+          {!hasWebsites ? (
             <NoWebsites 
               onBrowseTemplates={() => handleTabChange('templates')} 
             />
