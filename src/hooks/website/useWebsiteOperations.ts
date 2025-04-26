@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,6 +53,30 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || `practice-${Date.now()}`;
+      
+      // Fix 1: Properly call the function with the appropriate type
+      // Use the template type to access the corresponding content template
+      const contentTemplate = defaultContent[templateType as keyof typeof defaultContent];
+      
+      // Populate the content template with practice info
+      const websiteContent: WebsiteContent = {
+        hero: {
+          ...contentTemplate.hero,
+        },
+        about: {
+          ...contentTemplate.about,
+        },
+        services: {
+          ...contentTemplate.services,
+        },
+        testimonials: [...contentTemplate.testimonials],
+        contact: {
+          ...contentTemplate.contact,
+          address: practiceInfo.address,
+          phone: practiceInfo.phone,
+          email: practiceInfo.email,
+        }
+      };
 
       const { data, error } = await supabase
         .from('websites')
@@ -60,8 +85,8 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           name: practiceInfo.name,
           slug: slug,
           templateid: templateId,
-          content: defaultContent(practiceInfo) as any,
-          settings: defaultSettings[templateType] as any,
+          content: websiteContent as any,
+          settings: defaultSettings[templateType as keyof typeof defaultSettings] as any,
           createdat: new Date().toISOString(),
           updatedat: new Date().toISOString()
         })
@@ -78,6 +103,7 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         return null;
       }
 
+      // Fix 2 & 3: Properly cast the JSON data from Supabase to the correct types
       const newWebsite: Website = {
         id: data.id,
         userId: data.userid,
