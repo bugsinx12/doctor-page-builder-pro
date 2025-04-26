@@ -6,7 +6,6 @@ import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { defaultContent, defaultSettings } from '@/pages/websiteManagerUtils';
-import { Json } from '@/integrations/supabase/types';
 
 export const useWebsiteOperations = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
   const { userId } = useAuth();
@@ -50,7 +49,7 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         templateType = 'clinic';
       }
       
-      // Generate a slug from practice name or use a timestamp
+      // Generate a slug from practice name
       const slug = practiceInfo.name
         ? practiceInfo.name
             .toLowerCase()
@@ -61,34 +60,55 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       console.log("Generated slug:", slug);
       console.log("Using template type:", templateType);
 
-      // Make sure we have default content
-      if (!defaultContent[templateType]) {
-        console.error("No default content for template type:", templateType);
-        console.log("Available content types:", Object.keys(defaultContent));
-        // Fallback to general-practice if the specific template type isn't available
-        templateType = 'general-practice';
-      }
-
       // Create custom content based on practice info
-      const customContent = JSON.parse(JSON.stringify(defaultContent[templateType]));
-      
-      // Customize content with practice info
-      customContent.hero.heading = `Welcome to ${practiceInfo.name}`;
-      if (practiceInfo.specialty) {
-        customContent.hero.subheading = `Expert ${practiceInfo.specialty} Care`;
-      }
-
-      customContent.contact = {
-        heading: 'Contact Us',
-        subheading: 'Get in Touch with Our Practice',
-        address: practiceInfo.address,
-        phone: practiceInfo.phone,
-        email: practiceInfo.email,
-        hours: 'Monday - Friday: 9am - 5pm'
+      const customContent = {
+        hero: {
+          heading: `Welcome to ${practiceInfo.name}`,
+          subheading: `Expert ${practiceInfo.specialty} Care`,
+          ctaText: "Schedule an Appointment",
+          ctaLink: "#contact"
+        },
+        about: {
+          heading: "About Our Practice",
+          content: `${practiceInfo.name} is a dedicated medical practice specializing in ${practiceInfo.specialty}. We are committed to providing high-quality, personalized healthcare to our patients.`
+        },
+        services: {
+          heading: "Our Services",
+          subheading: "Comprehensive Healthcare Solutions",
+          items: [
+            {
+              title: "Primary Care",
+              description: "Complete health assessments and preventive care"
+            },
+            {
+              title: "Specialized Treatment",
+              description: `Expert ${practiceInfo.specialty} services`
+            },
+            {
+              title: "Patient Care",
+              description: "Personalized treatment plans and follow-up care"
+            }
+          ]
+        },
+        testimonials: [
+          {
+            quote: "Exceptional care and professional service",
+            name: "Patient Review"
+          },
+          {
+            quote: "Highly recommended medical practice",
+            name: "Patient Testimonial"
+          }
+        ],
+        contact: {
+          heading: "Contact Us",
+          subheading: "Get in Touch with Our Practice",
+          address: practiceInfo.address,
+          phone: practiceInfo.phone,
+          email: practiceInfo.email,
+          hours: "Monday - Friday: 9am - 5pm"
+        }
       };
-
-      customContent.about.content = `${practiceInfo.name} is a dedicated medical practice specializing in ${practiceInfo.specialty}. 
-        We are committed to providing high-quality, personalized healthcare to our patients.`;
 
       console.log("Prepared content:", customContent);
       console.log("Using settings template:", defaultSettings[templateType]);
@@ -97,13 +117,13 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         .from('websites')
         .insert({
           userid: supabaseUserId,
-          name: practiceInfo.name || 'My Medical Practice',
+          name: practiceInfo.name,
           slug: slug,
           templateid: templateId,
-          content: customContent as unknown as Json,
-          settings: defaultSettings[templateType] as unknown as Json,
+          content: customContent,
+          settings: defaultSettings[templateType],
           createdat: new Date().toISOString(),
-          updatedat: new Date().toISOString(),
+          updatedat: new Date().toISOString()
         })
         .select()
         .single();
@@ -116,20 +136,20 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       console.log("Website created successfully:", data);
 
       if (data) {
-        const transformedData: Website = {
+        const newWebsite: Website = {
           id: data.id,
           userId: data.userid,
           name: data.name,
           slug: data.slug,
           templateId: data.templateid,
-          content: data.content as unknown as WebsiteContent,
-          settings: data.settings as unknown as WebsiteSettings,
+          content: data.content as WebsiteContent,
+          settings: data.settings as WebsiteSettings,
           createdAt: data.createdat,
           updatedAt: data.updatedat,
         };
         
-        console.log("Transformed website data:", transformedData);
-        setWebsites([...websites, transformedData]);
+        console.log("Transformed website data:", newWebsite);
+        setWebsites([...websites, newWebsite]);
         
         toast({
           title: 'Website Created!',
