@@ -54,16 +54,18 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || `practice-${Date.now()}`;
       
-      // Get the appropriate content template based on template type
       const contentTemplate = defaultContent[templateType as keyof typeof defaultContent];
       
       // Populate the content template with practice info
       const websiteContent: WebsiteContent = {
         hero: {
           ...contentTemplate.hero,
+          heading: `Welcome to ${practiceInfo.name}`,
+          subheading: `Expert ${practiceInfo.specialty} Care`
         },
         about: {
           ...contentTemplate.about,
+          content: `${practiceInfo.name} specializes in providing high-quality ${practiceInfo.specialty} services to our community.`
         },
         services: {
           ...contentTemplate.services,
@@ -74,6 +76,8 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           address: practiceInfo.address,
           phone: practiceInfo.phone,
           email: practiceInfo.email,
+          heading: `Contact ${practiceInfo.name}`,
+          subheading: 'We are here to help'
         }
       };
 
@@ -102,8 +106,6 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         return null;
       }
 
-      // Fix for TypeScript errors: Properly cast the JSON data from Supabase
-      // Use type assertion with explicit type casting for complex JSON objects
       const newWebsite: Website = {
         id: data.id,
         userId: data.userid,
