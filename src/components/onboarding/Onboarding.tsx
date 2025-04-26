@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/clerk-react';
 import { Steps } from '@/components/onboarding/Steps';
 import TemplateSelection from '@/components/onboarding/TemplateSelection';
@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
+import { Website } from '@/types';
 import { useWebsiteOperations } from '@/hooks/website/useWebsiteOperations';
 
 interface OnboardingProps {
@@ -27,11 +28,11 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     phone: '',
     email: '',
   });
+  const [websites, setWebsites] = useState<Website[]>([]);
   const { toast } = useToast();
   
-  // Initialize website operations hook with empty state
-  // We only need the createWebsite function
-  const { createWebsite } = useWebsiteOperations([], () => {});
+  // Initialize website operations hook with the state we manage locally
+  const { createWebsite, loading: creatingWebsite } = useWebsiteOperations(websites, setWebsites);
 
   const steps = [
     { id: 'template', title: 'Select a template' },
@@ -56,6 +57,15 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
       toast({
         title: "Missing information",
         description: "Please select a template and complete all steps.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!practiceInfo.name || !practiceInfo.specialty) {
+      toast({
+        title: "Missing information",
+        description: "Please provide at least your practice name and specialty.",
         variant: "destructive"
       });
       return;

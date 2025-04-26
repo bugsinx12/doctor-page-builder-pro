@@ -3,38 +3,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-
-// Template data (similar to what we have in Templates.tsx)
-const templates = [
-  {
-    id: 'general-practice-1',
-    name: 'Modern General Practice',
-    description: 'Clean, professional design for general practitioners',
-    category: 'general',
-    popular: true,
-  },
-  {
-    id: 'specialist-1',
-    name: 'Specialist Clinic',
-    description: 'Showcase your specialty with dedicated sections',
-    category: 'specialist',
-    new: true,
-  },
-  {
-    id: 'clinic-1',
-    name: 'Modern Clinic',
-    description: 'Multi-doctor practice with team sections',
-    category: 'clinic',
-    popular: true,
-  },
-  {
-    id: 'pediatric-1',
-    name: 'Pediatric Practice',
-    description: 'Warm and friendly design for pediatricians',
-    category: 'pediatric',
-    new: true,
-  },
-];
+import { templates } from '@/data/templates';
 
 interface TemplateSelectionProps {
   selectedTemplate: string | null;
@@ -65,7 +34,7 @@ const TemplateSelection = ({
           >
             <div className="aspect-[3/2] relative bg-gray-100">
               <img
-                src="/placeholder.svg"
+                src={template.thumbnail || "/placeholder.svg"}
                 alt={template.name}
                 className="w-full h-full object-cover"
               />

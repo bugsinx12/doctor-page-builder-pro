@@ -33,6 +33,16 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       return;
     }
 
+    if (!practiceInfo.name || !practiceInfo.specialty) {
+      console.error("Missing required practice information");
+      toast({
+        title: "Error",
+        description: "Practice name and specialty are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       const supabaseUserId = getUUIDFromClerkID(userId);
@@ -112,6 +122,13 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       };
 
       console.log("Prepared content:", customContent);
+      
+      // Make sure we have valid settings for this template type
+      if (!defaultSettings[templateType]) {
+        console.error(`No default settings found for template type: ${templateType}`);
+        throw new Error(`Invalid template type: ${templateType}`);
+      }
+      
       console.log("Using settings template:", defaultSettings[templateType]);
 
       // We need to cast our strongly-typed objects to Json for Supabase

@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { useWebsiteManager } from '@/hooks/useWebsiteManager';
@@ -7,6 +7,7 @@ import NoWebsites from '@/components/website/NoWebsites';
 import NoPracticeInfo from '@/components/website/NoPracticeInfo';
 import TemplatesGrid from '@/components/website/TemplatesGrid';
 import WebsitesGrid from '@/components/website/WebsitesGrid';
+import { useToast } from '@/components/ui/use-toast';
 
 const WebsiteManager = () => {
   const {
@@ -20,6 +21,9 @@ const WebsiteManager = () => {
     copyLandingPageUrl
   } = useWebsiteManager();
   
+  const [activeTab, setActiveTab] = useState("my-websites");
+  const { toast } = useToast();
+  
   useEffect(() => {
     console.log("WebsiteManager - Websites:", websites);
     console.log("WebsiteManager - Templates:", templates);
@@ -28,9 +32,25 @@ const WebsiteManager = () => {
   }, [websites, templates, isPracticeInfoSet, practiceInfo]);
 
   const handleTabChange = (value: string) => {
-    const tabTrigger = document.querySelector(`[data-state="inactive"][value="${value}"]`);
-    if (tabTrigger instanceof HTMLButtonElement) {
-      tabTrigger.click();
+    setActiveTab(value);
+  };
+
+  const handleCreateWebsite = async (templateId: string, practiceInfo: any) => {
+    try {
+      await createWebsite(templateId, practiceInfo);
+      // After successful creation, switch to my-websites tab
+      setActiveTab("my-websites");
+      toast({
+        title: "Success",
+        description: "Website created successfully! You can view it now.",
+      });
+    } catch (error) {
+      console.error("Error creating website:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create website. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -57,7 +77,7 @@ const WebsiteManager = () => {
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-8">Website Manager</h1>
 
-      <Tabs defaultValue={hasWebsites ? "my-websites" : "templates"}>
+      <Tabs defaultValue={hasWebsites ? "my-websites" : "templates"} value={activeTab} onValueChange={handleTabChange}>
         <TabsList className="mb-6">
           <TabsTrigger value="my-websites">My Websites</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
@@ -85,7 +105,7 @@ const WebsiteManager = () => {
             <TemplatesGrid
               templates={templates}
               practiceInfo={completePracticeInfo}
-              onCreate={createWebsite}
+              onCreate={handleCreateWebsite}
             />
           )}
         </TabsContent>

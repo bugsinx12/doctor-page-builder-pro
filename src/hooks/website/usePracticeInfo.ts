@@ -77,9 +77,69 @@ export const usePracticeInfo = () => {
     fetchPracticeInfo();
   }, [userId, toast]);
 
+  const updatePracticeInfo = async (newInfo: {
+    name: string;
+    specialty: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+  }) => {
+    if (!userId) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to update practice information",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const supabaseUserId = getUUIDFromClerkID(userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          practice_name: newInfo.name,
+          specialty: newInfo.specialty,
+          address: newInfo.address || null,
+          phone: newInfo.phone || null,
+          email: newInfo.email || null
+        })
+        .eq('id', supabaseUserId);
+        
+      if (error) throw error;
+      
+      setPracticeInfo({
+        name: newInfo.name,
+        specialty: newInfo.specialty,
+        address: newInfo.address || '',
+        phone: newInfo.phone || '',
+        email: newInfo.email || ''
+      });
+      
+      setIsPracticeInfoSet(Boolean(newInfo.name && newInfo.specialty));
+      
+      toast({
+        title: "Practice information updated",
+        description: "Your practice information has been saved successfully.",
+      });
+    } catch (error) {
+      console.error('Error updating practice info:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update practice information',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     practiceInfo,
     isPracticeInfoSet,
-    loading
+    loading,
+    updatePracticeInfo
   };
 };
