@@ -64,7 +64,7 @@ export function useSupabaseClient() {
         setError(err instanceof Error ? err : new Error("Failed to initialize Supabase client"));
         toast({
           title: "Authentication Error",
-          description: "Failed to initialize secure connection. Please try again.",
+          description: "Failed to initialize secure connection. Please check your JWT template configuration in Clerk dashboard.",
           variant: "destructive",
         });
       } finally {
@@ -137,7 +137,7 @@ export function useSupabaseAuth() {
         setIsAuthenticated(false);
         toast({
           title: "Authentication Error",
-          description: "Failed to verify authentication status. Please try again.",
+          description: "Please ensure your Clerk JWT template for Supabase is configured with the correct signing key.",
           variant: "destructive",
         });
       } finally {

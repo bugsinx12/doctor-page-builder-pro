@@ -38,7 +38,7 @@ const WebsiteManager = () => {
       console.error("Auth error:", combinedAuthError);
       toast({
         title: "Authentication Error",
-        description: "Please ensure the Supabase JWT template is configured in your Clerk dashboard.",
+        description: "Please ensure the Supabase JWT template is configured with the correct signing key in your Clerk dashboard.",
         variant: "destructive"
       });
     }
@@ -52,7 +52,7 @@ const WebsiteManager = () => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
-        description: "Please ensure you are logged in and Clerk is properly configured.",
+        description: "Please ensure you are logged in and the Clerk JWT template has the correct signing key.",
         variant: "destructive"
       });
       return;
@@ -109,8 +109,9 @@ const WebsiteManager = () => {
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Authentication Error</AlertTitle>
             <AlertDescription>
-              A Supabase JWT template must be configured in your Clerk dashboard. 
-              The default template should contain user email and role claims.
+              Make sure your Supabase JWT template in the Clerk dashboard has the correct signing key: 
+              "supabase_jwt_7X9z2K#mQ5$pL3@fN6!wR8*tJ4" 
+              and contains the required claims (email and role).
             </AlertDescription>
           </Alert>
         )}

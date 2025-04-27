@@ -5,6 +5,7 @@ import type { Database } from './types';
 
 const SUPABASE_URL = "https://isjjzddntanbjopqylic.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzamp6ZGRudGFuYmpvcHF5bGljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NzEyMDAsImV4cCI6MjA2MDE0NzIwMH0._Y8ux53LbbT5aAVAyHJduvMGvHuBmKD34fU6xktyjR8";
+const JWT_SECRET = "supabase_jwt_7X9z2K#mQ5$pL3@fN6!wR8*tJ4";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +16,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     detectSessionInUrl: false, // Disable detecting tokens in URL for Clerk integration
     flowType: 'pkce',
-    debug: true // Enable debug mode temporarily to help troubleshoot
+    debug: true, // Enable debug mode temporarily to help troubleshoot
+    jwtSecret: JWT_SECRET // Add the JWT secret for validation
   },
   global: {
     headers: {
