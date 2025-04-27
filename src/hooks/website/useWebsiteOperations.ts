@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,7 @@ import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { defaultContent, defaultSettings } from '@/pages/websiteManagerUtils';
+import type { Json } from '@/integrations/supabase/types';
 
 export const useWebsiteOperations = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
   const { userId } = useAuth();
@@ -56,7 +56,6 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       
       const contentTemplate = defaultContent[templateType as keyof typeof defaultContent];
       
-      // Populate the content template with practice info
       const websiteContent: WebsiteContent = {
         hero: {
           ...contentTemplate.hero,
@@ -83,8 +82,6 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
 
       console.log("Attempting to create website with user ID:", supabaseUserId);
       
-      // Create a payload object and explicitly cast to the expected types
-      // This fixes the TypeScript error by ensuring content and settings are treated as Json
       const websitePayload = {
         userid: supabaseUserId,
         name: practiceInfo.name,
@@ -98,7 +95,6 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       
       console.log("Website payload:", websitePayload);
       
-      // First make sure user is authenticated with Supabase
       const { data: authData, error: authError } = await supabase.auth.getSession();
       
       if (authError) {
@@ -108,7 +104,6 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       
       if (!authData.session) {
         console.error("No session found, attempting to sign in anonymously");
-        // Try to create an anonymous session
         const { error: signInError } = await supabase.auth.signInAnonymously();
         
         if (signInError) {
@@ -116,14 +111,12 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
           throw new Error("Authentication failed. Could not create a session.");
         }
         
-        // Verify the session after sign in
         const { data: verifyData } = await supabase.auth.getSession();
         if (!verifyData.session) {
           throw new Error("Failed to create authenticated session.");
         }
       }
 
-      // Now make the insert request
       const { data, error } = await supabase
         .from('websites')
         .insert(websitePayload)
