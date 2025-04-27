@@ -3,17 +3,16 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "./useSupabaseAuth";
+import { useSupabaseAuth } from "@/utils/supabaseAuth";
+import type { Database } from "@/integrations/supabase/types";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 export const useProfile = () => {
   const { user } = useUser();
   const { supabaseUserId, isLoading: authLoading } = useSupabaseAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<{
-    practice_name: string | null;
-    specialty: string | null;
-    avatar_url: string | null;
-  } | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -31,7 +30,7 @@ export const useProfile = () => {
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", supabaseUserId)
+          .eq("id", supabaseUserId as string)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -51,7 +50,7 @@ export const useProfile = () => {
                 full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
                 avatar_url: user.imageUrl || null,
               })
-              .eq("id", supabaseUserId)
+              .eq("id", supabaseUserId as string)
               .select()
               .single();
               
@@ -72,7 +71,7 @@ export const useProfile = () => {
 
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
-            .insert(profileData)
+            .insert(profileData as any)
             .select()
             .single();
 

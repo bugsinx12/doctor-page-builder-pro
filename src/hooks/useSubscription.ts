@@ -4,6 +4,9 @@ import { useUser } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuth } from "./useSupabaseAuth";
+import type { Database } from "@/integrations/supabase/types";
+
+type Subscriber = Database['public']['Tables']['subscribers']['Row'];
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -37,7 +40,7 @@ export const useSubscription = () => {
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
-          .eq("user_id", supabaseUserId)
+          .eq("user_id", supabaseUserId as string)
           .maybeSingle();
 
         if (fetchError) {
@@ -47,13 +50,15 @@ export const useSubscription = () => {
         // If no subscriber exists, create one
         if (!existingSubscriber) {
           console.log("No subscriber found, creating new record");
+          const subscriberData = {
+            user_id: supabaseUserId,
+            email: user.primaryEmailAddress?.emailAddress || "",
+            subscribed: false
+          };
+          
           const { data: newSubscriber, error: insertError } = await supabase
             .from("subscribers")
-            .insert({
-              user_id: supabaseUserId,
-              email: user.primaryEmailAddress?.emailAddress || "",
-              subscribed: false
-            })
+            .insert(subscriberData as any)
             .select()
             .single();
 

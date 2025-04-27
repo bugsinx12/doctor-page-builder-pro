@@ -9,6 +9,9 @@ import { useTemplates } from './website/useTemplates';
 import { useWebsiteOperations } from './website/useWebsiteOperations';
 import { usePracticeInfo } from './website/usePracticeInfo';
 import { useSupabaseClient } from '@/utils/supabaseAuth';
+import type { Database } from "@/integrations/supabase/types";
+
+type WebsiteRow = Database['public']['Tables']['websites']['Row'];
 
 export const useWebsiteManager = () => {
   const { userId } = useAuth();
@@ -41,7 +44,7 @@ export const useWebsiteManager = () => {
         const { data: websitesData, error: websitesError } = await supabaseClient
           .from('websites')
           .select('*')
-          .eq('userid', supabaseUserId);
+          .eq('userid', supabaseUserId as string);
 
         if (websitesError) {
           console.error('Error fetching websites:', websitesError);
@@ -51,7 +54,7 @@ export const useWebsiteManager = () => {
         console.log("Websites data from API:", websitesData);
         
         if (websitesData && websitesData.length > 0) {
-          const transformedWebsites: Website[] = websitesData.map(item => ({
+          const transformedWebsites: Website[] = websitesData.map((item: WebsiteRow) => ({
             id: item.id,
             userId: item.userid,
             name: item.name,

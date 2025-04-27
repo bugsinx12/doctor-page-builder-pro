@@ -5,9 +5,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
 import getUUIDFromClerkID from "./getUUIDFromClerkID";
+import type { Database } from "@/integrations/supabase/types";
 
 // Cache for the Supabase client to prevent unnecessary recreations
-let authenticatedClient: SupabaseClient | null = null;
+let authenticatedClient: SupabaseClient<Database> | null = null;
 
 /**
  * Get an authenticated Supabase client using Clerk JWT
@@ -42,7 +43,7 @@ export async function getAuthenticatedClient(getToken: () => Promise<string | nu
  */
 export function useSupabaseClient() {
   const { getToken } = useAuth();
-  const [client, setClient] = useState<SupabaseClient | null>(null);
+  const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();

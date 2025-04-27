@@ -4,6 +4,9 @@ import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
+import type { Database } from "@/integrations/supabase/types";
+
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 export const usePracticeInfo = () => {
   const { userId } = useAuth();
@@ -29,7 +32,7 @@ export const usePracticeInfo = () => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
-          .eq('id', supabaseUserId)
+          .eq('id', supabaseUserId as string)
           .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
@@ -108,8 +111,8 @@ export const usePracticeInfo = () => {
           address: newInfo.address || null,
           phone: newInfo.phone || null,
           email: newInfo.email || null
-        })
-        .eq('id', supabaseUserId);
+        } as Partial<ProfileRow>)
+        .eq('id', supabaseUserId as string);
         
       if (error) {
         console.error('Supabase update error:', error);
