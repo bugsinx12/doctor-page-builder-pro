@@ -83,14 +83,15 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
 
       console.log("Attempting to create website with user ID:", supabaseUserId);
       
-      // Create a payload object for better debugging
+      // Create a payload object and explicitly cast to the expected types
+      // This fixes the TypeScript error by ensuring content and settings are treated as Json
       const websitePayload = {
         userid: supabaseUserId,
         name: practiceInfo.name,
         slug: slug,
         templateid: templateId,
-        content: websiteContent,
-        settings: defaultSettings[templateType as keyof typeof defaultSettings],
+        content: websiteContent as unknown as Json,
+        settings: defaultSettings[templateType as keyof typeof defaultSettings] as unknown as Json,
         createdat: new Date().toISOString(),
         updatedat: new Date().toISOString()
       };
@@ -106,17 +107,19 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       }
       
       if (!authData.session) {
-        console.error("No session found, setting session");
-        // We need to set the auth session manually for Clerk integration
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: `${supabaseUserId}@example.com`,
-          password: 'password',
-        });
+        console.error("No session found, attempting to sign in anonymously");
+        // Try to create an anonymous session
+        const { error: signInError } = await supabase.auth.signInAnonymously();
         
         if (signInError) {
           console.error("Sign in error:", signInError);
-          // Fallback: Try to create an anonymous session
-          await supabase.auth.signInAnonymously();
+          throw new Error("Authentication failed. Could not create a session.");
+        }
+        
+        // Verify the session after sign in
+        const { data: verifyData } = await supabase.auth.getSession();
+        if (!verifyData.session) {
+          throw new Error("Failed to create authenticated session.");
         }
       }
 
