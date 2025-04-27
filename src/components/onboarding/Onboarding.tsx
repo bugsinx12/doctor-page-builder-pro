@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/clerk-react';
 import { Steps } from '@/components/onboarding/Steps';
@@ -9,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { Website } from '@/types';
 import { useWebsiteOperations } from '@/hooks/website/useWebsiteOperations';
+import { usePracticeInfo } from '@/hooks/website/usePracticeInfo';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -19,17 +21,25 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   const { userId } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [practiceInfo, setPracticeInfo] = useState({
+  const [websites, setWebsites] = useState<Website[]>([]);
+  const { toast } = useToast();
+  const { practiceInfo, updatePracticeInfo } = usePracticeInfo();
+  const [localPracticeInfo, setLocalPracticeInfo] = useState({
     name: '',
     specialty: '',
     address: '',
     phone: '',
     email: '',
   });
-  const [websites, setWebsites] = useState<Website[]>([]);
-  const { toast } = useToast();
   
   const { createWebsite, loading: creatingWebsite } = useWebsiteOperations(websites, setWebsites);
+
+  useEffect(() => {
+    // Initialize local state from loaded practice info
+    if (practiceInfo) {
+      setLocalPracticeInfo(practiceInfo);
+    }
+  }, [practiceInfo]);
 
   const steps = [
     { id: 'template', title: 'Select a template' },
@@ -49,20 +59,29 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     }
   };
 
+  const handlePracticeInfoChange = (values: any) => {
+    setLocalPracticeInfo({
+      name: values.name,
+      specialty: values.specialty,
+      address: values.address || '',
+      phone: values.phone || '',
+      email: values.email || ''
+    });
+  };
+
+  const handlePracticeInfoNext = async () => {
+    // Save practice info to Supabase
+    const success = await updatePracticeInfo(localPracticeInfo);
+    if (success) {
+      handleNext();
+    }
+  };
+
   const handleComplete = async () => {
     if (!userId || !selectedTemplate) {
       toast({
         title: "Missing information",
         description: "Please select a template and complete all steps.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (!practiceInfo.name || !practiceInfo.specialty) {
-      toast({
-        title: "Missing information",
-        description: "Please provide at least your practice name and specialty.",
         variant: "destructive"
       });
       return;
@@ -74,27 +93,12 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         unsafeMetadata: {
           onboardingCompleted: true,
           selectedTemplate,
-          practiceInfo
+          practiceInfo: localPracticeInfo
         }
       });
       
-      // 2. Update Supabase profile
-      const supabaseUserId = getUUIDFromClerkID(userId);
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          practice_name: practiceInfo.name,
-          specialty: practiceInfo.specialty,
-          address: practiceInfo.address,
-          phone: practiceInfo.phone,
-          email: practiceInfo.email
-        })
-        .eq('id', supabaseUserId);
-        
-      if (profileError) throw profileError;
-      
-      // 3. Create website using the selected template
-      await createWebsite(selectedTemplate, practiceInfo);
+      // 2. Create website using the selected template
+      await createWebsite(selectedTemplate, localPracticeInfo);
       
       toast({
         title: "Onboarding completed!",
@@ -125,17 +129,9 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
       case 1:
         return (
           <PracticeInfo 
-            practiceInfo={practiceInfo}
-            onChange={(values) => {
-              setPracticeInfo({
-                name: values.name,
-                specialty: values.specialty,
-                address: values.address || '',
-                phone: values.phone || '',
-                email: values.email || ''
-              });
-            }}
-            onNext={handleNext}
+            practiceInfo={localPracticeInfo}
+            onChange={handlePracticeInfoChange}
+            onNext={handlePracticeInfoNext}
             onPrevious={handlePrevious}
           />
         );

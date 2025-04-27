@@ -7,6 +7,7 @@ import { Shell } from '@/components/Shell';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
+import { Loader2 } from 'lucide-react';
 
 const OnboardingPage = () => {
   const { user } = useUser();
@@ -18,17 +19,13 @@ const OnboardingPage = () => {
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       if (!user || !userId) {
-        console.log("No user or userId available in OnboardingPage");
         setLoading(false);
         return;
       }
       
-      console.log("OnboardingPage - User data:", user.id, user.firstName, user.lastName);
       const onboardingCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
-      console.log("Onboarding completed from metadata:", onboardingCompleted);
       
       if (onboardingCompleted) {
-        console.log("Onboarding already completed, redirecting to dashboard");
         navigate('/dashboard', { replace: true });
         return;
       }
@@ -36,7 +33,6 @@ const OnboardingPage = () => {
       try {
         // Initialize profile in Supabase (if needed)
         const supabaseUserId = getUUIDFromClerkID(userId);
-        console.log("Checking for existing profile for user ID:", supabaseUserId);
         
         // Check if profile already exists
         const { data: existingProfile, error: profileError } = await supabase
@@ -45,17 +41,22 @@ const OnboardingPage = () => {
           .eq('id', supabaseUserId)
           .maybeSingle();
           
-        if (profileError) {
+        if (profileError && profileError.code !== 'PGRST116') {
           console.error("Error checking profile:", profileError);
         }
         
         // Only create profile if it doesn't exist
         if (!existingProfile) {
-          console.log("Creating new profile for user");
           const profileData = {
             id: supabaseUserId,
             full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
-            avatar_url: user.imageUrl || null
+            avatar_url: user.imageUrl || null,
+            // Initialize practice fields as null so they can be updated later
+            practice_name: null,
+            specialty: null,
+            address: null,
+            phone: null,
+            email: user.primaryEmailAddress?.emailAddress || null
           };
           
           const { error: insertError } = await supabase
@@ -64,11 +65,7 @@ const OnboardingPage = () => {
             
           if (insertError) {
             console.error("Error creating profile:", insertError);
-          } else {
-            console.log("Profile created successfully");
           }
-        } else {
-          console.log("Existing profile found");
         }
 
         // Check if subscriber record exists
@@ -78,13 +75,12 @@ const OnboardingPage = () => {
           .eq('user_id', supabaseUserId)
           .maybeSingle();
           
-        if (subError) {
+        if (subError && subError.code !== 'PGRST116') {
           console.error('Error checking subscriber:', subError);
         }
         
         // Only create subscriber if it doesn't exist
         if (!existingSubscriber) {
-          console.log("Creating new subscriber record");
           const subscriberData = {
             user_id: supabaseUserId,
             email: user.primaryEmailAddress?.emailAddress || "",
@@ -97,11 +93,7 @@ const OnboardingPage = () => {
             
           if (insertError) {
             console.error('Error creating subscriber record:', insertError);
-          } else {
-            console.log("Subscriber record created successfully");
           }
-        } else {
-          console.log("Existing subscriber record found");
         }
       } catch (error) {
         console.error('Unexpected error:', error);
@@ -120,7 +112,7 @@ const OnboardingPage = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-medical-600"></div>
+        <Loader2 className="h-12 w-12 animate-spin text-medical-600" />
       </div>
     );
   }

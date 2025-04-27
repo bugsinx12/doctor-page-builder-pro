@@ -8,6 +8,7 @@ import NoPracticeInfo from '@/components/website/NoPracticeInfo';
 import TemplatesGrid from '@/components/website/TemplatesGrid';
 import WebsitesGrid from '@/components/website/WebsitesGrid';
 import { useToast } from '@/components/ui/use-toast';
+import { Shell } from '@/components/Shell';
 
 const WebsiteManager = () => {
   const {
@@ -24,26 +25,21 @@ const WebsiteManager = () => {
   const [activeTab, setActiveTab] = useState("my-websites");
   const { toast } = useToast();
   
-  useEffect(() => {
-    console.log("WebsiteManager - Websites:", websites);
-    console.log("WebsiteManager - Templates:", templates);
-    console.log("WebsiteManager - isPracticeInfoSet:", isPracticeInfoSet);
-    console.log("WebsiteManager - practiceInfo:", practiceInfo);
-  }, [websites, templates, isPracticeInfoSet, practiceInfo]);
-
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
   const handleCreateWebsite = async (templateId: string, practiceInfo: any) => {
     try {
-      await createWebsite(templateId, practiceInfo);
-      // After successful creation, switch to my-websites tab
-      setActiveTab("my-websites");
-      toast({
-        title: "Success",
-        description: "Website created successfully! You can view it now.",
-      });
+      const website = await createWebsite(templateId, practiceInfo);
+      if (website) {
+        // After successful creation, switch to my-websites tab
+        setActiveTab("my-websites");
+        toast({
+          title: "Success",
+          description: "Website created successfully! You can view it now.",
+        });
+      }
     } catch (error) {
       console.error("Error creating website:", error);
       toast({
@@ -65,52 +61,56 @@ const WebsiteManager = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-medical-600" />
-      </div>
+      <Shell>
+        <div className="flex items-center justify-center min-h-[80vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-medical-600" />
+        </div>
+      </Shell>
     );
   }
 
   const hasWebsites = websites && websites.length > 0;
 
   return (
-    <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-8">Website Manager</h1>
+    <Shell>
+      <div className="container py-8">
+        <h1 className="text-3xl font-bold mb-8">Website Manager</h1>
 
-      <Tabs defaultValue={hasWebsites ? "my-websites" : "templates"} value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="my-websites">My Websites</TabsTrigger>
-          <TabsTrigger value="templates">Templates</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue={hasWebsites ? "my-websites" : "templates"} value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="my-websites">My Websites</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="my-websites">
-          {!hasWebsites ? (
-            <NoWebsites 
-              onBrowseTemplates={() => handleTabChange('templates')} 
-            />
-          ) : (
-            <WebsitesGrid
-              websites={websites}
-              templates={templates}
-              onCopyUrl={copyLandingPageUrl}
-              onDelete={deleteWebsite}
-            />
-          )}
-        </TabsContent>
+          <TabsContent value="my-websites">
+            {!hasWebsites ? (
+              <NoWebsites 
+                onBrowseTemplates={() => handleTabChange('templates')} 
+              />
+            ) : (
+              <WebsitesGrid
+                websites={websites}
+                templates={templates}
+                onCopyUrl={copyLandingPageUrl}
+                onDelete={deleteWebsite}
+              />
+            )}
+          </TabsContent>
 
-        <TabsContent value="templates">
-          {!isPracticeInfoSet ? (
-            <NoPracticeInfo />
-          ) : (
-            <TemplatesGrid
-              templates={templates}
-              practiceInfo={completePracticeInfo}
-              onCreate={handleCreateWebsite}
-            />
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="templates">
+            {!isPracticeInfoSet ? (
+              <NoPracticeInfo />
+            ) : (
+              <TemplatesGrid
+                templates={templates}
+                practiceInfo={completePracticeInfo}
+                onCreate={handleCreateWebsite}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </Shell>
   );
 };
 

@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, "Practice name must be at least 2 characters"),
   specialty: z.string().min(2, "Specialty must be at least 2 characters"),
-  address: z.string().min(5, "Please enter a valid address"),
-  phone: z.string().min(10, "Please enter a valid phone number"),
-  email: z.string().email("Please enter a valid email address"),
+  address: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email("Please enter a valid email address").optional(),
 });
 
 type PracticeInfoFormValues = z.infer<typeof formSchema>;
@@ -43,14 +45,41 @@ const PracticeInfo = ({
   onNext, 
   onPrevious 
 }: PracticeInfoProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const form = useForm<PracticeInfoFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: practiceInfo,
+    defaultValues: {
+      name: practiceInfo.name || '',
+      specialty: practiceInfo.specialty || '',
+      address: practiceInfo.address || '',
+      phone: practiceInfo.phone || '',
+      email: practiceInfo.email || '',
+    },
   });
 
-  function onSubmit(values: PracticeInfoFormValues) {
-    onChange(values);
-    onNext();
+  // Update form when practiceInfo changes
+  React.useEffect(() => {
+    if (practiceInfo) {
+      form.reset({
+        name: practiceInfo.name || '',
+        specialty: practiceInfo.specialty || '',
+        address: practiceInfo.address || '',
+        phone: practiceInfo.phone || '',
+        email: practiceInfo.email || '',
+      });
+    }
+  }, [form, practiceInfo]);
+
+  async function onSubmit(values: PracticeInfoFormValues) {
+    setIsSubmitting(true);
+    
+    try {
+      onChange(values);
+      await onNext();
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -68,7 +97,7 @@ const PracticeInfo = ({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Practice Name</FormLabel>
+                  <FormLabel>Practice Name *</FormLabel>
                   <FormControl>
                     <Input placeholder="Wellness Medical Center" {...field} />
                   </FormControl>
@@ -82,7 +111,7 @@ const PracticeInfo = ({
               name="specialty"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Medical Specialty</FormLabel>
+                  <FormLabel>Medical Specialty *</FormLabel>
                   <FormControl>
                     <Input placeholder="Family Medicine, Cardiology, etc." {...field} />
                   </FormControl>
@@ -141,10 +170,20 @@ const PracticeInfo = ({
               type="button" 
               variant="outline" 
               onClick={onPrevious}
+              disabled={isSubmitting}
             >
               Back
             </Button>
-            <Button type="submit">Continue</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Continue'
+              )}
+            </Button>
           </div>
         </form>
       </Form>

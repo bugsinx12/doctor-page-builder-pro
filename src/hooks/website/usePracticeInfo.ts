@@ -32,7 +32,11 @@ export const usePracticeInfo = () => {
           .eq('id', supabaseUserId)
           .single();
           
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') {
+          // PGRST116 is "no rows returned" which is expected for new users
+          console.error('Error fetching practice info:', error);
+          throw error;
+        }
         
         if (profile) {
           const profileData = {
@@ -81,7 +85,7 @@ export const usePracticeInfo = () => {
         description: "You must be logged in to update practice information",
         variant: "destructive",
       });
-      return;
+      return false;
     }
     
     try {
@@ -115,6 +119,8 @@ export const usePracticeInfo = () => {
         title: "Practice information updated",
         description: "Your practice information has been saved successfully.",
       });
+      
+      return true;
     } catch (error) {
       console.error('Error updating practice info:', error);
       toast({
@@ -122,6 +128,7 @@ export const usePracticeInfo = () => {
         description: 'Failed to update practice information',
         variant: 'destructive',
       });
+      return false;
     } finally {
       setLoading(false);
     }
