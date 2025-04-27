@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,7 +14,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
@@ -59,7 +59,7 @@ const PracticeInfo = ({
   });
 
   // Update form when practiceInfo changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (practiceInfo) {
       form.reset({
         name: practiceInfo.name || '',
@@ -192,3 +192,4 @@ const PracticeInfo = ({
 };
 
 export default PracticeInfo;
+
