@@ -1,5 +1,5 @@
 
-import { ToastOptions } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 export type WebsiteError = {
   title: string;
