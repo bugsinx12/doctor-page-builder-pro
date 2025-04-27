@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
@@ -7,9 +6,9 @@ import NoWebsites from '@/components/website/NoWebsites';
 import NoPracticeInfo from '@/components/website/NoPracticeInfo';
 import TemplatesGrid from '@/components/website/TemplatesGrid';
 import WebsitesGrid from '@/components/website/WebsitesGrid';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Shell } from '@/components/Shell';
-import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
+import { useSupabaseAuth } from '@/utils/supabaseAuth';
 
 const WebsiteManager = () => {
   const {
@@ -25,17 +24,17 @@ const WebsiteManager = () => {
   
   const [activeTab, setActiveTab] = useState("my-websites");
   const { toast } = useToast();
-  const { authenticated, loading: authLoading } = useClerkSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading } = useSupabaseAuth();
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
   const handleCreateWebsite = async (templateId: string, practiceInfo: any) => {
-    if (!authenticated) {
+    if (!isAuthenticated) {
       toast({
-        title: "Authentication Error",
-        description: "You need to be logged in to create a website.",
+        title: "Authentication Required",
+        description: "Please ensure you are logged in to create a website.",
         variant: "destructive"
       });
       return;
@@ -44,7 +43,6 @@ const WebsiteManager = () => {
     try {
       const website = await createWebsite(templateId, practiceInfo);
       if (website) {
-        // After successful creation, switch to my-websites tab
         setActiveTab("my-websites");
         toast({
           title: "Success",
@@ -61,7 +59,6 @@ const WebsiteManager = () => {
     }
   };
 
-  // Ensure practiceInfo has all required fields with defaults if needed
   const completePracticeInfo = {
     name: practiceInfo?.name || '',
     specialty: practiceInfo?.specialty || '',

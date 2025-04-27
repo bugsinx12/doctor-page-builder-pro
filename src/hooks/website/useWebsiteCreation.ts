@@ -1,13 +1,13 @@
 
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Json } from '@/integrations/supabase/types';
 import { getWebsiteError, getValidationError } from '@/utils/websiteErrors';
+import { getAuthenticatedClient } from '@/utils/supabaseAuth';
 
 export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
   const { userId } = useAuth();
@@ -63,24 +63,8 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
         updatedat: new Date().toISOString()
       };
 
-      const { data: authData, error: authError } = await supabase.auth.getSession();
+      const supabase = await getAuthenticatedClient();
       
-      if (authError) {
-        throw new Error("Authentication failed. Please log in again.");
-      }
-      
-      if (!authData.session) {
-        const { error: signInError } = await supabase.auth.signInAnonymously();
-        if (signInError) {
-          throw new Error("Authentication failed. Could not create a session.");
-        }
-        
-        const { data: verifyData } = await supabase.auth.getSession();
-        if (!verifyData.session) {
-          throw new Error("Failed to create authenticated session.");
-        }
-      }
-
       const { data, error } = await supabase
         .from('websites')
         .insert(websitePayload)
