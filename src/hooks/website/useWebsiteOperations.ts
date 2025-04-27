@@ -81,6 +81,18 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         }
       };
 
+      console.log("Attempting to create website with user ID:", supabaseUserId);
+      console.log("Website payload:", {
+        userid: supabaseUserId,
+        name: practiceInfo.name,
+        slug: slug,
+        templateid: templateId,
+        content: websiteContent,
+        settings: defaultSettings[templateType as keyof typeof defaultSettings],
+        createdat: new Date().toISOString(),
+        updatedat: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from('websites')
         .insert({
@@ -105,6 +117,8 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         });
         return null;
       }
+
+      console.log("Website created successfully:", data);
 
       const newWebsite: Website = {
         id: data.id,
