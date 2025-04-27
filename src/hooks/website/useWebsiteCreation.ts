@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
-import { defaultContent, defaultSettings } from '@/pages/websiteManagerUtils';
+import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Json } from '@/integrations/supabase/types';
 
 export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
@@ -55,39 +55,15 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || `practice-${Date.now()}`;
       
-      const contentTemplate = defaultContent[templateType as keyof typeof defaultContent];
+      const { content, settings } = generateTemplateContent(templateType, practiceInfo);
       
-      const websiteContent: WebsiteContent = {
-        hero: {
-          ...contentTemplate.hero,
-          heading: `Welcome to ${practiceInfo.name}`,
-          subheading: `Expert ${practiceInfo.specialty} Care`
-        },
-        about: {
-          ...contentTemplate.about,
-          content: `${practiceInfo.name} specializes in providing high-quality ${practiceInfo.specialty} services to our community.`
-        },
-        services: {
-          ...contentTemplate.services,
-        },
-        testimonials: [...contentTemplate.testimonials],
-        contact: {
-          ...contentTemplate.contact,
-          address: practiceInfo.address,
-          phone: practiceInfo.phone,
-          email: practiceInfo.email,
-          heading: `Contact ${practiceInfo.name}`,
-          subheading: 'We are here to help'
-        }
-      };
-
       const websitePayload = {
         userid: supabaseUserId,
         name: practiceInfo.name,
         slug: slug,
         templateid: templateId,
-        content: websiteContent as unknown as Json,
-        settings: defaultSettings[templateType as keyof typeof defaultSettings] as unknown as Json,
+        content: content as unknown as Json,
+        settings: settings as unknown as Json,
         createdat: new Date().toISOString(),
         updatedat: new Date().toISOString()
       };
