@@ -7,10 +7,10 @@ import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Json } from '@/integrations/supabase/types';
 import { getWebsiteError, getValidationError } from '@/utils/websiteErrors';
-import { getAuthenticatedClient } from '@/utils/supabaseAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +40,23 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
       setLoading(true);
       const supabaseUserId = getUUIDFromClerkID(userId);
 
+      // Get JWT token from Clerk for Supabase
+      const token = await getToken({ template: "supabase" });
+      
+      if (!token) {
+        throw new Error("Failed to get authentication token");
+      }
+      
+      // Set the JWT on the Supabase client
+      const { error: authError } = await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: token,
+      });
+      
+      if (authError) {
+        throw authError;
+      }
+
       const templateType = templateId.includes('specialist') ? 'specialist'
         : templateId.includes('pediatric') ? 'pediatric'
         : templateId.includes('clinic') ? 'clinic'
@@ -62,8 +79,6 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
         createdat: new Date().toISOString(),
         updatedat: new Date().toISOString()
       };
-
-      const supabase = await getAuthenticatedClient();
       
       const { data, error } = await supabase
         .from('websites')

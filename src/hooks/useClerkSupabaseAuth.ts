@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 
 export const useClerkSupabaseAuth = () => {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -25,22 +25,31 @@ export const useClerkSupabaseAuth = () => {
         // Get Supabase UUID from Clerk ID
         const supabaseUserId = getUUIDFromClerkID(userId);
         
-        // Check if we have an active session
-        const { data: sessionData } = await supabase.auth.getSession();
+        // Get JWT token from Clerk using the Supabase template
+        const token = await getToken({ template: "supabase" });
         
-        if (!sessionData.session) {
-          console.log('No Supabase session found, signing in anonymously');
-          
-          // No session, try to sign in anonymously
-          await supabase.auth.signInAnonymously();
-          
-          // Verify if sign in was successful
-          const { data: verifyData } = await supabase.auth.getSession();
-          setAuthenticated(!!verifyData.session);
-        } else {
-          // We have a session
-          setAuthenticated(true);
+        if (!token) {
+          throw new Error("Failed to get authentication token");
         }
+        
+        // Set the JWT on the Supabase client
+        const { error: authError } = await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: token,
+        });
+        
+        if (authError) {
+          throw authError;
+        }
+        
+        // Verify the session worked by checking user
+        const { data, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          throw userError;
+        }
+        
+        setAuthenticated(!!data.user);
       } catch (err) {
         console.error('Error syncing auth state:', err);
         setError(err instanceof Error ? err : new Error('Authentication error'));
@@ -51,7 +60,7 @@ export const useClerkSupabaseAuth = () => {
     };
 
     syncAuthState();
-  }, [userId]);
+  }, [userId, getToken]);
 
   return { authenticated, loading, error };
 };

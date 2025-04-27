@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 
 export const useWebsiteManagement = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +18,28 @@ export const useWebsiteManagement = (websites: Website[], setWebsites: (websites
 
     try {
       setLoading(true);
-      const supabaseUserId = getUUIDFromClerkID(userId!);
+      if (!userId) {
+        throw new Error("Authentication required");
+      }
+      
+      const supabaseUserId = getUUIDFromClerkID(userId);
+      
+      // Get JWT token from Clerk for Supabase
+      const token = await getToken({ template: "supabase" });
+      
+      if (!token) {
+        throw new Error("Failed to get authentication token");
+      }
+      
+      // Set the JWT on the Supabase client
+      const { error: authError } = await supabase.auth.setSession({
+        access_token: token,
+        refresh_token: token,
+      });
+      
+      if (authError) {
+        throw authError;
+      }
 
       const { error } = await supabase
         .from('websites')

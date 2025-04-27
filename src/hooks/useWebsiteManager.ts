@@ -11,7 +11,7 @@ import { useWebsiteOperations } from './website/useWebsiteOperations';
 import { usePracticeInfo } from './website/usePracticeInfo';
 
 export const useWebsiteManager = () => {
-  const { userId } = useAuth();
+  const { userId, getToken } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [websites, setWebsites] = useState<Website[]>([]);
@@ -29,6 +29,23 @@ export const useWebsiteManager = () => {
       try {
         setLoading(true);
         const supabaseUserId = getUUIDFromClerkID(userId);
+
+        // Get JWT token from Clerk for Supabase
+        const token = await getToken({ template: "supabase" });
+        
+        if (!token) {
+          throw new Error("Failed to get authentication token");
+        }
+        
+        // Set the JWT on the Supabase client
+        const { error: authError } = await supabase.auth.setSession({
+          access_token: token,
+          refresh_token: token,
+        });
+        
+        if (authError) {
+          throw authError;
+        }
 
         console.log("Fetching websites for user:", supabaseUserId);
 
@@ -73,7 +90,7 @@ export const useWebsiteManager = () => {
     };
 
     fetchWebsites();
-  }, [userId, navigate]);
+  }, [userId, navigate, getToken]);
 
   return {
     loading: loading || operationsLoading || templatesLoading,
