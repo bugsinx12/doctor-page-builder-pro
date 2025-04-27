@@ -1,15 +1,16 @@
 
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Website } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
+import { useSupabaseClient } from '@/utils/supabaseAuth';
 
 export const useWebsiteManagement = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
-  const { userId, getToken } = useAuth();
+  const { userId } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { client: supabaseClient } = useSupabaseClient();
 
   const deleteWebsite = async (websiteId: string) => {
     if (!confirm('Are you sure you want to delete this website? This action cannot be undone.')) {
@@ -18,30 +19,13 @@ export const useWebsiteManagement = (websites: Website[], setWebsites: (websites
 
     try {
       setLoading(true);
-      if (!userId) {
+      if (!userId || !supabaseClient) {
         throw new Error("Authentication required");
       }
       
       const supabaseUserId = getUUIDFromClerkID(userId);
-      
-      // Get JWT token from Clerk for Supabase
-      const token = await getToken({ template: "supabase" });
-      
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Set the JWT on the Supabase client
-      const { error: authError } = await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: token,
-      });
-      
-      if (authError) {
-        throw authError;
-      }
 
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('websites')
         .delete()
         .eq('id', websiteId)

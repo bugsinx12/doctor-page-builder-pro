@@ -7,12 +7,13 @@ import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Json } from '@/integrations/supabase/types';
 import { getWebsiteError, getValidationError } from '@/utils/websiteErrors';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabaseClient } from '@/utils/supabaseAuth';
 
 export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
-  const { userId, getToken } = useAuth();
+  const { userId } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const { client: supabaseClient } = useSupabaseClient();
 
   const createWebsite = async (
     templateId: string, 
@@ -24,7 +25,7 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
       email: string 
     }
   ): Promise<Website | null> => {
-    if (!userId) {
+    if (!userId || !supabaseClient) {
       const error = getWebsiteError(new Error("Authentication failed"));
       toast(error);
       return null;
@@ -39,23 +40,6 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
     try {
       setLoading(true);
       const supabaseUserId = getUUIDFromClerkID(userId);
-
-      // Get JWT token from Clerk for Supabase
-      const token = await getToken({ template: "supabase" });
-      
-      if (!token) {
-        throw new Error("Failed to get authentication token");
-      }
-      
-      // Set the JWT on the Supabase client
-      const { error: authError } = await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: token,
-      });
-      
-      if (authError) {
-        throw authError;
-      }
 
       const templateType = templateId.includes('specialist') ? 'specialist'
         : templateId.includes('pediatric') ? 'pediatric'
@@ -80,7 +64,7 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
         updatedat: new Date().toISOString()
       };
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('websites')
         .insert(websitePayload)
         .select()

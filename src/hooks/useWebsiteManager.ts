@@ -9,15 +9,17 @@ import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { useTemplates } from './website/useTemplates';
 import { useWebsiteOperations } from './website/useWebsiteOperations';
 import { usePracticeInfo } from './website/usePracticeInfo';
+import { useSupabaseClient } from '@/utils/supabaseAuth';
 
 export const useWebsiteManager = () => {
-  const { userId, getToken } = useAuth();
+  const { userId } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [websites, setWebsites] = useState<Website[]>([]);
   const { templates, loading: templatesLoading } = useTemplates();
   const { isPracticeInfoSet, practiceInfo } = usePracticeInfo();
   const { loading: operationsLoading, createWebsite, deleteWebsite, copyLandingPageUrl } = useWebsiteOperations(websites, setWebsites);
+  const { client: supabaseClient, isLoading: authLoading, error: authError } = useSupabaseClient();
 
   useEffect(() => {
     if (!userId) {
@@ -30,26 +32,14 @@ export const useWebsiteManager = () => {
         setLoading(true);
         const supabaseUserId = getUUIDFromClerkID(userId);
 
-        // Get JWT token from Clerk for Supabase
-        const token = await getToken({ template: "supabase" });
-        
-        if (!token) {
-          throw new Error("Failed to get authentication token");
-        }
-        
-        // Set the JWT on the Supabase client
-        const { error: authError } = await supabase.auth.setSession({
-          access_token: token,
-          refresh_token: token,
-        });
-        
-        if (authError) {
-          throw authError;
+        if (!supabaseClient) {
+          console.error("No authenticated Supabase client available");
+          return;
         }
 
         console.log("Fetching websites for user:", supabaseUserId);
 
-        const { data: websitesData, error: websitesError } = await supabase
+        const { data: websitesData, error: websitesError } = await supabaseClient
           .from('websites')
           .select('*')
           .eq('userid', supabaseUserId);
@@ -89,11 +79,13 @@ export const useWebsiteManager = () => {
       }
     };
 
-    fetchWebsites();
-  }, [userId, navigate, getToken]);
+    if (supabaseClient && !authLoading) {
+      fetchWebsites();
+    }
+  }, [userId, navigate, supabaseClient, authLoading]);
 
   return {
-    loading: loading || operationsLoading || templatesLoading,
+    loading: loading || operationsLoading || templatesLoading || authLoading,
     websites,
     templates,
     isPracticeInfoSet,
@@ -101,5 +93,6 @@ export const useWebsiteManager = () => {
     createWebsite,
     deleteWebsite,
     copyLandingPageUrl,
+    authError
   };
 };
