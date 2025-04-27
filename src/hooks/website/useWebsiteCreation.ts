@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Json } from '@/integrations/supabase/types';
+import { getWebsiteError, getValidationError } from '@/utils/websiteErrors';
 
 export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
   const { userId } = useAuth();
@@ -24,20 +25,14 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
     }
   ): Promise<Website | null> => {
     if (!userId) {
-      toast({
-        title: "Authentication Error",
-        description: "User ID not available. Please log in and try again.",
-        variant: "destructive",
-      });
+      const error = getWebsiteError(new Error("Authentication failed"));
+      toast(error);
       return null;
     }
 
-    if (!practiceInfo.name || !practiceInfo.specialty) {
-      toast({
-        title: "Incomplete Information",
-        description: "Practice name and specialty are required.",
-        variant: "destructive",
-      });
+    const validationError = getValidationError(practiceInfo);
+    if (validationError) {
+      toast(validationError);
       return null;
     }
 
@@ -70,14 +65,20 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
 
       const { data: authData, error: authError } = await supabase.auth.getSession();
       
-      if (authError) throw new Error("Authentication failed. Please log in again.");
+      if (authError) {
+        throw new Error("Authentication failed. Please log in again.");
+      }
       
       if (!authData.session) {
         const { error: signInError } = await supabase.auth.signInAnonymously();
-        if (signInError) throw new Error("Authentication failed. Could not create a session.");
+        if (signInError) {
+          throw new Error("Authentication failed. Could not create a session.");
+        }
         
         const { data: verifyData } = await supabase.auth.getSession();
-        if (!verifyData.session) throw new Error("Failed to create authenticated session.");
+        if (!verifyData.session) {
+          throw new Error("Failed to create authenticated session.");
+        }
       }
 
       const { data, error } = await supabase
@@ -109,12 +110,8 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
 
       return newWebsite;
     } catch (error) {
-      console.error('Error creating website:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create website',
-        variant: 'destructive',
-      });
+      const websiteError = getWebsiteError(error);
+      toast(websiteError);
       return null;
     } finally {
       setLoading(false);
