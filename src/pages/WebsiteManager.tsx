@@ -10,6 +10,8 @@ import WebsitesGrid from '@/components/website/WebsitesGrid';
 import { useToast } from '@/hooks/use-toast';
 import { Shell } from '@/components/Shell';
 import { useSupabaseAuth } from '@/utils/supabaseAuth';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const WebsiteManager = () => {
   const {
@@ -20,22 +22,27 @@ const WebsiteManager = () => {
     practiceInfo,
     createWebsite,
     deleteWebsite,
-    copyLandingPageUrl
+    copyLandingPageUrl,
+    authError: websiteManagerAuthError
   } = useWebsiteManager();
   
   const [activeTab, setActiveTab] = useState("my-websites");
   const { toast } = useToast();
   const { isAuthenticated, isLoading: authLoading, error: authError } = useSupabaseAuth();
   
+  // Combine auth errors from different sources
+  const combinedAuthError = authError || websiteManagerAuthError;
+  
   useEffect(() => {
-    if (authError) {
+    if (combinedAuthError) {
+      console.error("Auth error:", combinedAuthError);
       toast({
         title: "Authentication Error",
-        description: authError.message,
+        description: "Please ensure the Supabase JWT template is configured in your Clerk dashboard.",
         variant: "destructive"
       });
     }
-  }, [authError, toast]);
+  }, [combinedAuthError, toast]);
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -45,7 +52,7 @@ const WebsiteManager = () => {
     if (!isAuthenticated) {
       toast({
         title: "Authentication Required",
-        description: "Please ensure you are logged in to create a website.",
+        description: "Please ensure you are logged in and Clerk is properly configured.",
         variant: "destructive"
       });
       return;
@@ -96,6 +103,17 @@ const WebsiteManager = () => {
     <Shell>
       <div className="container py-8">
         <h1 className="text-3xl font-bold mb-8">Website Manager</h1>
+        
+        {combinedAuthError && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Authentication Error</AlertTitle>
+            <AlertDescription>
+              A Supabase JWT template must be configured in your Clerk dashboard. 
+              The default template should contain user email and role claims.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Tabs defaultValue={hasWebsites ? "my-websites" : "templates"} value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="mb-6">

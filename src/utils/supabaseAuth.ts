@@ -53,7 +53,7 @@ export function useSupabaseClient() {
         setIsLoading(true);
         setError(null);
 
-        // Get JWT token from Clerk for Supabase
+        // Use the default "supabase" JWT template from Clerk
         const authClient = await getAuthenticatedClient(() => 
           getToken({ template: "supabase" })
         );
@@ -91,12 +91,14 @@ export function useSupabaseAuth() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
       if (!userId) {
         setIsAuthenticated(false);
+        setSupabaseUserId(null);
         setIsLoading(false);
         return;
       }
@@ -105,7 +107,11 @@ export function useSupabaseAuth() {
         setIsLoading(true);
         setError(null);
 
-        // Get JWT token from Clerk for Supabase
+        // Get Supabase UUID from Clerk ID for use in application logic
+        const convertedUserId = getUUIDFromClerkID(userId);
+        setSupabaseUserId(convertedUserId);
+        
+        // Get JWT token from Clerk using the default "supabase" template
         const token = await getToken({ template: "supabase" });
         
         if (!token) {
@@ -142,5 +148,5 @@ export function useSupabaseAuth() {
     checkAuth();
   }, [userId, getToken, toast]);
 
-  return { isAuthenticated, isLoading, error };
+  return { isAuthenticated, isLoading, error, supabaseUserId };
 }

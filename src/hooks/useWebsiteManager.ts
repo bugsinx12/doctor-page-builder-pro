@@ -1,7 +1,6 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
