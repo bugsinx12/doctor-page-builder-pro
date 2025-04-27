@@ -9,10 +9,11 @@ import TemplatesGrid from '@/components/website/TemplatesGrid';
 import WebsitesGrid from '@/components/website/WebsitesGrid';
 import { useToast } from '@/components/ui/use-toast';
 import { Shell } from '@/components/Shell';
+import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
 
 const WebsiteManager = () => {
   const {
-    loading,
+    loading: websiteLoading,
     websites,
     templates,
     isPracticeInfoSet,
@@ -24,12 +25,22 @@ const WebsiteManager = () => {
   
   const [activeTab, setActiveTab] = useState("my-websites");
   const { toast } = useToast();
+  const { authenticated, loading: authLoading } = useClerkSupabaseAuth();
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
 
   const handleCreateWebsite = async (templateId: string, practiceInfo: any) => {
+    if (!authenticated) {
+      toast({
+        title: "Authentication Error",
+        description: "You need to be logged in to create a website.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       const website = await createWebsite(templateId, practiceInfo);
       if (website) {
@@ -58,6 +69,8 @@ const WebsiteManager = () => {
     phone: practiceInfo?.phone || 'Phone not provided',
     email: practiceInfo?.email || 'Email not provided'
   };
+
+  const loading = websiteLoading || authLoading;
 
   if (loading) {
     return (

@@ -60,6 +60,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   };
 
   const handlePracticeInfoChange = (values: any) => {
+    console.log("Practice info changed:", values);
     setLocalPracticeInfo({
       name: values.name,
       specialty: values.specialty,
@@ -70,10 +71,28 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
   };
 
   const handlePracticeInfoNext = async () => {
+    // Validate required fields
+    if (!localPracticeInfo.name || !localPracticeInfo.specialty) {
+      toast({
+        title: "Missing required information",
+        description: "Please provide both practice name and specialty.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    console.log("Saving practice info to Supabase:", localPracticeInfo);
+    
     // Save practice info to Supabase
     const success = await updatePracticeInfo(localPracticeInfo);
     if (success) {
       handleNext();
+    } else {
+      toast({
+        title: "Failed to save practice information",
+        description: "Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -88,6 +107,17 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     }
     
     try {
+      // Double-check that practice info is saved in Supabase
+      if (!localPracticeInfo.name || !localPracticeInfo.specialty) {
+        toast({
+          title: "Missing practice information",
+          description: "Please go back and complete your practice information.",
+          variant: "destructive"
+        });
+        setCurrentStep(1);
+        return;
+      }
+      
       // 1. Update Clerk user metadata
       await user?.update({
         unsafeMetadata: {
@@ -98,14 +128,17 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
       });
       
       // 2. Create website using the selected template
-      await createWebsite(selectedTemplate, localPracticeInfo);
+      const newWebsite = await createWebsite(selectedTemplate, localPracticeInfo);
       
-      toast({
-        title: "Onboarding completed!",
-        description: "Your profile and website have been created successfully.",
-      });
-      
-      onComplete();
+      if (newWebsite) {
+        toast({
+          title: "Onboarding completed!",
+          description: "Your profile and website have been created successfully.",
+        });
+        onComplete();
+      } else {
+        throw new Error("Website creation failed");
+      }
     } catch (error) {
       console.error('Onboarding completion error:', error);
       toast({

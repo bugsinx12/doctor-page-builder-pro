@@ -30,7 +30,7 @@ export const usePracticeInfo = () => {
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
           .eq('id', supabaseUserId)
-          .single();
+          .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
           // PGRST116 is "no rows returned" which is expected for new users
@@ -92,6 +92,14 @@ export const usePracticeInfo = () => {
       setLoading(true);
       const supabaseUserId = getUUIDFromClerkID(userId);
       
+      console.log('Updating practice info to Supabase:', {
+        practice_name: newInfo.name,
+        specialty: newInfo.specialty,
+        address: newInfo.address || null,
+        phone: newInfo.phone || null,
+        email: newInfo.email || null
+      });
+      
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -103,8 +111,12 @@ export const usePracticeInfo = () => {
         })
         .eq('id', supabaseUserId);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
       
+      // Update local state
       setPracticeInfo({
         name: newInfo.name,
         specialty: newInfo.specialty,

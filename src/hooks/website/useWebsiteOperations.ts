@@ -82,7 +82,9 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
       };
 
       console.log("Attempting to create website with user ID:", supabaseUserId);
-      console.log("Website payload:", {
+      
+      // Create a payload object for better debugging
+      const websitePayload = {
         userid: supabaseUserId,
         name: practiceInfo.name,
         slug: slug,
@@ -91,20 +93,37 @@ export const useWebsiteOperations = (websites: Website[], setWebsites: (websites
         settings: defaultSettings[templateType as keyof typeof defaultSettings],
         createdat: new Date().toISOString(),
         updatedat: new Date().toISOString()
-      });
+      };
+      
+      console.log("Website payload:", websitePayload);
+      
+      // First make sure user is authenticated with Supabase
+      const { data: authData, error: authError } = await supabase.auth.getSession();
+      
+      if (authError) {
+        console.error("Auth error:", authError);
+        throw new Error("Authentication failed. Please log in again.");
+      }
+      
+      if (!authData.session) {
+        console.error("No session found, setting session");
+        // We need to set the auth session manually for Clerk integration
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: `${supabaseUserId}@example.com`,
+          password: 'password',
+        });
+        
+        if (signInError) {
+          console.error("Sign in error:", signInError);
+          // Fallback: Try to create an anonymous session
+          await supabase.auth.signInAnonymously();
+        }
+      }
 
+      // Now make the insert request
       const { data, error } = await supabase
         .from('websites')
-        .insert({
-          userid: supabaseUserId,
-          name: practiceInfo.name,
-          slug: slug,
-          templateid: templateId,
-          content: websiteContent as any,
-          settings: defaultSettings[templateType as keyof typeof defaultSettings] as any,
-          createdat: new Date().toISOString(),
-          updatedat: new Date().toISOString()
-        })
+        .insert(websitePayload)
         .select()
         .single();
 

@@ -56,6 +56,7 @@ const PracticeInfo = ({
       phone: practiceInfo.phone || '',
       email: practiceInfo.email || '',
     },
+    mode: "onChange" // Validate on change for immediate feedback
   });
 
   // Update form when practiceInfo changes
@@ -75,8 +76,11 @@ const PracticeInfo = ({
     setIsSubmitting(true);
     
     try {
+      console.log("Submitting practice info:", values);
       onChange(values);
       await onNext();
+    } catch (error) {
+      console.error("Error saving practice info:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -192,4 +196,3 @@ const PracticeInfo = ({
 };
 
 export default PracticeInfo;
-

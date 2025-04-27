@@ -14,6 +14,27 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: false, // Disable detecting tokens in URL for Clerk integration
-    flowType: 'pkce'
+    flowType: 'pkce',
+    debug: true // Enable debug mode temporarily to help troubleshoot
+  },
+  global: {
+    headers: {
+      'x-client-info': 'supabase-js/2.49.4' // Ensure client info is properly set
+    }
   }
 });
+
+// Helper function to get current session
+export const getSessionStatus = async () => {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error("Error getting session:", error);
+      return { hasSession: false, error };
+    }
+    return { hasSession: !!data.session, session: data.session };
+  } catch (error) {
+    console.error("Unexpected error checking session:", error);
+    return { hasSession: false, error };
+  }
+};
