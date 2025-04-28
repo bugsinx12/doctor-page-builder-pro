@@ -30,7 +30,7 @@ export const useProfile = () => {
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", supabaseUserId as string)
+          .eq("id", supabaseUserId)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -44,18 +44,23 @@ export const useProfile = () => {
           
           if (needsUpdate) {
             console.log("Updating existing profile");
+            const updateData = {
+              full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
+              avatar_url: user.imageUrl || null,
+            };
+            
             const { data: updatedProfile, error: updateError } = await supabase
               .from("profiles")
-              .update({
-                full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
-                avatar_url: user.imageUrl || null,
-              })
-              .eq("id", supabaseUserId as string)
+              .update(updateData)
+              .eq("id", supabaseUserId)
               .select()
               .single();
               
             if (updateError) throw updateError;
-            setProfile(updatedProfile);
+            
+            if (updatedProfile) {
+              setProfile(updatedProfile);
+            }
           } else {
             // Use existing profile as is
             setProfile(existingProfile);
@@ -71,7 +76,7 @@ export const useProfile = () => {
 
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
-            .insert(profileData as any)
+            .insert([profileData])
             .select()
             .single();
 

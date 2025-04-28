@@ -130,8 +130,8 @@ export function useSupabaseAuth() {
         }
 
         // Verify the session is active
-        const { data: { user } } = await supabase.auth.getUser();
-        setIsAuthenticated(!!user);
+        const { data } = await supabase.auth.getUser();
+        setIsAuthenticated(!!data.user);
       } catch (err) {
         console.error("Error in Supabase auth:", err);
         setError(err instanceof Error ? err : new Error("Authentication error"));

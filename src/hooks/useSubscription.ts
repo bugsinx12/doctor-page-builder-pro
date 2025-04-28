@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "./useSupabaseAuth";
+import { useSupabaseAuth } from "@/utils/supabaseAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type Subscriber = Database['public']['Tables']['subscribers']['Row'];
@@ -40,7 +40,7 @@ export const useSubscription = () => {
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
-          .eq("user_id", supabaseUserId as string)
+          .eq("user_id", supabaseUserId)
           .maybeSingle();
 
         if (fetchError) {
@@ -58,7 +58,7 @@ export const useSubscription = () => {
           
           const { data: newSubscriber, error: insertError } = await supabase
             .from("subscribers")
-            .insert(subscriberData as any)
+            .insert([subscriberData])
             .select()
             .single();
 
@@ -70,11 +70,13 @@ export const useSubscription = () => {
         } else {
           console.log("Found existing subscriber:", existingSubscriber);
           // Use the existing data while we wait for the API check
-          setSubscriptionStatus({
-            subscribed: existingSubscriber.subscribed || false,
-            subscription_tier: existingSubscriber.subscription_tier,
-            subscription_end: existingSubscriber.subscription_end,
-          });
+          if (existingSubscriber) {
+            setSubscriptionStatus({
+              subscribed: existingSubscriber.subscribed || false,
+              subscription_tier: existingSubscriber.subscription_tier,
+              subscription_end: existingSubscriber.subscription_end,
+            });
+          }
         }
 
         // Check subscription status from edge function
