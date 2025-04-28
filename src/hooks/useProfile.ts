@@ -7,6 +7,8 @@ import { useSupabaseAuth } from "@/utils/supabaseAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export const useProfile = () => {
   const { user } = useUser();
@@ -30,7 +32,7 @@ export const useProfile = () => {
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", supabaseUserId)
+          .eq("id", supabaseUserId as string)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -44,7 +46,7 @@ export const useProfile = () => {
           
           if (needsUpdate) {
             console.log("Updating existing profile");
-            const updateData = {
+            const updateData: ProfileUpdate = {
               full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
               avatar_url: user.imageUrl || null,
             };
@@ -52,7 +54,7 @@ export const useProfile = () => {
             const { data: updatedProfile, error: updateError } = await supabase
               .from("profiles")
               .update(updateData)
-              .eq("id", supabaseUserId)
+              .eq("id", supabaseUserId as string)
               .select()
               .single();
               
@@ -60,6 +62,8 @@ export const useProfile = () => {
             
             if (updatedProfile) {
               setProfile(updatedProfile);
+            } else {
+              setProfile(existingProfile);
             }
           } else {
             // Use existing profile as is
@@ -68,7 +72,7 @@ export const useProfile = () => {
         } else {
           console.log("No profile found, creating new profile");
           // Profile doesn't exist, create it
-          const profileData = {
+          const profileData: ProfileInsert = {
             id: supabaseUserId,
             full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
             avatar_url: user.imageUrl || null,

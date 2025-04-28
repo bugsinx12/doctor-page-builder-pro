@@ -2,12 +2,21 @@
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { generateTemplateContent } from '@/utils/websiteTemplates';
+import type { Database } from "@/integrations/supabase/types";
 import type { Json } from '@/integrations/supabase/types';
 import { getWebsiteError, getValidationError } from '@/utils/websiteErrors';
 import { useSupabaseClient } from '@/utils/supabaseAuth';
+
+interface PracticeInfo {
+  name: string;
+  specialty: string;
+  address: string;
+  phone: string;
+  email: string;
+}
 
 export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
   const { userId } = useAuth();
@@ -17,13 +26,7 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
 
   const createWebsite = async (
     templateId: string, 
-    practiceInfo: { 
-      name: string; 
-      specialty: string; 
-      address: string; 
-      phone: string; 
-      email: string 
-    }
+    practiceInfo: PracticeInfo
   ): Promise<Website | null> => {
     if (!userId || !supabaseClient) {
       const error = getWebsiteError(new Error("Authentication failed"));

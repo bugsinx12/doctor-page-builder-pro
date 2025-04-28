@@ -7,6 +7,7 @@ import { useSupabaseAuth } from "@/utils/supabaseAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type Subscriber = Database['public']['Tables']['subscribers']['Row'];
+type SubscriberInsert = Database['public']['Tables']['subscribers']['Insert'];
 
 interface SubscriptionStatus {
   subscribed: boolean;
@@ -40,7 +41,7 @@ export const useSubscription = () => {
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
-          .eq("user_id", supabaseUserId)
+          .eq("user_id", supabaseUserId as string)
           .maybeSingle();
 
         if (fetchError) {
@@ -50,7 +51,7 @@ export const useSubscription = () => {
         // If no subscriber exists, create one
         if (!existingSubscriber) {
           console.log("No subscriber found, creating new record");
-          const subscriberData = {
+          const subscriberData: SubscriberInsert = {
             user_id: supabaseUserId,
             email: user.primaryEmailAddress?.emailAddress || "",
             subscribed: false
@@ -58,7 +59,7 @@ export const useSubscription = () => {
           
           const { data: newSubscriber, error: insertError } = await supabase
             .from("subscribers")
-            .insert([subscriberData])
+            .insert(subscriberData)
             .select()
             .single();
 

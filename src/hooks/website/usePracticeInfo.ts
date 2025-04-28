@@ -7,11 +7,20 @@ import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import type { Database } from "@/integrations/supabase/types";
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
+
+interface PracticeInfo {
+  name: string;
+  specialty: string;
+  address: string;
+  phone: string;
+  email: string;
+}
 
 export const usePracticeInfo = () => {
   const { userId } = useAuth();
   const { toast } = useToast();
-  const [practiceInfo, setPracticeInfo] = useState({
+  const [practiceInfo, setPracticeInfo] = useState<PracticeInfo>({
     name: '',
     specialty: '',
     address: '',
@@ -32,7 +41,7 @@ export const usePracticeInfo = () => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
-          .eq('id', supabaseUserId)
+          .eq('id', supabaseUserId as string)
           .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
@@ -75,13 +84,7 @@ export const usePracticeInfo = () => {
     fetchPracticeInfo();
   }, [userId, toast]);
 
-  const updatePracticeInfo = async (newInfo: {
-    name: string;
-    specialty: string;
-    address?: string;
-    phone?: string;
-    email?: string;
-  }) => {
+  const updatePracticeInfo = async (newInfo: PracticeInfo) => {
     if (!userId) {
       toast({
         title: "Error",
@@ -104,7 +107,7 @@ export const usePracticeInfo = () => {
       });
       
       // Create an update object that matches the expected types
-      const updateData = {
+      const updateData: ProfileUpdate = {
         practice_name: newInfo.name,
         specialty: newInfo.specialty,
         address: newInfo.address || null,
@@ -115,7 +118,7 @@ export const usePracticeInfo = () => {
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', supabaseUserId);
+        .eq('id', supabaseUserId as string);
         
       if (error) {
         console.error('Supabase update error:', error);
