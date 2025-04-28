@@ -41,7 +41,7 @@ export const useSubscription = () => {
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
-          .eq("user_id", supabaseUserId as string)
+          .eq("user_id", supabaseUserId)
           .maybeSingle();
 
         if (fetchError) {
@@ -73,7 +73,7 @@ export const useSubscription = () => {
           // Use the existing data while we wait for the API check
           if (existingSubscriber) {
             setSubscriptionStatus({
-              subscribed: existingSubscriber.subscribed || false,
+              subscribed: existingSubscriber.subscribed,
               subscription_tier: existingSubscriber.subscription_tier,
               subscription_end: existingSubscriber.subscription_end,
             });

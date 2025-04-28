@@ -32,7 +32,7 @@ export const useProfile = () => {
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", supabaseUserId as string)
+          .eq("id", supabaseUserId)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -54,7 +54,7 @@ export const useProfile = () => {
             const { data: updatedProfile, error: updateError } = await supabase
               .from("profiles")
               .update(updateData)
-              .eq("id", supabaseUserId as string)
+              .eq("id", supabaseUserId)
               .select()
               .single();
               
@@ -80,7 +80,7 @@ export const useProfile = () => {
 
           const { data: newProfile, error: insertError } = await supabase
             .from("profiles")
-            .insert([profileData])
+            .insert(profileData)
             .select()
             .single();
 

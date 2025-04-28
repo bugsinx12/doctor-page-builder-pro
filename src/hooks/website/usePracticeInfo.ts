@@ -41,7 +41,7 @@ export const usePracticeInfo = () => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
-          .eq('id', supabaseUserId as string)
+          .eq('id', supabaseUserId)
           .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
@@ -118,7 +118,7 @@ export const usePracticeInfo = () => {
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', supabaseUserId as string);
+        .eq('id', supabaseUserId);
         
       if (error) {
         console.error('Supabase update error:', error);
