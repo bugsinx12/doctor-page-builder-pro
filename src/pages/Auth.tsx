@@ -1,4 +1,3 @@
-
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "login";
   const templateId = searchParams.get("template");
-  const { isSignedIn, userId } = useAuth();
+  const { isSignedIn, userId, getToken } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [authTestInProgress, setAuthTestInProgress] = useState(false);
@@ -28,8 +27,7 @@ const Auth = () => {
       setAuthTestInProgress(true);
       console.log("Testing JWT authentication for user:", userId);
       
-      // Get a JWT token for Supabase
-      const { getToken } = await import('@clerk/clerk-react');
+      // Get a JWT token for Supabase - use getToken from useAuth hook
       const token = await getToken({ template: "supabase" });
       
       if (!token) {
