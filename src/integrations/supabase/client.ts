@@ -16,12 +16,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     detectSessionInUrl: false, // Disable detecting tokens in URL for Clerk integration
     flowType: 'pkce',
-    debug: true, // Enable debug mode temporarily to help troubleshoot
-    jwtSecret: JWT_SECRET // Add the JWT secret for validation
+    debug: process.env.NODE_ENV === 'development', // Only enable debug mode in development
   },
   global: {
     headers: {
-      'x-client-info': 'supabase-js/2.49.4' // Ensure client info is properly set
+      'x-client-info': 'supabase-js/2.49.4' // Client info header
     }
   }
 });
@@ -38,5 +37,54 @@ export const getSessionStatus = async () => {
   } catch (error) {
     console.error("Unexpected error checking session:", error);
     return { hasSession: false, error };
+  }
+};
+
+// Helper function to verify if authentication is working correctly
+export const verifyAuthentication = async (token: string) => {
+  try {
+    // First try to set the session with the token
+    const { error: sessionError } = await supabase.auth.setSession({
+      access_token: token,
+      refresh_token: token,
+    });
+    
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      return { 
+        success: false, 
+        error: sessionError,
+        message: "Failed to set authentication session. Please check your JWT template configuration."
+      };
+    }
+    
+    // Then verify the session by getting user data
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error("User error:", userError);
+      return {
+        success: false,
+        error: userError,
+        message: "Failed to verify authentication. Please check your JWT template configuration."
+      };
+    }
+    
+    if (!userData.user) {
+      return {
+        success: false,
+        error: new Error("No user data returned"),
+        message: "Authentication failed. No user data was returned."
+      };
+    }
+    
+    return { success: true, user: userData.user };
+  } catch (error) {
+    console.error("Verification error:", error);
+    return {
+      success: false,
+      error,
+      message: "An unexpected error occurred during authentication verification."
+    };
   }
 };

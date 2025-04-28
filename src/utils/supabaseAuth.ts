@@ -116,7 +116,16 @@ export function useSupabaseAuth() {
         const token = await getToken({ template: "supabase" });
         
         if (!token) {
-          throw new Error("No authentication token available");
+          const noTokenError = new Error("No authentication token available");
+          setError(noTokenError);
+          toast({
+            title: "Authentication Error",
+            description: "Failed to get authentication token. Please check your Clerk configuration.",
+            variant: "destructive",
+          });
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
         }
 
         // Set the auth JWT on the Supabase client
@@ -126,12 +135,32 @@ export function useSupabaseAuth() {
         });
 
         if (authError) {
-          throw authError;
+          console.error("Supabase auth error:", authError);
+          setError(authError);
+          toast({
+            title: "Authentication Error",
+            description: "Please ensure your Clerk JWT template for Supabase is configured with the correct signing key.",
+            variant: "destructive",
+          });
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return;
         }
 
         // Verify the session is active
         const { data } = await supabase.auth.getUser();
-        setIsAuthenticated(!!data.user);
+        const isAuthValid = !!data.user;
+        setIsAuthenticated(isAuthValid);
+        
+        if (!isAuthValid) {
+          const validationError = new Error("Session validation failed");
+          setError(validationError);
+          toast({
+            title: "Authentication Error",
+            description: "Your authentication session could not be validated. Please try signing in again.",
+            variant: "destructive",
+          });
+        }
       } catch (err) {
         console.error("Error in Supabase auth:", err);
         setError(err instanceof Error ? err : new Error("Authentication error"));
