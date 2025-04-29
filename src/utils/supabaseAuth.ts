@@ -35,15 +35,15 @@ export function useSupabaseAuth() {
       const convertedUserId = getUUIDFromClerkID(userId);
       setSupabaseUserId(convertedUserId);
       
-      // Get token from Clerk for Supabase TPA
-      const token = await getToken({ template: "supabase" });
+      // Get token from Clerk for Supabase TPA (no template needed)
+      const token = await getToken();
       
       if (!token) {
         const noTokenError = new Error("No authentication token available");
         setError(noTokenError);
         toast({
           title: "Authentication Error",
-          description: "Failed to get authentication token from Clerk. Make sure the JWT template named 'supabase' exists in your Clerk dashboard.",
+          description: "Failed to get authentication token from Clerk. Make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.",
           variant: "destructive",
         });
         setIsAuthenticated(false);
@@ -136,8 +136,8 @@ export function useSupabaseClient() {
       setIsLoading(true);
       setError(null);
 
-      // Get authenticated client using Clerk token with Supabase template
-      const token = await getToken({ template: "supabase" });
+      // Get authenticated client using Clerk token with TPA (no template needed)
+      const token = await getToken();
       if (!token) {
         throw new Error("No authentication token available");
       }

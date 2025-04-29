@@ -1,8 +1,8 @@
 
 import { useEffect } from 'react';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
-import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
+import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
 import { useToast } from '@/components/ui/use-toast';
 
 interface InitializeUserProfileProps {
@@ -12,7 +12,7 @@ interface InitializeUserProfileProps {
 
 const InitializeUserProfile = ({ isAuthenticated, isLoading }: InitializeUserProfileProps) => {
   const { user } = useUser();
-  const { userId } = useAuth();
+  const { userId } = useClerkSupabaseAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -23,13 +23,11 @@ const InitializeUserProfile = ({ isAuthenticated, isLoading }: InitializeUserPro
       
       try {
         // Initialize profile in Supabase (if needed)
-        const supabaseUserId = getUUIDFromClerkID(userId);
-        
         // Check if profile already exists
         const { data: existingProfile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', supabaseUserId)
+          .eq('id', userId)
           .maybeSingle();
           
         if (profileError && profileError.code !== 'PGRST116') {
@@ -44,7 +42,7 @@ const InitializeUserProfile = ({ isAuthenticated, isLoading }: InitializeUserPro
         // Only create profile if it doesn't exist
         if (!existingProfile) {
           const profileData = {
-            id: supabaseUserId,
+            id: userId,
             full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
             avatar_url: user.imageUrl || null,
             // Initialize practice fields as null so they can be updated later
@@ -73,7 +71,7 @@ const InitializeUserProfile = ({ isAuthenticated, isLoading }: InitializeUserPro
         const { data: existingSubscriber, error: subError } = await supabase
           .from('subscribers')
           .select('*')
-          .eq('user_id', supabaseUserId)
+          .eq('user_id', userId)
           .maybeSingle();
           
         if (subError && subError.code !== 'PGRST116') {
@@ -88,7 +86,7 @@ const InitializeUserProfile = ({ isAuthenticated, isLoading }: InitializeUserPro
         // Only create subscriber if it doesn't exist
         if (!existingSubscriber) {
           const subscriberData = {
-            user_id: supabaseUserId,
+            user_id: userId,
             email: user.primaryEmailAddress?.emailAddress || "",
             subscribed: false
           };

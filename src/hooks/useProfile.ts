@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "@/utils/supabaseAuth";
+import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -12,13 +12,13 @@ type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export const useProfile = () => {
   const { user } = useUser();
-  const { supabaseUserId, isLoading: authLoading } = useSupabaseAuth();
+  const { userId, isAuthenticated, isLoading: authLoading } = useClerkSupabaseAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!supabaseUserId || !user) {
+    if (!userId || !user || !isAuthenticated) {
       setIsLoading(false);
       return;
     }
@@ -26,13 +26,13 @@ export const useProfile = () => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
-        console.log("Fetching profile for user ID:", supabaseUserId);
+        console.log("Fetching profile for user ID:", userId);
         
         // Check if profile exists
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", supabaseUserId)
+          .eq("id", userId)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -54,7 +54,7 @@ export const useProfile = () => {
             const { data: updatedProfile, error: updateError } = await supabase
               .from("profiles")
               .update(updateData)
-              .eq("id", supabaseUserId)
+              .eq("id", userId)
               .select()
               .single();
               
@@ -73,7 +73,7 @@ export const useProfile = () => {
           console.log("No profile found, creating new profile");
           // Profile doesn't exist, create it
           const profileData: ProfileInsert = {
-            id: supabaseUserId,
+            id: userId,
             full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
             avatar_url: user.imageUrl || null,
           };
@@ -104,7 +104,7 @@ export const useProfile = () => {
     };
 
     fetchProfile();
-  }, [supabaseUserId, user, toast]);
+  }, [userId, user, toast, isAuthenticated]);
 
   return { profile, isLoading: isLoading || authLoading };
 };

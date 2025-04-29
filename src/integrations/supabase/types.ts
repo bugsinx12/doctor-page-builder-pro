@@ -84,6 +84,24 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          id: number
+          name: string
+          user_id: string
+        }
+        Insert: {
+          id?: number
+          name: string
+          user_id?: string
+        }
+        Update: {
+          id?: number
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       websites: {
         Row: {
           content: Json

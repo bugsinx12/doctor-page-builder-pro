@@ -1,25 +1,25 @@
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@clerk/clerk-react";
 import { Shell } from "@/components/Shell";
 import { useSyncUserProfile } from "@/hooks/useSyncUserProfile";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import NavigationItems from "@/components/dashboard/NavigationItems";
 import SubscriptionStatus from "@/components/dashboard/SubscriptionStatus";
+import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
 
 const Dashboard = () => {
-  const { userId } = useAuth();
+  const { userId, isAuthenticated } = useClerkSupabaseAuth();
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useSyncUserProfile();
   const { subscriptionStatus, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
   
   useEffect(() => {
-    if (!userId) {
+    if (!userId || !isAuthenticated) {
       navigate("/auth");
     }
-  }, [userId, navigate]);
+  }, [userId, navigate, isAuthenticated]);
 
   useEffect(() => {
     console.log("Dashboard - Profile:", profile);

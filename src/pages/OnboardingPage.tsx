@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import Onboarding from '@/components/onboarding/Onboarding';
@@ -15,14 +15,14 @@ const OnboardingPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, isLoading: authLoading, error: authError, authAttempted, refreshAuth } = useClerkSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, error: authError, authAttempted, refreshAuth, userId } = useClerkSupabaseAuth();
   
   // When authentication verification is complete, update loading state
-  useState(() => {
+  useEffect(() => {
     if (!authLoading && authAttempted) {
       setLoading(false);
     }
-  });
+  }, [authLoading, authAttempted]);
   
   const handleOnboardingComplete = () => {
     navigate('/dashboard', { replace: true });

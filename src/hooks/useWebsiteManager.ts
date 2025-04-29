@@ -1,27 +1,25 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import { useNavigate } from 'react-router-dom';
-import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { useTemplates } from './website/useTemplates';
 import { useWebsiteOperations } from './website/useWebsiteOperations';
 import { usePracticeInfo } from './website/usePracticeInfo';
-import { useSupabaseClient } from '@/utils/supabaseAuth';
+import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
+import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 type WebsiteRow = Database['public']['Tables']['websites']['Row'];
 
 export const useWebsiteManager = () => {
-  const { userId } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [websites, setWebsites] = useState<Website[]>([]);
   const { templates, loading: templatesLoading } = useTemplates();
   const { isPracticeInfoSet, practiceInfo } = usePracticeInfo();
   const { loading: operationsLoading, createWebsite, deleteWebsite, copyLandingPageUrl } = useWebsiteOperations(websites, setWebsites);
-  const { client: supabaseClient, isLoading: authLoading, error: authError } = useSupabaseClient();
+  const { isAuthenticated, isLoading: authLoading, error: authError, userId } = useClerkSupabaseAuth();
 
   useEffect(() => {
     if (!userId) {
@@ -32,19 +30,18 @@ export const useWebsiteManager = () => {
     const fetchWebsites = async () => {
       try {
         setLoading(true);
-        const supabaseUserId = getUUIDFromClerkID(userId);
 
-        if (!supabaseClient) {
-          console.error("No authenticated Supabase client available");
+        if (!isAuthenticated) {
+          console.error("Not authenticated with Supabase");
           return;
         }
 
-        console.log("Fetching websites for user:", supabaseUserId);
+        console.log("Fetching websites for user:", userId);
 
-        const { data: websitesData, error: websitesError } = await supabaseClient
+        const { data: websitesData, error: websitesError } = await supabase
           .from('websites')
           .select('*')
-          .eq('userid', supabaseUserId as string);
+          .eq('userid', userId);
 
         if (websitesError) {
           console.error('Error fetching websites:', websitesError);
@@ -81,10 +78,10 @@ export const useWebsiteManager = () => {
       }
     };
 
-    if (supabaseClient && !authLoading) {
+    if (isAuthenticated && !authLoading) {
       fetchWebsites();
     }
-  }, [userId, navigate, supabaseClient, authLoading]);
+  }, [userId, navigate, isAuthenticated, authLoading]);
 
   return {
     loading: loading || operationsLoading || templatesLoading || authLoading,

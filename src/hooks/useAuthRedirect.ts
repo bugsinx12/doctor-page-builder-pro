@@ -19,14 +19,14 @@ export function useAuthRedirect() {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk with the supabase template
-      const token = await getToken({ template: "supabase" });
+      // Get a token from Clerk for Supabase using TPA (no template required)
+      const token = await getToken();
       
       if (!token) {
         console.error("No Clerk token available");
         toast({
           title: "Authentication Error",
-          description: "Could not get authentication token from Clerk. Please make sure your JWT template for Supabase is configured correctly.",
+          description: "Could not get authentication token from Clerk. Please make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.",
           variant: "destructive",
         });
         return false;
