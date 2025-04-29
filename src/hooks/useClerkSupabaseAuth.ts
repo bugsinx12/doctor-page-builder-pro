@@ -1,12 +1,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, signInWithClerk } from '@/integrations/supabase/client';
 import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { useToast } from '@/components/ui/use-toast';
 
 export const useClerkSupabaseAuth = () => {
-  const { userId, getToken } = useAuth();
+  const { userId, getToken, isSignedIn } = useAuth();
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -15,7 +15,7 @@ export const useClerkSupabaseAuth = () => {
 
   useEffect(() => {
     const syncAuthState = async () => {
-      if (!userId) {
+      if (!userId || !isSignedIn) {
         setAuthenticated(false);
         setLoading(false);
         return;
@@ -25,19 +25,16 @@ export const useClerkSupabaseAuth = () => {
         setLoading(true);
         setError(null);
         
-        // Get Supabase UUID from Clerk ID
-        const supabaseUserId = getUUIDFromClerkID(userId);
-        
-        // Get JWT token from Clerk using the Supabase template
-        const token = await getToken({ template: "supabase" });
+        // Get the JWT token from Clerk
+        const token = await getToken();
         
         if (!token) {
           const noTokenError = new Error("Failed to get authentication token");
-          console.error("No JWT token available:", noTokenError);
+          console.error("No Clerk token available:", noTokenError);
           setError(noTokenError);
           toast({
             title: "Authentication Error",
-            description: "Failed to get authentication token from Clerk. Please check your JWT template configuration.",
+            description: "Failed to get authentication token from Clerk.",
             variant: "destructive",
           });
           setAuthenticated(false);
@@ -46,20 +43,17 @@ export const useClerkSupabaseAuth = () => {
           return;
         }
         
-        console.log("Got JWT token, setting session on Supabase client");
+        console.log("Got Clerk token, signing in to Supabase");
         
-        // Set the JWT on the Supabase client
-        const { error: authError } = await supabase.auth.setSession({
-          access_token: token,
-          refresh_token: token,
-        });
+        // Sign in to Supabase using the Clerk token
+        const { success, error: authError, message } = await signInWithClerk(token);
         
-        if (authError) {
-          console.error("Supabase auth error:", authError);
-          setError(authError);
+        if (!success) {
+          console.error("Supabase-Clerk auth error:", authError);
+          setError(authError instanceof Error ? authError : new Error(message || "Authentication failed"));
           toast({
             title: "Authentication Error",
-            description: "Please ensure your Clerk JWT template for Supabase is configured with the correct signing key.",
+            description: message || "Failed to connect Clerk with Supabase. Please check your Third-Party Auth configuration.",
             variant: "destructive",
           });
           setAuthenticated(false);
@@ -76,7 +70,7 @@ export const useClerkSupabaseAuth = () => {
           setError(userError);
           toast({
             title: "Authentication Error",
-            description: "Failed to initialize secure connection. Please check your JWT template configuration in Clerk dashboard.",
+            description: "Failed to verify user authentication. Please check your Clerk-Supabase integration.",
             variant: "destructive",
           });
           setAuthenticated(false);
@@ -93,7 +87,7 @@ export const useClerkSupabaseAuth = () => {
         setError(errorInstance);
         toast({
           title: "Authentication Error",
-          description: "Failed to initialize secure connection. Please check your JWT template configuration.",
+          description: "Failed to initialize secure connection. Please check your Clerk-Supabase integration.",
           variant: "destructive",
         });
         setAuthenticated(false);
@@ -104,7 +98,7 @@ export const useClerkSupabaseAuth = () => {
     };
 
     syncAuthState();
-  }, [userId, getToken, toast]);
+  }, [userId, isSignedIn, getToken, toast]);
 
   return { authenticated, loading, error, authAttempted };
 };

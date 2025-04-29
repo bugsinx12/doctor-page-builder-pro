@@ -1,4 +1,3 @@
-
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import getUUIDFromClerkID from "@/utils/getUUIDFromClerkID";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, signInWithClerk, verifyAuthentication } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Loader2 } from "lucide-react";
@@ -22,34 +21,33 @@ const Auth = () => {
   const [authSuccess, setAuthSuccess] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   
-  // Test JWT authentication if user is signed in
-  const testJwtAuthentication = async (userId: string) => {
+  // Test Third-Party authentication if user is signed in
+  const testAuthentication = async (userId: string) => {
     try {
       setAuthTestInProgress(true);
-      console.log("Testing JWT authentication for user:", userId);
+      console.log("Testing Clerk-Supabase TPA integration for user:", userId);
       
-      // Get a JWT token for Supabase - use getToken from useAuth hook
-      const token = await getToken({ template: "supabase" });
+      // Get a token from Clerk
+      const token = await getToken();
       
       if (!token) {
-        console.error("No JWT token available");
+        console.error("No Clerk token available");
         setAuthSuccess(false);
-        setAuthError("Could not get JWT token from Clerk. Please check your JWT template configuration.");
+        setAuthError("Could not get authentication token from Clerk.");
         return false;
       }
       
-      // Test the token with Supabase
-      const { verifyAuthentication } = await import('@/integrations/supabase/client');
+      // Test the token with Supabase TPA integration
       const result = await verifyAuthentication(token);
       
-      console.log("JWT test result:", result);
+      console.log("TPA test result:", result);
       
       setAuthSuccess(result.success);
       if (!result.success) {
         setAuthError(result.message || "Unknown authentication error");
         toast({
           title: "Authentication Warning",
-          description: "JWT authentication check failed. This may cause issues with app functionality.",
+          description: "Authentication check failed. This may cause issues with app functionality.",
           variant: "destructive",
         });
         return false;
@@ -57,7 +55,7 @@ const Auth = () => {
       
       return true;
     } catch (error) {
-      console.error("Error testing JWT authentication:", error);
+      console.error("Error testing authentication:", error);
       setAuthSuccess(false);
       setAuthError("An unexpected error occurred testing authentication");
       return false;
@@ -102,8 +100,8 @@ const Auth = () => {
       
       const handleAuthAndRedirect = async () => {
         setAuthTestInProgress(true);
-        // Test JWT authentication
-        const authWorking = await testJwtAuthentication(userId);
+        // Test authentication
+        const authWorking = await testAuthentication(userId);
         
         // Even if auth failed, still check user data for debugging
         await checkUserData(userId);
@@ -115,7 +113,7 @@ const Auth = () => {
           // Show a more visible error to the user
           toast({
             title: "Authentication Error",
-            description: "There was a problem with your authentication. Please check your Clerk JWT template configuration or contact support.",
+            description: "There was a problem connecting Clerk with Supabase. Please check your Third-Party Auth configuration.",
             variant: "destructive",
           });
         }

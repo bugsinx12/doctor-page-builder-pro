@@ -5,7 +5,6 @@ import type { Database } from './types';
 
 const SUPABASE_URL = "https://isjjzddntanbjopqylic.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzamp6ZGRudGFuYmpvcHF5bGljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NzEyMDAsImV4cCI6MjA2MDE0NzIwMH0._Y8ux53LbbT5aAVAyHJduvMGvHuBmKD34fU6xktyjR8";
-const JWT_SECRET = "aemiYwgEVfsUthiGNrNnKVwkI0lIr/cpmvQu8gPSsmoEXhEVG1pU8ltrbSQcsh0DbkPs2ctS7glv8ARlQqDiEw==";
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
@@ -40,27 +39,51 @@ export const getSessionStatus = async () => {
   }
 };
 
-// Helper function to verify if authentication is working correctly
-export const verifyAuthentication = async (token: string) => {
+// Helper function for third-party authentication with Clerk
+export const signInWithClerk = async (clerkToken: string) => {
   try {
-    console.log("Starting authentication verification with token");
+    console.log("Signing in with Clerk token");
     
-    // First try to set the session with the token
-    const { error: sessionError } = await supabase.auth.setSession({
-      access_token: token,
-      refresh_token: token,
+    // Sign in to Supabase using the Clerk token via the Third-Party Auth flow
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'clerk',
+      token: clerkToken,
     });
     
-    if (sessionError) {
-      console.error("Session error:", sessionError);
+    if (error) {
+      console.error("Clerk auth error:", error);
+      return { success: false, error, message: error.message };
+    }
+    
+    console.log("Successfully authenticated with Clerk", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error("Unexpected error in Clerk auth:", error);
+    return { 
+      success: false, 
+      error, 
+      message: error instanceof Error ? error.message : "Unknown error occurred"
+    };
+  }
+};
+
+// Helper function to verify if third-party authentication is working correctly
+export const verifyAuthentication = async (clerkToken: string) => {
+  try {
+    console.log("Verifying Clerk Third-Party Auth integration");
+    
+    // First try to sign in with the Clerk token
+    const { success, error, message } = await signInWithClerk(clerkToken);
+    
+    if (!success) {
       return { 
         success: false, 
-        error: sessionError,
-        message: "Failed to set authentication session. Please check your JWT template configuration."
+        error,
+        message: message || "Failed to authenticate with Clerk token"
       };
     }
     
-    // Then verify the session by getting user data
+    // Verify the session worked by getting user data
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
@@ -68,7 +91,7 @@ export const verifyAuthentication = async (token: string) => {
       return {
         success: false,
         error: userError,
-        message: "Failed to verify authentication. Please check your JWT template configuration."
+        message: "Failed to verify authentication. Please check your Supabase TPA configuration."
       };
     }
     

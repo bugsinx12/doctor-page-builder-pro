@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, signInWithClerk } from "@/integrations/supabase/client";
 import getUUIDFromClerkID from "@/utils/getUUIDFromClerkID";
 
 interface SupabaseAuthState {
