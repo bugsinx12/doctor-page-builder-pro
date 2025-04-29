@@ -15,7 +15,7 @@ const OnboardingPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const { authenticated, loading: authLoading, error: authError, authAttempted } = useClerkSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, error: authError, authAttempted } = useClerkSupabaseAuth();
   
   // When authentication verification is complete, update loading state
   useState(() => {
@@ -43,7 +43,7 @@ const OnboardingPage = () => {
   };
   
   // Authentication error screen
-  if (!authLoading && !authenticated && authAttempted) {
+  if (!authLoading && !isAuthenticated && authAttempted) {
     return (
       <Shell>
         <AuthenticationError 
@@ -64,11 +64,11 @@ const OnboardingPage = () => {
   }
   
   // Initialize user profile if authenticated
-  if (authenticated) {
+  if (isAuthenticated) {
     return (
       <Shell>
-        <InitializeUserProfile authenticated={authenticated} loading={loading} />
-        <OnboardingController authenticated={authenticated}>
+        <InitializeUserProfile authenticated={isAuthenticated} loading={loading} />
+        <OnboardingController authenticated={isAuthenticated}>
           <Onboarding onComplete={handleOnboardingComplete} />
         </OnboardingController>
       </Shell>
