@@ -1,3 +1,4 @@
+
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,7 @@ import getUUIDFromClerkID from "@/utils/getUUIDFromClerkID";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -100,6 +101,7 @@ const Auth = () => {
       console.log("User is signed in with Clerk ID:", userId);
       
       const handleAuthAndRedirect = async () => {
+        setAuthTestInProgress(true);
         // Test JWT authentication
         const authWorking = await testJwtAuthentication(userId);
         
@@ -109,12 +111,20 @@ const Auth = () => {
         // Only redirect if authentication is working
         if (authWorking) {
           navigate("/onboarding", { replace: true });
+        } else {
+          // Show a more visible error to the user
+          toast({
+            title: "Authentication Error",
+            description: "There was a problem with your authentication. Please check your Clerk JWT template configuration or contact support.",
+            variant: "destructive",
+          });
         }
+        setAuthTestInProgress(false);
       };
       
       handleAuthAndRedirect();
     }
-  }, [isSignedIn, userId, navigate]);
+  }, [isSignedIn, userId, navigate, toast]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -130,6 +140,13 @@ const Auth = () => {
           </CardHeader>
           
           <CardContent>
+            {authTestInProgress && (
+              <div className="flex justify-center items-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-medical-600" />
+                <span className="ml-2 text-sm text-gray-600">Verifying authentication...</span>
+              </div>
+            )}
+            
             {authSuccess === false && authError && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />

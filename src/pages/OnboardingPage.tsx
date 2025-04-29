@@ -18,14 +18,11 @@ const OnboardingPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [authVerified, setAuthVerified] = useState(false);
-  const { authenticated, loading: authLoading, error: authError } = useClerkSupabaseAuth();
+  const { authenticated, loading: authLoading, error: authError, authAttempted } = useClerkSupabaseAuth();
   
   // First, check Clerk-Supabase JWT authentication
   useEffect(() => {
-    if (!authLoading) {
-      setAuthVerified(authenticated);
-      
+    if (!authLoading && authAttempted) {
       if (!authenticated && authError) {
         toast({
           title: "Authentication Error",
@@ -33,14 +30,14 @@ const OnboardingPage = () => {
           variant: "destructive",
         });
       }
+      setLoading(false);
     }
-  }, [authLoading, authenticated, authError, toast]);
+  }, [authLoading, authenticated, authError, authAttempted, toast]);
   
   // Once authentication is verified, check onboarding status
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (!user || !userId || !authVerified) {
-        setLoading(false);
+      if (!user || !userId || !authenticated || loading) {
         return;
       }
       
@@ -143,13 +140,11 @@ const OnboardingPage = () => {
           description: "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
-      } finally {
-        setLoading(false);
       }
     };
     
     checkOnboardingStatus();
-  }, [user, userId, navigate, toast, authVerified]);
+  }, [user, userId, navigate, toast, authenticated, loading]);
   
   const handleOnboardingComplete = () => {
     navigate('/dashboard', { replace: true });
@@ -159,8 +154,18 @@ const OnboardingPage = () => {
     window.location.reload();
   };
   
+  const handleSignOut = async () => {
+    try {
+      await user?.delete();
+      navigate('/auth', { replace: true });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      navigate('/auth', { replace: true });
+    }
+  };
+  
   // Authentication error screen
-  if (!authLoading && !authenticated && authError) {
+  if (!authLoading && !authenticated && authAttempted) {
     return (
       <Shell>
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
@@ -175,9 +180,17 @@ const OnboardingPage = () => {
               <p className="text-gray-600 mb-6">
                 We couldn't connect securely to our database. Please ensure your Clerk JWT template for Supabase is configured with the correct signing key.
               </p>
-              <Button onClick={handleRetryAuth}>
-                Retry Connection
-              </Button>
+              <div className="space-y-4">
+                <Button onClick={handleRetryAuth} className="w-full">
+                  Retry Connection
+                </Button>
+                <Button onClick={handleSignOut} variant="outline" className="w-full">
+                  Sign Out
+                </Button>
+              </div>
+              <div className="mt-6 text-sm text-gray-500">
+                <p>If the problem persists, please check your Clerk JWT template configuration.</p>
+              </div>
             </div>
           </div>
         </div>
@@ -195,7 +208,7 @@ const OnboardingPage = () => {
   }
   
   // Only render onboarding if authentication is verified
-  if (authVerified) {
+  if (authenticated) {
     return (
       <Shell>
         <Onboarding onComplete={handleOnboardingComplete} />

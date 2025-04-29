@@ -43,6 +43,8 @@ export const getSessionStatus = async () => {
 // Helper function to verify if authentication is working correctly
 export const verifyAuthentication = async (token: string) => {
   try {
+    console.log("Starting authentication verification with token");
+    
     // First try to set the session with the token
     const { error: sessionError } = await supabase.auth.setSession({
       access_token: token,
@@ -78,6 +80,7 @@ export const verifyAuthentication = async (token: string) => {
       };
     }
     
+    console.log("Authentication verification successful:", userData.user);
     return { success: true, user: userData.user };
   } catch (error) {
     console.error("Verification error:", error);

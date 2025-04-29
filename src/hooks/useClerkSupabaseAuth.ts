@@ -10,6 +10,7 @@ export const useClerkSupabaseAuth = () => {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [authAttempted, setAuthAttempted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -32,6 +33,7 @@ export const useClerkSupabaseAuth = () => {
         
         if (!token) {
           const noTokenError = new Error("Failed to get authentication token");
+          console.error("No JWT token available:", noTokenError);
           setError(noTokenError);
           toast({
             title: "Authentication Error",
@@ -40,8 +42,11 @@ export const useClerkSupabaseAuth = () => {
           });
           setAuthenticated(false);
           setLoading(false);
+          setAuthAttempted(true);
           return;
         }
+        
+        console.log("Got JWT token, setting session on Supabase client");
         
         // Set the JWT on the Supabase client
         const { error: authError } = await supabase.auth.setSession({
@@ -59,6 +64,7 @@ export const useClerkSupabaseAuth = () => {
           });
           setAuthenticated(false);
           setLoading(false);
+          setAuthAttempted(true);
           return;
         }
         
@@ -75,9 +81,11 @@ export const useClerkSupabaseAuth = () => {
           });
           setAuthenticated(false);
           setLoading(false);
+          setAuthAttempted(true);
           return;
         }
         
+        console.log("Authentication check result:", !!data.user);
         setAuthenticated(!!data.user);
       } catch (err) {
         console.error('Error syncing auth state:', err);
@@ -91,11 +99,12 @@ export const useClerkSupabaseAuth = () => {
         setAuthenticated(false);
       } finally {
         setLoading(false);
+        setAuthAttempted(true);
       }
     };
 
     syncAuthState();
   }, [userId, getToken, toast]);
 
-  return { authenticated, loading, error };
+  return { authenticated, loading, error, authAttempted };
 };
