@@ -48,8 +48,6 @@ export const signInWithClerk = async (clerkToken: string) => {
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'clerk',
       token: clerkToken,
-      // Remove the options object that contained the 'scopes' property
-      // as it's not supported in the current Supabase client version
     });
     
     if (error) {
@@ -70,7 +68,7 @@ export const signInWithClerk = async (clerkToken: string) => {
 };
 
 // Helper function to verify if third-party authentication is working correctly
-export const verifyAuthentication = async (clerkToken: string) => {
+export const verifyClerkTPA = async (clerkToken: string) => {
   try {
     console.log("Verifying Clerk Third-Party Auth integration");
     

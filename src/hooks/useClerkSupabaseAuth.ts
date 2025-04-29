@@ -1,13 +1,13 @@
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase, signInWithClerk } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export const useClerkSupabaseAuth = () => {
   const { userId, getToken, isSignedIn } = useAuth();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [authAttempted, setAuthAttempted] = useState(false);
   const { toast } = useToast();
@@ -15,16 +15,16 @@ export const useClerkSupabaseAuth = () => {
   // Function to sync auth state that can be called on demand
   const syncAuthState = useCallback(async () => {
     if (!userId || !isSignedIn) {
-      setAuthenticated(false);
-      setLoading(false);
+      setIsAuthenticated(false);
+      setIsLoading(false);
       return false;
     }
 
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
       
-      // Get the JWT token from Clerk with the proper options for Supabase TPA
+      // Get the JWT token from Clerk for Supabase TPA
       const token = await getToken({
         template: "supabase",
       });
@@ -38,8 +38,8 @@ export const useClerkSupabaseAuth = () => {
           description: "Failed to get authentication token from Clerk. Ensure the JWT template is configured correctly.",
           variant: "destructive",
         });
-        setAuthenticated(false);
-        setLoading(false);
+        setIsAuthenticated(false);
+        setIsLoading(false);
         setAuthAttempted(true);
         return false;
       }
@@ -57,8 +57,8 @@ export const useClerkSupabaseAuth = () => {
           description: message || "Failed to connect Clerk with Supabase. Please check your Third-Party Auth configuration.",
           variant: "destructive",
         });
-        setAuthenticated(false);
-        setLoading(false);
+        setIsAuthenticated(false);
+        setIsLoading(false);
         setAuthAttempted(true);
         return false;
       }
@@ -74,15 +74,15 @@ export const useClerkSupabaseAuth = () => {
           description: "Failed to verify user authentication. Please check your Clerk-Supabase integration.",
           variant: "destructive",
         });
-        setAuthenticated(false);
-        setLoading(false);
+        setIsAuthenticated(false);
+        setIsLoading(false);
         setAuthAttempted(true);
         return false;
       }
       
       console.log("Authentication check result:", !!data.user);
-      setAuthenticated(!!data.user);
-      setLoading(false);
+      setIsAuthenticated(!!data.user);
+      setIsLoading(false);
       setAuthAttempted(true);
       return !!data.user;
     } catch (err) {
@@ -94,8 +94,8 @@ export const useClerkSupabaseAuth = () => {
         description: "Failed to initialize secure connection. Please check your Clerk-Supabase integration.",
         variant: "destructive",
       });
-      setAuthenticated(false);
-      setLoading(false);
+      setIsAuthenticated(false);
+      setIsLoading(false);
       setAuthAttempted(true);
       return false;
     }
@@ -106,8 +106,8 @@ export const useClerkSupabaseAuth = () => {
   }, [syncAuthState]);
 
   return { 
-    authenticated, 
-    loading, 
+    isAuthenticated, 
+    isLoading, 
     error, 
     authAttempted,
     refreshAuth: syncAuthState
