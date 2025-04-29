@@ -42,9 +42,10 @@ export const getSessionStatus = async () => {
 // Helper function for third-party authentication with Clerk
 export const signInWithClerk = async (clerkToken: string) => {
   try {
-    console.log("Signing in with Clerk token");
+    console.log("Signing in with Clerk token via Third-Party Auth flow");
     
     // Sign in to Supabase using the Clerk token via the Third-Party Auth flow
+    // With TPA, we don't need a template parameter
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'clerk',
       token: clerkToken,

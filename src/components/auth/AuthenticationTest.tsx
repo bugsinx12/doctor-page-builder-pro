@@ -27,13 +27,13 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk for Supabase
-      const token = await getToken({ template: "supabase" });
+      // Get a token from Clerk for Supabase - using plain getToken() for TPA
+      const token = await getToken();
       
       if (!token) {
         console.error("No Clerk token available");
         setAuthSuccess(false);
-        setAuthError("Could not get authentication token from Clerk. Please make sure your JWT template for Supabase is configured correctly.");
+        setAuthError("Could not get authentication token from Clerk. Please make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.");
         return false;
       }
       
@@ -138,7 +138,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         <Info className="h-4 w-4" />
         <AlertTitle>Important Setup</AlertTitle>
         <AlertDescription>
-          Make sure you've configured Third-Party Authentication for Clerk in your Supabase dashboard and set up the JWT template named 'supabase' in your Clerk dashboard.
+          Make sure you've configured Third-Party Authentication for Clerk in your Supabase dashboard and enabled the Supabase integration in your Clerk dashboard.
         </AlertDescription>
         <div className="mt-2 space-x-2">
           <Button 

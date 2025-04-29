@@ -5,6 +5,7 @@ import { useSupabaseSession } from './auth/useSupabaseSession';
 
 /**
  * Main authentication hook that combines Clerk authentication with Supabase session management
+ * using Third-Party Authentication (TPA) integration
  */
 export const useClerkSupabaseAuth = () => {
   // Get Clerk authentication state and token
@@ -26,7 +27,7 @@ export const useClerkSupabaseAuth = () => {
     authenticateWithSupabase 
   } = useSupabaseSession(clerkToken, isSignedIn);
   
-  // Sync Clerk token with Supabase session
+  // Sync Clerk token with Supabase session using TPA
   useEffect(() => {
     if (clerkToken && !supabaseLoading && isSignedIn) {
       authenticateWithSupabase(clerkToken);
