@@ -15,7 +15,7 @@ const OnboardingPage = () => {
   const { user } = useUser();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, isLoading: authLoading, error: authError, authAttempted } = useClerkSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, error: authError, authAttempted, refreshAuth } = useClerkSupabaseAuth();
   
   // When authentication verification is complete, update loading state
   useState(() => {
@@ -28,8 +28,8 @@ const OnboardingPage = () => {
     navigate('/dashboard', { replace: true });
   };
 
-  const handleRetryAuth = () => {
-    window.location.reload();
+  const handleRetryAuth = async () => {
+    await refreshAuth();
   };
   
   const handleSignOut = async () => {
@@ -67,7 +67,7 @@ const OnboardingPage = () => {
   if (isAuthenticated) {
     return (
       <Shell>
-        <InitializeUserProfile authenticated={isAuthenticated} loading={loading} />
+        <InitializeUserProfile isAuthenticated={isAuthenticated} isLoading={loading} />
         <OnboardingController authenticated={isAuthenticated}>
           <Onboarding onComplete={handleOnboardingComplete} />
         </OnboardingController>

@@ -25,7 +25,7 @@ export const useClerkAuth = () => {
       setIsLoading(true);
       setError(null);
       
-      // Get the JWT token from Clerk for Supabase TPA
+      // Get the token from Clerk for Supabase TPA
       const token = await getToken({
         template: "supabase",
       });
@@ -36,7 +36,7 @@ export const useClerkAuth = () => {
         setError(noTokenError);
         toast({
           title: "Authentication Error",
-          description: "Failed to get authentication token from Clerk. Ensure the JWT template is configured correctly.",
+          description: "Failed to get authentication token from Clerk. Make sure the JWT template is configured correctly.",
           variant: "destructive",
         });
         setClerkToken(null);

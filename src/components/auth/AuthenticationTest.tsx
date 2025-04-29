@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { verifyClerkTPA } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, AlertCircle, Info } from "lucide-react";
+import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import getUUIDFromClerkID from "@/utils/getUUIDFromClerkID";
@@ -19,6 +19,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const [authTestInProgress, setAuthTestInProgress] = useState(false);
   const [authSuccess, setAuthSuccess] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
 
   // Test Third-Party authentication if user is signed in
   const testTPAAuthentication = async () => {
@@ -26,7 +27,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk with the supabase template
+      // Get a token from Clerk for Supabase
       const token = await getToken({ template: "supabase" });
       
       if (!token) {
@@ -50,6 +51,11 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           variant: "destructive",
         });
         return false;
+      } else {
+        toast({
+          title: "Authentication Success",
+          description: "Clerk-Supabase integration is working correctly.",
+        });
       }
       
       return true;
@@ -66,6 +72,8 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   // Debug function to check if user data is being properly saved to Supabase
   const checkUserData = async (userId: string) => {
     try {
+      if (!userId) return;
+      
       console.log("Checking user data for Clerk ID:", userId);
       const supabaseUserId = getUUIDFromClerkID(userId);
       console.log("Converted to Supabase UUID:", supabaseUserId);
@@ -87,8 +95,15 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         .maybeSingle();
         
       console.log("Subscriber data:", subscriberData, subscriberError);
+      
+      return {
+        profile: profileData,
+        subscriber: subscriberData,
+        errors: { profile: profileError, subscriber: subscriberError }
+      };
     } catch (error) {
       console.error("Error checking user data:", error);
+      return { error };
     }
   };
 
@@ -99,6 +114,16 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           <Loader2 className="h-6 w-6 animate-spin text-medical-600" />
           <span className="ml-2 text-sm text-gray-600">Verifying authentication...</span>
         </div>
+      )}
+      
+      {authSuccess === true && (
+        <Alert variant="default" className="mb-4 border-green-500">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+          <AlertTitle className="text-green-600">Authentication Success</AlertTitle>
+          <AlertDescription>
+            Your Clerk-Supabase Third-Party Authentication is configured correctly.
+          </AlertDescription>
+        </Alert>
       )}
       
       {authSuccess === false && authError && (
@@ -115,14 +140,36 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         <AlertDescription>
           Make sure you've configured Third-Party Authentication for Clerk in your Supabase dashboard and set up the JWT template named 'supabase' in your Clerk dashboard.
         </AlertDescription>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-2"
-          onClick={() => window.open('https://clerk.com/docs/integrations/databases/supabase', '_blank')}
-        >
-          View Documentation
-        </Button>
+        <div className="mt-2 space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => window.open('https://clerk.com/docs/integrations/databases/supabase', '_blank')}
+          >
+            View Documentation
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={testTPAAuthentication}
+          >
+            Test Authentication
+          </Button>
+          {userId && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                setShowDebug(!showDebug);
+                if (!showDebug && userId) {
+                  checkUserData(userId);
+                }
+              }}
+            >
+              {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+            </Button>
+          )}
+        </div>
       </Alert>
     </>
   );

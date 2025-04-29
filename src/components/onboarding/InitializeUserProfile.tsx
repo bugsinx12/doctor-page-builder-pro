@@ -6,18 +6,18 @@ import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
 import { useToast } from '@/components/ui/use-toast';
 
 interface InitializeUserProfileProps {
-  authenticated: boolean;
-  loading: boolean;
+  isAuthenticated: boolean;
+  isLoading: boolean;
 }
 
-const InitializeUserProfile = ({ authenticated, loading }: InitializeUserProfileProps) => {
+const InitializeUserProfile = ({ isAuthenticated, isLoading }: InitializeUserProfileProps) => {
   const { user } = useUser();
   const { userId } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const initializeProfile = async () => {
-      if (!user || !userId || !authenticated || loading) {
+      if (!user || !userId || !isAuthenticated || isLoading) {
         return;
       }
       
@@ -117,7 +117,7 @@ const InitializeUserProfile = ({ authenticated, loading }: InitializeUserProfile
     };
     
     initializeProfile();
-  }, [user, userId, toast, authenticated, loading]);
+  }, [user, userId, toast, isAuthenticated, isLoading]);
 
   return null; // This component doesn't render anything
 };

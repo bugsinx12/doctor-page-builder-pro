@@ -28,7 +28,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
       
       console.log("Signing in to Supabase with Clerk token");
       
-      // Sign in to Supabase using the Clerk token
+      // Sign in to Supabase using the Clerk token via the Third-Party Auth flow
       const { success, error: authError, message } = await signInWithClerk(token);
       
       if (!success) {

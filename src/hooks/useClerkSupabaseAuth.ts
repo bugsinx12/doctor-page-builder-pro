@@ -28,10 +28,10 @@ export const useClerkSupabaseAuth = () => {
   
   // Sync Clerk token with Supabase session
   useEffect(() => {
-    if (clerkToken && !supabaseLoading) {
+    if (clerkToken && !supabaseLoading && isSignedIn) {
       authenticateWithSupabase(clerkToken);
     }
-  }, [clerkToken, authenticateWithSupabase, supabaseLoading]);
+  }, [clerkToken, authenticateWithSupabase, supabaseLoading, isSignedIn]);
   
   // Function to refresh authentication that can be called on demand
   const refreshAuth = async () => {
@@ -50,6 +50,7 @@ export const useClerkSupabaseAuth = () => {
     isLoading: clerkLoading || supabaseLoading, 
     error,
     authAttempted,
-    refreshAuth
+    refreshAuth,
+    userId
   };
 };

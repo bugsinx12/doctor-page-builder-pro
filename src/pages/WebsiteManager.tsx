@@ -4,7 +4,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWebsiteManager } from '@/hooks/useWebsiteManager';
 import { useToast } from '@/hooks/use-toast';
 import { Shell } from '@/components/Shell';
-import { useSupabaseAuth } from '@/utils/supabaseAuth';
+import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
 import WebsiteLoadingState from '@/components/website/WebsiteLoadingState';
 import WebsiteAuthError from '@/components/website/WebsiteAuthError';
 import WebsiteTabContent from '@/components/website/WebsiteTabContent';
@@ -24,7 +24,7 @@ const WebsiteManager = () => {
   
   const [activeTab, setActiveTab] = useState("my-websites");
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading, error: authError, refreshAuth } = useSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, error: authError, refreshAuth } = useClerkSupabaseAuth();
   
   // Combine auth errors from different sources
   const combinedAuthError = authError || websiteManagerAuthError;
