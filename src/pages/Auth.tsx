@@ -204,7 +204,7 @@ const Auth = () => {
               </Alert>
             )}
 
-            <Alert variant="info" className="mb-4">
+            <Alert variant="default" className="mb-4">
               <Info className="h-4 w-4" />
               <AlertTitle>Important Setup</AlertTitle>
               <AlertDescription>

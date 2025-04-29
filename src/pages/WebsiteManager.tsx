@@ -178,7 +178,7 @@ const WebsiteManager = () => {
         )}
         
         {!combinedAuthError && jwtTemplateExists === true && !isAuthenticated && (
-          <Alert variant="warning" className="mb-6">
+          <Alert variant="default" className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Authentication Required</AlertTitle>
             <AlertDescription>

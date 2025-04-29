@@ -48,11 +48,8 @@ export const signInWithClerk = async (clerkToken: string) => {
     const { data, error } = await supabase.auth.signInWithIdToken({
       provider: 'clerk',
       token: clerkToken,
-      options: {
-        // Adding a specific scope to match what Clerk provides
-        // This is important for the TPA integration
-        scopes: 'email profile',
-      }
+      // Remove the options object that contained the 'scopes' property
+      // as it's not supported in the current Supabase client version
     });
     
     if (error) {
