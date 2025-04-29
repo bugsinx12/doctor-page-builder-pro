@@ -11,7 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Shell } from '@/components/Shell';
 import { useSupabaseAuth } from '@/utils/supabaseAuth';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import { Button } from '@/components/ui/button';
 
 const WebsiteManager = () => {
   const {
@@ -28,10 +30,33 @@ const WebsiteManager = () => {
   
   const [activeTab, setActiveTab] = useState("my-websites");
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading, error: authError } = useSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, error: authError, refreshAuth } = useSupabaseAuth();
+  const { getToken } = useAuth();
+  const [isCheckingJwtTemplate, setIsCheckingJwtTemplate] = useState(false);
+  const [jwtTemplateExists, setJwtTemplateExists] = useState<boolean | null>(null);
   
   // Combine auth errors from different sources
   const combinedAuthError = authError || websiteManagerAuthError;
+  
+  // Check if the JWT template exists
+  const checkJwtTemplate = async () => {
+    try {
+      setIsCheckingJwtTemplate(true);
+      const token = await getToken({ template: "supabase" });
+      setJwtTemplateExists(!!token);
+      return !!token;
+    } catch (err) {
+      console.error("Error checking JWT template:", err);
+      setJwtTemplateExists(false);
+      return false;
+    } finally {
+      setIsCheckingJwtTemplate(false);
+    }
+  };
+  
+  useEffect(() => {
+    checkJwtTemplate();
+  }, []);
   
   useEffect(() => {
     if (combinedAuthError) {
@@ -85,7 +110,16 @@ const WebsiteManager = () => {
     email: practiceInfo?.email || 'Email not provided'
   };
 
-  const loading = websiteLoading || authLoading;
+  const loading = websiteLoading || authLoading || isCheckingJwtTemplate;
+
+  const handleRetryAuth = async () => {
+    await refreshAuth();
+    await checkJwtTemplate();
+    toast({
+      title: "Authentication Refreshed",
+      description: "Attempting to reconnect with Supabase...",
+    });
+  };
 
   if (loading) {
     return (
@@ -112,6 +146,50 @@ const WebsiteManager = () => {
               Make sure your Supabase JWT template in the Clerk dashboard has the correct signing key: 
               "supabase_jwt_7X9z2K#mQ5$pL3@fN6!wR8*tJ4" 
               and contains the required claims (email and role).
+              <Button 
+                variant="outline" 
+                className="mt-2 mr-2"
+                onClick={handleRetryAuth}
+              >
+                Retry Authentication
+              </Button>
+              <Button 
+                variant="outline" 
+                className="mt-2"
+                onClick={() => window.open('https://supabase.com/docs/guides/auth/third-party/clerk', '_blank')}
+              >
+                View Documentation
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {jwtTemplateExists === false && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>JWT Template Missing</AlertTitle>
+            <AlertDescription>
+              You need to create a JWT template named "supabase" in your Clerk dashboard. Follow the instructions in the 
+              <a href="https://supabase.com/docs/guides/auth/third-party/clerk" className="underline ml-1" target="_blank" rel="noopener noreferrer">
+                Supabase-Clerk integration docs
+              </a>.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {!combinedAuthError && jwtTemplateExists === true && !isAuthenticated && (
+          <Alert variant="warning" className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Authentication Required</AlertTitle>
+            <AlertDescription>
+              You are signed in with Clerk but not authenticated with Supabase. Please check your Third-Party Auth configuration.
+              <Button 
+                variant="outline" 
+                className="mt-2"
+                onClick={handleRetryAuth}
+              >
+                Retry Authentication
+              </Button>
             </AlertDescription>
           </Alert>
         )}

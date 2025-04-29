@@ -1,3 +1,4 @@
+
 import { SignIn, SignUp } from "@clerk/clerk-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,8 @@ import getUUIDFromClerkID from "@/utils/getUUIDFromClerkID";
 import { supabase, signInWithClerk, verifyAuthentication } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +22,35 @@ const Auth = () => {
   const [authTestInProgress, setAuthTestInProgress] = useState(false);
   const [authSuccess, setAuthSuccess] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [jwtTemplateChecked, setJwtTemplateChecked] = useState(false);
+  const [jwtTemplateExists, setJwtTemplateExists] = useState<boolean | null>(null);
+  
+  // Test if the JWT template exists
+  const checkJwtTemplate = async () => {
+    try {
+      setAuthTestInProgress(true);
+      
+      // Attempt to get token with the supabase template
+      const token = await getToken({ template: "supabase" });
+      
+      // If we get a token, the template exists
+      setJwtTemplateExists(!!token);
+      setJwtTemplateChecked(true);
+      
+      if (!token) {
+        setAuthError("Supabase JWT template not found in Clerk. Please make sure you've added the JWT template named 'supabase' in your Clerk dashboard.");
+      }
+      
+      return !!token;
+    } catch (err) {
+      console.error("Error checking JWT template:", err);
+      setJwtTemplateExists(false);
+      setAuthError("Error checking JWT template. Please make sure you've added the JWT template named 'supabase' in your Clerk dashboard.");
+      return false;
+    } finally {
+      setAuthTestInProgress(false);
+    }
+  };
   
   // Test Third-Party authentication if user is signed in
   const testAuthentication = async (userId: string) => {
@@ -27,13 +58,20 @@ const Auth = () => {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration for user:", userId);
       
-      // Get a token from Clerk
-      const token = await getToken();
+      // First check if the JWT template exists
+      const templateExists = await checkJwtTemplate();
+      
+      if (!templateExists) {
+        return false;
+      }
+      
+      // Get a token from Clerk with the supabase template
+      const token = await getToken({ template: "supabase" });
       
       if (!token) {
         console.error("No Clerk token available");
         setAuthSuccess(false);
-        setAuthError("Could not get authentication token from Clerk.");
+        setAuthError("Could not get authentication token from Clerk. Please make sure your JWT template is configured correctly.");
         return false;
       }
       
@@ -145,6 +183,19 @@ const Auth = () => {
               </div>
             )}
             
+            {jwtTemplateChecked && !jwtTemplateExists && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>JWT Template Missing</AlertTitle>
+                <AlertDescription>
+                  You need to create a JWT template named "supabase" in your Clerk dashboard. Follow the instructions in the 
+                  <a href="https://supabase.com/docs/guides/auth/third-party/clerk" className="underline ml-1" target="_blank" rel="noopener noreferrer">
+                    Supabase-Clerk integration docs
+                  </a>.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {authSuccess === false && authError && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
@@ -152,6 +203,23 @@ const Auth = () => {
                 <AlertDescription>{authError}</AlertDescription>
               </Alert>
             )}
+
+            <Alert variant="info" className="mb-4">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Important Setup</AlertTitle>
+              <AlertDescription>
+                Make sure you've configured the Clerk JWT template for Supabase. It should have the signing key: 
+                "supabase_jwt_7X9z2K#mQ5$pL3@fN6!wR8*tJ4" and include the 'email' and 'role' claims.
+              </AlertDescription>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mt-2"
+                onClick={() => window.open('https://supabase.com/docs/guides/auth/third-party/clerk', '_blank')}
+              >
+                View Documentation
+              </Button>
+            </Alert>
             
             <TabsContent value="login">
               <SignIn 

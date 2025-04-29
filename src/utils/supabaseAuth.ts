@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { supabase, signInWithClerk } from "@/integrations/supabase/client";
 import { SupabaseClient } from "@supabase/supabase-js";
@@ -48,38 +48,54 @@ export function useSupabaseClient() {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const initClient = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
+  // Function to initialize the client that can be called on demand
+  const initClient = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        // Get authenticated client using Clerk token
-        const authClient = await getAuthenticatedClient(() => getToken());
-
-        setClient(authClient);
-      } catch (err) {
-        console.error("Error initializing Supabase client:", err);
-        setError(err instanceof Error ? err : new Error("Failed to initialize Supabase client"));
-        toast({
-          title: "Authentication Error",
-          description: "Failed to initialize secure connection. Please check your Clerk-Supabase integration.",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+      // Get authenticated client using Clerk token with Supabase template
+      const token = await getToken({ template: "supabase" });
+      if (!token) {
+        throw new Error("No authentication token available");
       }
-    };
 
+      // Sign in to Supabase using the Clerk token
+      const { data, error } = await supabase.auth.signInWithIdToken({
+        provider: 'clerk',
+        token: token,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      setClient(supabase);
+      return supabase;
+    } catch (err) {
+      console.error("Error initializing Supabase client:", err);
+      setError(err instanceof Error ? err : new Error("Failed to initialize Supabase client"));
+      toast({
+        title: "Authentication Error",
+        description: "Failed to initialize secure connection. Please check your Clerk-Supabase integration.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [getToken, toast]);
+
+  useEffect(() => {
     initClient();
 
     // Cleanup function
     return () => {
       authenticatedClient = null;
     };
-  }, [getToken, toast]);
+  }, [initClient]);
 
-  return { client, isLoading, error };
+  return { client, isLoading, error, refreshClient: initClient };
 }
 
 /**
@@ -93,88 +109,99 @@ export function useSupabaseAuth() {
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      if (!userId) {
-        setIsAuthenticated(false);
-        setSupabaseUserId(null);
-        setIsLoading(false);
-        return;
-      }
+  // Function to check authentication that can be called on demand
+  const checkAuth = useCallback(async () => {
+    if (!userId) {
+      setIsAuthenticated(false);
+      setSupabaseUserId(null);
+      setIsLoading(false);
+      return false;
+    }
 
-      try {
-        setIsLoading(true);
-        setError(null);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-        // Get Supabase UUID from Clerk ID for use in application logic
-        const convertedUserId = getUUIDFromClerkID(userId);
-        setSupabaseUserId(convertedUserId);
-        
-        // Get token from Clerk
-        const token = await getToken();
-        
-        if (!token) {
-          const noTokenError = new Error("No authentication token available");
-          setError(noTokenError);
-          toast({
-            title: "Authentication Error",
-            description: "Failed to get authentication token from Clerk.",
-            variant: "destructive",
-          });
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          return;
-        }
-
-        // Sign in to Supabase using Clerk token
-        const { data, error: authError } = await supabase.auth.signInWithIdToken({
-          provider: 'clerk',
-          token: token,
-        });
-
-        if (authError) {
-          console.error("Supabase auth error:", authError);
-          setError(authError);
-          toast({
-            title: "Authentication Error",
-            description: "Failed to authenticate with Supabase using Clerk. Please check your Third-Party Auth integration.",
-            variant: "destructive",
-          });
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          return;
-        }
-
-        // Verify the session is active
-        const { data: userData } = await supabase.auth.getUser();
-        const isAuthValid = !!userData.user;
-        setIsAuthenticated(isAuthValid);
-        
-        if (!isAuthValid) {
-          const validationError = new Error("Session validation failed");
-          setError(validationError);
-          toast({
-            title: "Authentication Error",
-            description: "Your authentication session could not be validated. Please try signing in again.",
-            variant: "destructive",
-          });
-        }
-      } catch (err) {
-        console.error("Error in Supabase auth:", err);
-        setError(err instanceof Error ? err : new Error("Authentication error"));
-        setIsAuthenticated(false);
+      // Get Supabase UUID from Clerk ID for use in application logic
+      const convertedUserId = getUUIDFromClerkID(userId);
+      setSupabaseUserId(convertedUserId);
+      
+      // Get token from Clerk with the Supabase template
+      const token = await getToken({ template: "supabase" });
+      
+      if (!token) {
+        const noTokenError = new Error("No authentication token available");
+        setError(noTokenError);
         toast({
           title: "Authentication Error",
-          description: "Please ensure your Clerk-Supabase Third-Party Auth integration is configured correctly.",
+          description: "Failed to get authentication token from Clerk.",
           variant: "destructive",
         });
-      } finally {
+        setIsAuthenticated(false);
         setIsLoading(false);
+        return false;
       }
-    };
 
-    checkAuth();
+      // Sign in to Supabase using Clerk token
+      const { data, error: authError } = await supabase.auth.signInWithIdToken({
+        provider: 'clerk',
+        token: token,
+      });
+
+      if (authError) {
+        console.error("Supabase auth error:", authError);
+        setError(authError);
+        toast({
+          title: "Authentication Error",
+          description: "Failed to authenticate with Supabase using Clerk. Please check your Third-Party Auth integration.",
+          variant: "destructive",
+        });
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return false;
+      }
+
+      // Verify the session is active
+      const { data: userData } = await supabase.auth.getUser();
+      const isAuthValid = !!userData.user;
+      setIsAuthenticated(isAuthValid);
+      
+      if (!isAuthValid) {
+        const validationError = new Error("Session validation failed");
+        setError(validationError);
+        toast({
+          title: "Authentication Error",
+          description: "Your authentication session could not be validated. Please try signing in again.",
+          variant: "destructive",
+        });
+        return false;
+      }
+      
+      return isAuthValid;
+    } catch (err) {
+      console.error("Error in Supabase auth:", err);
+      setError(err instanceof Error ? err : new Error("Authentication error"));
+      setIsAuthenticated(false);
+      toast({
+        title: "Authentication Error",
+        description: "Please ensure your Clerk-Supabase Third-Party Auth integration is configured correctly.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   }, [userId, getToken, toast]);
 
-  return { isAuthenticated, isLoading, error, supabaseUserId };
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  return { 
+    isAuthenticated, 
+    isLoading, 
+    error, 
+    supabaseUserId,
+    refreshAuth: checkAuth
+  };
 }
