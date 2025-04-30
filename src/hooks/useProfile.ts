@@ -26,9 +26,10 @@ export const useProfile = () => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
-        console.log("Fetching profile for user ID:", userId);
+        console.log("Fetching profile for user with Clerk ID:", userId);
         
-        // Check if profile exists
+        // Check if profile exists using the user's Clerk ID directly
+        // Supabase RLS will use the JWT 'sub' claim which matches the Clerk ID
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
@@ -39,16 +40,19 @@ export const useProfile = () => {
 
         if (existingProfile) {
           console.log("Found existing profile:", existingProfile);
-          // Profile exists, check if it needs updating
+          
+          // Check if profile needs updating
           const needsUpdate = 
             existingProfile.full_name !== `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-            existingProfile.avatar_url !== user.imageUrl;
+            existingProfile.avatar_url !== user.imageUrl ||
+            existingProfile.email !== user.primaryEmailAddress?.emailAddress;
           
           if (needsUpdate) {
             console.log("Updating existing profile");
             const updateData: ProfileUpdate = {
               full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
               avatar_url: user.imageUrl || null,
+              email: user.primaryEmailAddress?.emailAddress || null,
             };
             
             const { data: updatedProfile, error: updateError } = await supabase
@@ -70,12 +74,14 @@ export const useProfile = () => {
             setProfile(existingProfile);
           }
         } else {
-          console.log("No profile found, creating new profile");
-          // Profile doesn't exist, create it
+          console.log("No profile found, creating new profile with ID:", userId);
+          
+          // Profile doesn't exist, create it with the user's Clerk ID as the ID
           const profileData: ProfileInsert = {
             id: userId,
             full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
             avatar_url: user.imageUrl || null,
+            email: user.primaryEmailAddress?.emailAddress || null,
           };
 
           const { data: newProfile, error: insertError } = await supabase
@@ -88,6 +94,7 @@ export const useProfile = () => {
             console.error("Error creating profile:", insertError);
             throw insertError;
           }
+          
           console.log("Created new profile:", newProfile);
           if (newProfile) setProfile(newProfile);
         }

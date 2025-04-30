@@ -15,7 +15,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     detectSessionInUrl: false, // Disable detecting tokens in URL for Clerk integration
     flowType: 'pkce',
-    debug: process.env.NODE_ENV === 'development', // Only enable debug mode in development
   },
   global: {
     headers: {
@@ -33,11 +32,6 @@ export const getSessionStatus = async () => {
       return { hasSession: false, error };
     }
     
-    // Log JWT claims for debugging
-    if (data.session) {
-      console.log("Session JWT sub claim:", data.session.user.user_metadata?.sub);
-    }
-    
     return { hasSession: !!data.session, session: data.session };
   } catch (error) {
     console.error("Unexpected error checking session:", error);
@@ -45,32 +39,30 @@ export const getSessionStatus = async () => {
   }
 };
 
-// Helper function for third-party authentication with Clerk
-export const signInWithClerk = async (clerkToken: string) => {
+// Helper function for JWT authentication with Clerk
+export const signInWithJWT = async (jwt: string) => {
   try {
-    console.log("Signing in with Clerk token via Third-Party Auth flow");
+    console.log("Signing in with JWT from Clerk");
     
-    // Sign in to Supabase using the Clerk token via the Third-Party Auth flow
-    // With TPA, we don't need a template parameter
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'clerk',
-      token: clerkToken,
+    // Sign in to Supabase using JWT
+    const { data, error } = await supabase.auth.signInWithJwt({
+      jwt,
     });
     
     if (error) {
-      console.error("Clerk auth error:", error);
+      console.error("JWT auth error:", error);
       return { success: false, error, message: error.message };
     }
     
-    // Log successful authentication and JWT claims
-    console.log("Successfully authenticated with Clerk", {
+    // Log successful authentication
+    console.log("Successfully authenticated with JWT", {
       user: data.user?.id,
       sub: data.user?.user_metadata?.sub,
     });
     
     return { success: true, data };
   } catch (error) {
-    console.error("Unexpected error in Clerk auth:", error);
+    console.error("Unexpected error in JWT auth:", error);
     return { 
       success: false, 
       error, 
@@ -79,19 +71,19 @@ export const signInWithClerk = async (clerkToken: string) => {
   }
 };
 
-// Helper function to verify if third-party authentication is working correctly
-export const verifyClerkTPA = async (clerkToken: string) => {
+// Helper function to verify if JWT authentication is working correctly
+export const verifyJWTAuth = async (jwt: string) => {
   try {
-    console.log("Verifying Clerk Third-Party Auth integration");
+    console.log("Verifying Clerk JWT integration");
     
-    // First try to sign in with the Clerk token
-    const { success, error, message } = await signInWithClerk(clerkToken);
+    // First try to sign in with the JWT
+    const { success, error, message } = await signInWithJWT(jwt);
     
     if (!success) {
       return { 
         success: false, 
         error,
-        message: message || "Failed to authenticate with Clerk token"
+        message: message || "Failed to authenticate with JWT"
       };
     }
     
@@ -103,7 +95,7 @@ export const verifyClerkTPA = async (clerkToken: string) => {
       return {
         success: false,
         error: userError,
-        message: "Failed to verify authentication. Please check your Supabase TPA configuration."
+        message: "Failed to verify authentication. Please check your Clerk JWT template."
       };
     }
     
@@ -125,10 +117,7 @@ export const verifyClerkTPA = async (clerkToken: string) => {
     return { 
       success: true, 
       user: userData.user,
-      jwtClaims: {
-        sub: userData.user.user_metadata?.sub,
-        email: userData.user.email
-      }
+      jwtClaims: userData.user.user_metadata
     };
   } catch (error) {
     console.error("Verification error:", error);

@@ -1,13 +1,11 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { verifyClerkTPA } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import getUUIDFromClerkID from "@/utils/getUUIDFromClerkID";
-import { supabase } from "@/integrations/supabase/client";
 
 interface AuthenticationTestProps {
   userId?: string | null;
@@ -20,45 +18,63 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const [authSuccess, setAuthSuccess] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [jwtClaims, setJwtClaims] = useState<any>(null);
 
-  // Test Third-Party authentication if user is signed in
-  const testTPAAuthentication = async () => {
+  // Test JWT authentication
+  const testJWTAuthentication = async () => {
     try {
       setAuthTestInProgress(true);
-      console.log("Testing Clerk-Supabase TPA integration");
+      console.log("Testing Clerk JWT integration");
       
-      // Get a token from Clerk for Supabase - using plain getToken() for TPA
-      const token = await getToken();
+      // Get a JWT token from Clerk
+      const token = await getToken({
+        template: "supabase-jwt"
+      });
       
       if (!token) {
         console.error("No Clerk token available");
         setAuthSuccess(false);
-        setAuthError("Could not get authentication token from Clerk. Please make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.");
+        setAuthError("Could not get authentication token from Clerk. Please make sure JWT template is enabled for Supabase in your Clerk dashboard.");
         return false;
       }
       
-      // Test the token with Supabase TPA integration
-      const result = await verifyClerkTPA(token);
+      // Test the token with Supabase JWT auth
+      const { data, error } = await supabase.auth.signInWithJwt({
+        jwt: token,
+      });
       
-      console.log("TPA test result:", result);
-      
-      setAuthSuccess(result.success);
-      if (!result.success) {
-        setAuthError(result.message || "Unknown authentication error");
+      if (error) {
+        console.error("JWT auth error:", error);
+        setAuthSuccess(false);
+        setAuthError(error.message);
         toast({
           title: "Authentication Warning",
-          description: "Authentication check failed. This may cause issues with app functionality.",
+          description: "JWT authentication failed. This may cause issues with app functionality.",
           variant: "destructive",
         });
         return false;
-      } else {
-        toast({
-          title: "Authentication Success",
-          description: "Clerk-Supabase integration is working correctly.",
-        });
       }
       
-      return true;
+      // Check the JWT claims
+      const { data: userData } = await supabase.auth.getUser();
+      
+      if (userData.user) {
+        console.log("JWT authentication successful");
+        console.log("JWT claims:", userData.user.user_metadata);
+        
+        setJwtClaims(userData.user.user_metadata);
+        setAuthSuccess(true);
+        
+        toast({
+          title: "Authentication Success",
+          description: "Clerk JWT integration is working correctly.",
+        });
+        return true;
+      } else {
+        setAuthSuccess(false);
+        setAuthError("User data not available after JWT authentication");
+        return false;
+      }
     } catch (error) {
       console.error("Error testing authentication:", error);
       setAuthSuccess(false);
@@ -69,20 +85,18 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
     }
   };
   
-  // Debug function to check if user data is being properly saved to Supabase
-  const checkUserData = async (userId: string) => {
+  // Debug function to check user data in database
+  const checkUserData = async () => {
     try {
       if (!userId) return;
       
       console.log("Checking user data for Clerk ID:", userId);
-      const supabaseUserId = getUUIDFromClerkID(userId);
-      console.log("Converted to Supabase UUID:", supabaseUserId);
       
       // Check profiles table
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", supabaseUserId)
+        .eq("id", userId)
         .maybeSingle();
         
       console.log("Profile data:", profileData, profileError);
@@ -91,15 +105,24 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       const { data: subscriberData, error: subscriberError } = await supabase
         .from("subscribers")
         .select("*")
-        .eq("user_id", supabaseUserId)
+        .eq("user_id", userId)
         .maybeSingle();
         
       console.log("Subscriber data:", subscriberData, subscriberError);
       
+      // Check tasks table
+      const { data: tasksData, error: tasksError } = await supabase
+        .from("tasks")
+        .select("*")
+        .maybeSingle();
+        
+      console.log("Task data:", tasksData, tasksError);
+      
       return {
         profile: profileData,
         subscriber: subscriberData,
-        errors: { profile: profileError, subscriber: subscriberError }
+        tasks: tasksData,
+        errors: { profile: profileError, subscriber: subscriberError, tasks: tasksError }
       };
     } catch (error) {
       console.error("Error checking user data:", error);
@@ -121,7 +144,12 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           <CheckCircle className="h-4 w-4 text-green-500" />
           <AlertTitle className="text-green-600">Authentication Success</AlertTitle>
           <AlertDescription>
-            Your Clerk-Supabase Third-Party Authentication is configured correctly.
+            Your Clerk JWT integration is configured correctly.
+            {jwtClaims && (
+              <div className="mt-2 text-xs">
+                <p>JWT 'sub' claim: {jwtClaims.sub}</p>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -136,24 +164,24 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
 
       <Alert variant="default" className="mb-4">
         <Info className="h-4 w-4" />
-        <AlertTitle>Important Setup</AlertTitle>
+        <AlertTitle>JWT Authentication</AlertTitle>
         <AlertDescription>
-          Make sure you've configured Third-Party Authentication for Clerk in your Supabase dashboard and enabled the Supabase integration in your Clerk dashboard.
+          Make sure you've configured the JWT template in your Clerk dashboard with 'sub' claim mapping to user ID.
         </AlertDescription>
         <div className="mt-2 space-x-2">
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.open('https://clerk.com/docs/integrations/databases/supabase', '_blank')}
+            onClick={() => window.open('https://clerk.com/docs/backend-requests/making/custom-jwt-templates', '_blank')}
           >
-            View Documentation
+            View Clerk JWT Docs
           </Button>
           <Button 
             variant="outline" 
             size="sm"
-            onClick={testTPAAuthentication}
+            onClick={testJWTAuthentication}
           >
-            Test Authentication
+            Test JWT Auth
           </Button>
           {userId && (
             <Button 
@@ -161,8 +189,8 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
               size="sm"
               onClick={() => {
                 setShowDebug(!showDebug);
-                if (!showDebug && userId) {
-                  checkUserData(userId);
+                if (!showDebug) {
+                  checkUserData();
                 }
               }}
             >

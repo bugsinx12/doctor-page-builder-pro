@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "@/utils/supabaseAuth";
+import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type Subscriber = Database['public']['Tables']['subscribers']['Row'];
@@ -17,7 +17,7 @@ interface SubscriptionStatus {
 
 export const useSubscription = () => {
   const { user } = useUser();
-  const { supabaseUserId, isLoading: authLoading } = useSupabaseAuth();
+  const { userId, isAuthenticated, isLoading: authLoading } = useClerkSupabaseAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({
     subscribed: false,
@@ -27,7 +27,7 @@ export const useSubscription = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!supabaseUserId || !user) {
+    if (!userId || !user || !isAuthenticated) {
       setIsLoading(false);
       return;
     }
@@ -35,13 +35,14 @@ export const useSubscription = () => {
     const checkSubscription = async () => {
       try {
         setIsLoading(true);
-        console.log("Checking subscription for user ID:", supabaseUserId);
+        console.log("Checking subscription for user ID:", userId);
 
+        // Use the user's Clerk ID directly
         // First, check if subscriber exists in Supabase
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
-          .eq("user_id", supabaseUserId)
+          .eq("user_id", userId)
           .maybeSingle();
 
         if (fetchError) {
@@ -52,7 +53,7 @@ export const useSubscription = () => {
         if (!existingSubscriber) {
           console.log("No subscriber found, creating new record");
           const subscriberData: SubscriberInsert = {
-            user_id: supabaseUserId,
+            user_id: userId,
             email: user.primaryEmailAddress?.emailAddress || "",
             subscribed: false
           };
@@ -80,10 +81,10 @@ export const useSubscription = () => {
           }
         }
 
-        // Check subscription status from edge function
+        // Check subscription status from edge function (if implemented)
         try {
           const authData = {
-            userId: supabaseUserId,
+            userId: userId,
             userEmail: user.primaryEmailAddress?.emailAddress
           };
           const authToken = btoa(JSON.stringify(authData));
@@ -129,7 +130,7 @@ export const useSubscription = () => {
     };
 
     checkSubscription();
-  }, [supabaseUserId, user, toast]);
+  }, [userId, user, toast, isAuthenticated]);
 
   return { subscriptionStatus, isLoading: isLoading || authLoading };
 };

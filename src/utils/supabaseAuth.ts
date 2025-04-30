@@ -1,14 +1,12 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase, signInWithClerk } from "@/integrations/supabase/client";
-import { SupabaseClient } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import getUUIDFromClerkID from "./getUUIDFromClerkID";
-import type { Database } from "@/integrations/supabase/types";
 
 /**
- * Hook to check if the user is authenticated with Supabase via Clerk TPA
+ * Hook to check if the user is authenticated with Supabase via Clerk JWT
+ * This revised approach uses the JWT 'sub' claim directly for authentication
  */
 export function useSupabaseAuth() {
   const { userId, getToken, isSignedIn } = useAuth();
@@ -31,19 +29,20 @@ export function useSupabaseAuth() {
       setIsLoading(true);
       setError(null);
 
-      // Get Supabase UUID from Clerk ID for use in application logic
-      const convertedUserId = getUUIDFromClerkID(userId);
-      setSupabaseUserId(convertedUserId);
+      // Store Clerk ID for use in application logic
+      setSupabaseUserId(userId);
       
-      // Get token from Clerk for Supabase TPA (no template needed)
-      const token = await getToken();
+      // Get token from Clerk with custom claims
+      const token = await getToken({
+        template: "supabase-jwt"
+      });
       
       if (!token) {
         const noTokenError = new Error("No authentication token available");
         setError(noTokenError);
         toast({
           title: "Authentication Error",
-          description: "Failed to get authentication token from Clerk. Make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.",
+          description: "Failed to get authentication token from Clerk. Please check JWT template configuration.",
           variant: "destructive",
         });
         setIsAuthenticated(false);
@@ -51,10 +50,9 @@ export function useSupabaseAuth() {
         return false;
       }
 
-      // Sign in to Supabase using Clerk token
-      const { data, error: authError } = await supabase.auth.signInWithIdToken({
-        provider: 'clerk',
-        token: token,
+      // Sign in to Supabase using the Clerk token
+      const { data, error: authError } = await supabase.auth.signInWithJwt({
+        jwt: token,
       });
 
       if (authError) {
@@ -62,7 +60,7 @@ export function useSupabaseAuth() {
         setError(authError);
         toast({
           title: "Authentication Error",
-          description: "Failed to authenticate with Supabase using Clerk. Please check your Third-Party Auth integration.",
+          description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
           variant: "destructive",
         });
         setIsAuthenticated(false);
@@ -93,7 +91,7 @@ export function useSupabaseAuth() {
       setIsAuthenticated(false);
       toast({
         title: "Authentication Error",
-        description: "Please ensure your Clerk-Supabase Third-Party Auth integration is configured correctly.",
+        description: "Please ensure your Clerk JWT template is configured correctly.",
         variant: "destructive",
       });
       return false;
@@ -117,10 +115,11 @@ export function useSupabaseAuth() {
 
 /**
  * Hook to get an authenticated Supabase client
+ * This revised approach uses JWT with 'sub' claim directly
  */
 export function useSupabaseClient() {
   const { getToken, isSignedIn } = useAuth();
-  const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
+  const [client, setClient] = useState(supabase);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
@@ -129,23 +128,25 @@ export function useSupabaseClient() {
   const initClient = useCallback(async () => {
     if (!isSignedIn) {
       setIsLoading(false);
-      return null;
+      return supabase;
     }
     
     try {
       setIsLoading(true);
       setError(null);
 
-      // Get authenticated client using Clerk token with TPA (no template needed)
-      const token = await getToken();
+      // Get authenticated client using Clerk token with JWT template
+      const token = await getToken({
+        template: "supabase-jwt"
+      });
+      
       if (!token) {
         throw new Error("No authentication token available");
       }
 
-      // Sign in to Supabase using the Clerk token
-      const { data, error } = await supabase.auth.signInWithIdToken({
-        provider: 'clerk',
-        token: token,
+      // Sign in to Supabase using the Clerk JWT
+      const { data, error } = await supabase.auth.signInWithJwt({
+        jwt: token,
       });
 
       if (error) {
@@ -159,10 +160,10 @@ export function useSupabaseClient() {
       setError(err instanceof Error ? err : new Error("Failed to initialize Supabase client"));
       toast({
         title: "Authentication Error",
-        description: "Failed to initialize secure connection. Please check your Clerk-Supabase integration.",
+        description: "Failed to initialize secure connection. Please check your Clerk JWT template.",
         variant: "destructive",
       });
-      return null;
+      return supabase;
     } finally {
       setIsLoading(false);
     }
