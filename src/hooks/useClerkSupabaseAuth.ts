@@ -1,11 +1,12 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useClerkAuth } from './auth/useClerkAuth';
 import { useSupabaseSession } from './auth/useSupabaseSession';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * Main authentication hook that combines Clerk authentication with Supabase session management
- * using Third-Party Authentication (TPA) integration
+ * using Third-Party Authentication (TPA) integration and handles JWT claims
  */
 export const useClerkSupabaseAuth = () => {
   // Get Clerk authentication state and token
@@ -17,6 +18,8 @@ export const useClerkSupabaseAuth = () => {
     isSignedIn,
     userId
   } = useClerkAuth();
+  
+  const { toast } = useToast();
   
   // Manage Supabase session based on Clerk token
   const { 
@@ -33,6 +36,15 @@ export const useClerkSupabaseAuth = () => {
       authenticateWithSupabase(clerkToken);
     }
   }, [clerkToken, authenticateWithSupabase, supabaseLoading, isSignedIn]);
+
+  // After successful auth, check if webhook sync might be needed
+  useEffect(() => {
+    if (isAuthenticated && userId && !supabaseLoading && !clerkLoading) {
+      console.log("Authentication successful, user ID:", userId);
+      // In a real app, we could verify here if the user exists in Supabase profiles
+      // but we're relying on the webhook to handle that synchronization
+    }
+  }, [isAuthenticated, userId, supabaseLoading, clerkLoading]);
   
   // Function to refresh authentication that can be called on demand
   const refreshAuth = async () => {

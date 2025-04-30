@@ -5,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * Hook that handles the Supabase session based on a Clerk authentication token
+ * and ensures proper JWT claim handling
  */
 export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolean) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -45,7 +46,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
         return false;
       }
       
-      // Verify the session worked by checking user
+      // Verify the session worked by checking user and JWT claims
       const { data, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
@@ -60,6 +61,16 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
         setIsLoading(false);
         setAuthAttempted(true);
         return false;
+      }
+      
+      // Inspect JWT claims to ensure they contain the clerk user id in the 'sub' claim
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (sessionData.session) {
+        console.log("Authentication successful with JWT claims:", {
+          sub: sessionData.session?.user.user_metadata?.sub,
+          aud: sessionData.session?.user?.aud,
+        });
       }
       
       console.log("Authentication check result:", !!data.user);

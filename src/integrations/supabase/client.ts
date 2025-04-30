@@ -32,6 +32,12 @@ export const getSessionStatus = async () => {
       console.error("Error getting session:", error);
       return { hasSession: false, error };
     }
+    
+    // Log JWT claims for debugging
+    if (data.session) {
+      console.log("Session JWT sub claim:", data.session.user.user_metadata?.sub);
+    }
+    
     return { hasSession: !!data.session, session: data.session };
   } catch (error) {
     console.error("Unexpected error checking session:", error);
@@ -56,7 +62,12 @@ export const signInWithClerk = async (clerkToken: string) => {
       return { success: false, error, message: error.message };
     }
     
-    console.log("Successfully authenticated with Clerk", data);
+    // Log successful authentication and JWT claims
+    console.log("Successfully authenticated with Clerk", {
+      user: data.user?.id,
+      sub: data.user?.user_metadata?.sub,
+    });
+    
     return { success: true, data };
   } catch (error) {
     console.error("Unexpected error in Clerk auth:", error);
@@ -84,7 +95,7 @@ export const verifyClerkTPA = async (clerkToken: string) => {
       };
     }
     
-    // Verify the session worked by getting user data
+    // Verify the session worked by getting user data and JWT claims
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
@@ -104,8 +115,21 @@ export const verifyClerkTPA = async (clerkToken: string) => {
       };
     }
     
-    console.log("Authentication verification successful:", userData.user);
-    return { success: true, user: userData.user };
+    // Log JWT claims for debugging
+    console.log("Authentication verification successful:", {
+      user: userData.user.id,
+      sub: userData.user.user_metadata?.sub,
+      email: userData.user.email,
+    });
+    
+    return { 
+      success: true, 
+      user: userData.user,
+      jwtClaims: {
+        sub: userData.user.user_metadata?.sub,
+        email: userData.user.email
+      }
+    };
   } catch (error) {
     console.error("Verification error:", error);
     return {
