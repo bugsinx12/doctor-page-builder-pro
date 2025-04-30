@@ -46,7 +46,7 @@ export const signInWithJWT = async (jwt: string) => {
     
     // Sign in to Supabase using JWT
     const { data, error } = await supabase.auth.signInWithOtp({
-      jwt,
+      token: jwt,
     });
     
     if (error) {
@@ -78,7 +78,7 @@ export const signInWithClerk = async (token: string) => {
     
     // Use the token from Clerk to authenticate with Supabase
     const { data, error } = await supabase.auth.signInWithOtp({
-      jwt: token,
+      token: token,
     });
     
     if (error) {

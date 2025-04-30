@@ -52,7 +52,7 @@ export function useSupabaseAuth() {
 
       // Sign in to Supabase using the Clerk token
       const { data, error: authError } = await supabase.auth.signInWithOtp({
-        jwt: token,
+        token: token,
       });
 
       if (authError) {
@@ -146,7 +146,7 @@ export function useSupabaseClient() {
 
       // Sign in to Supabase using the Clerk JWT
       const { data, error } = await supabase.auth.signInWithOtp({
-        jwt: token,
+        token: token,
       });
 
       if (error) {
