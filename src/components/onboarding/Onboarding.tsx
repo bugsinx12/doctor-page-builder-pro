@@ -1,184 +1,48 @@
 
-import { useState, useEffect } from 'react';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { useEffect } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { Steps } from '@/components/onboarding/Steps';
 import TemplateSelection from '@/components/onboarding/TemplateSelection';
 import PracticeInfo from '@/components/onboarding/PracticeInfo';
 import SubscriptionSelection from '@/components/onboarding/SubscriptionSelection';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
-import { Website } from '@/types';
+import { onboardingSteps, getStepContent } from '@/components/onboarding/OnboardingSteps';
 import { useWebsiteOperations } from '@/hooks/website/useWebsiteOperations';
-import { usePracticeInfo } from '@/hooks/website/usePracticeInfo';
+import { useOnboardingState } from '@/hooks/useOnboardingState';
+import OnboardingCompletion from '@/components/onboarding/OnboardingCompletion';
 
 interface OnboardingProps {
   onComplete: () => void;
 }
 
 const Onboarding = ({ onComplete }: OnboardingProps) => {
-  const { user } = useUser();
   const { userId } = useAuth();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [websites, setWebsites] = useState<Website[]>([]);
-  const { toast } = useToast();
-  const { practiceInfo, updatePracticeInfo } = usePracticeInfo();
-  const [localPracticeInfo, setLocalPracticeInfo] = useState({
-    name: '',
-    specialty: '',
-    address: '',
-    phone: '',
-    email: '',
-  });
+  const {
+    currentStep,
+    setCurrentStep,
+    selectedTemplate,
+    setSelectedTemplate,
+    websites,
+    setWebsites,
+    localPracticeInfo,
+    handleNext,
+    handlePrevious,
+    handlePracticeInfoChange,
+    handlePracticeInfoNext,
+    user
+  } = useOnboardingState();
   
-  const { createWebsite, loading: creatingWebsite } = useWebsiteOperations(websites, setWebsites);
+  // Initialize website operations hook
+  const { createWebsite } = useWebsiteOperations(websites, setWebsites);
 
-  useEffect(() => {
-    // Initialize local state from loaded practice info
-    if (practiceInfo) {
-      setLocalPracticeInfo(practiceInfo);
-    }
-  }, [practiceInfo]);
-
-  const steps = [
-    { id: 'template', title: 'Select a template' },
-    { id: 'practice', title: 'Practice information' },
-    { id: 'subscription', title: 'Choose a plan' },
-  ];
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handlePrevious = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const handlePracticeInfoChange = (values: any) => {
-    console.log("Practice info changed:", values);
-    setLocalPracticeInfo({
-      name: values.name,
-      specialty: values.specialty,
-      address: values.address || '',
-      phone: values.phone || '',
-      email: values.email || ''
-    });
-  };
-
-  const handlePracticeInfoNext = async () => {
-    // Validate required fields
-    if (!localPracticeInfo.name || !localPracticeInfo.specialty) {
-      toast({
-        title: "Missing required information",
-        description: "Please provide both practice name and specialty.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    console.log("Saving practice info to Supabase:", localPracticeInfo);
-    
-    // Save practice info to Supabase
-    const success = await updatePracticeInfo(localPracticeInfo);
-    if (success) {
-      handleNext();
-    } else {
-      toast({
-        title: "Failed to save practice information",
-        description: "Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleComplete = async () => {
-    if (!userId || !selectedTemplate) {
-      toast({
-        title: "Missing information",
-        description: "Please select a template and complete all steps.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      // Double-check that practice info is saved in Supabase
-      if (!localPracticeInfo.name || !localPracticeInfo.specialty) {
-        toast({
-          title: "Missing practice information",
-          description: "Please go back and complete your practice information.",
-          variant: "destructive"
-        });
-        setCurrentStep(1);
-        return;
-      }
-      
-      // 1. Update Clerk user metadata
-      await user?.update({
-        unsafeMetadata: {
-          onboardingCompleted: true,
-          selectedTemplate,
-          practiceInfo: localPracticeInfo
-        }
-      });
-      
-      // 2. Create website using the selected template
-      const newWebsite = await createWebsite(selectedTemplate, localPracticeInfo);
-      
-      if (newWebsite) {
-        toast({
-          title: "Onboarding completed!",
-          description: "Your profile and website have been created successfully.",
-        });
-        onComplete();
-      } else {
-        throw new Error("Website creation failed");
-      }
-    } catch (error) {
-      console.error('Onboarding completion error:', error);
-      toast({
-        title: "Something went wrong",
-        description: "Unable to complete onboarding. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <TemplateSelection 
-            selectedTemplate={selectedTemplate} 
-            onSelect={setSelectedTemplate} 
-            onNext={handleNext}
-          />
-        );
-      case 1:
-        return (
-          <PracticeInfo 
-            practiceInfo={localPracticeInfo}
-            onChange={handlePracticeInfoChange}
-            onNext={handlePracticeInfoNext}
-            onPrevious={handlePrevious}
-          />
-        );
-      case 2:
-        return (
-          <SubscriptionSelection 
-            onComplete={handleComplete}
-            onPrevious={handlePrevious}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  // Get completion handler
+  const { handleComplete, isCompleting } = OnboardingCompletion({
+    userId,
+    selectedTemplate,
+    practiceInfo: localPracticeInfo,
+    websites,
+    setWebsites,
+    onComplete
+  });
 
   return (
     <div className="container max-w-6xl py-12">
@@ -192,7 +56,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         </p>
         
         <Steps 
-          steps={steps} 
+          steps={onboardingSteps} 
           currentStep={currentStep} 
           onStepClick={(index) => {
             if (index <= currentStep) {
@@ -202,7 +66,19 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
         />
         
         <div className="mt-8">
-          {renderStepContent()}
+          {getStepContent(currentStep, {
+            selectedTemplate,
+            setSelectedTemplate,
+            handleNext,
+            handlePrevious,
+            localPracticeInfo,
+            handlePracticeInfoChange,
+            handlePracticeInfoNext,
+            handleComplete,
+            TemplateSelection,
+            PracticeInfo,
+            SubscriptionSelection,
+          })}
         </div>
       </div>
     </div>
