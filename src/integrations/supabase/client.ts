@@ -45,7 +45,7 @@ export const signInWithJWT = async (jwt: string) => {
     console.log("Signing in with JWT from Clerk");
     
     // Sign in to Supabase using JWT
-    const { data, error } = await supabase.auth.signInWithJwt({
+    const { data, error } = await supabase.auth.signInWithOtp({
       jwt,
     });
     
@@ -67,6 +67,93 @@ export const signInWithJWT = async (jwt: string) => {
       success: false, 
       error, 
       message: error instanceof Error ? error.message : "Unknown error occurred"
+    };
+  }
+};
+
+// Helper function for Clerk Third-Party Auth (TPA) integration
+export const signInWithClerk = async (token: string) => {
+  try {
+    console.log("Signing in with Clerk token");
+    
+    // Use the token from Clerk to authenticate with Supabase
+    const { data, error } = await supabase.auth.signInWithOtp({
+      jwt: token,
+    });
+    
+    if (error) {
+      console.error("Clerk auth error:", error);
+      return { success: false, error, message: error.message };
+    }
+    
+    // Log successful authentication
+    console.log("Successfully authenticated with Clerk", {
+      user: data.user?.id,
+    });
+    
+    return { success: true, data };
+  } catch (error) {
+    console.error("Unexpected error in Clerk auth:", error);
+    return { 
+      success: false, 
+      error, 
+      message: error instanceof Error ? error.message : "Unknown error occurred"
+    };
+  }
+};
+
+// Helper function to verify Clerk TPA integration
+export const verifyClerkTPA = async (token: string) => {
+  try {
+    console.log("Verifying Clerk TPA integration");
+    
+    // First try to sign in with the token
+    const { success, error, message } = await signInWithClerk(token);
+    
+    if (!success) {
+      return { 
+        success: false, 
+        error,
+        message: message || "Failed to authenticate with token"
+      };
+    }
+    
+    // Verify the session worked by getting user data
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error("User error:", userError);
+      return {
+        success: false,
+        error: userError,
+        message: "Failed to verify authentication"
+      };
+    }
+    
+    if (!userData.user) {
+      return {
+        success: false,
+        error: new Error("No user data returned"),
+        message: "Authentication failed. No user data was returned."
+      };
+    }
+    
+    // Log success
+    console.log("TPA verification successful:", {
+      user: userData.user.id,
+      metadata: userData.user.user_metadata
+    });
+    
+    return { 
+      success: true, 
+      user: userData.user
+    };
+  } catch (error) {
+    console.error("Verification error:", error);
+    return {
+      success: false,
+      error,
+      message: "An unexpected error occurred during authentication verification"
     };
   }
 };

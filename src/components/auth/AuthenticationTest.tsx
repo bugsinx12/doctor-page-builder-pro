@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, verifyJWTAuth } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,14 +39,12 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       }
       
       // Test the token with Supabase JWT auth
-      const { data, error } = await supabase.auth.signInWithJwt({
-        jwt: token,
-      });
+      const result = await verifyJWTAuth(token);
       
-      if (error) {
-        console.error("JWT auth error:", error);
+      if (!result.success) {
+        console.error("JWT auth error:", result.error);
         setAuthSuccess(false);
-        setAuthError(error.message);
+        setAuthError(result.message);
         toast({
           title: "Authentication Warning",
           description: "JWT authentication failed. This may cause issues with app functionality.",
@@ -55,14 +53,9 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         return false;
       }
       
-      // Check the JWT claims
-      const { data: userData } = await supabase.auth.getUser();
-      
-      if (userData.user) {
-        console.log("JWT authentication successful");
-        console.log("JWT claims:", userData.user.user_metadata);
-        
-        setJwtClaims(userData.user.user_metadata);
+      // Display JWT claims
+      if (result.jwtClaims) {
+        setJwtClaims(result.jwtClaims);
         setAuthSuccess(true);
         
         toast({
@@ -72,7 +65,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         return true;
       } else {
         setAuthSuccess(false);
-        setAuthError("User data not available after JWT authentication");
+        setAuthError("JWT claims not available after authentication");
         return false;
       }
     } catch (error) {
