@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
+import { getClerkId } from '@/utils/clerkUtils';
 import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Database } from "@/integrations/supabase/types";
 import type { Json } from '@/integrations/supabase/types';
@@ -42,7 +42,8 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
 
     try {
       setLoading(true);
-      const supabaseUserId = getUUIDFromClerkID(userId);
+      // With TPA, we use the Clerk ID directly
+      const clerkId = userId;
 
       const templateType = templateId.includes('specialist') ? 'specialist'
         : templateId.includes('pediatric') ? 'pediatric'
@@ -57,7 +58,7 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
       const { content, settings } = generateTemplateContent(templateType, practiceInfo);
       
       const websitePayload = {
-        userid: supabaseUserId,
+        userid: clerkId,
         name: practiceInfo.name,
         slug: slug,
         templateid: templateId,

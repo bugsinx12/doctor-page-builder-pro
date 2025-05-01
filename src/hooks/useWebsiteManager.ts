@@ -38,10 +38,11 @@ export const useWebsiteManager = () => {
 
         console.log("Fetching websites for user:", userId);
 
+        // With TPA, userId from Clerk is available as the 'sub' claim in the JWT
+        // and the RLS policy will filter records by user_id = auth.jwt()->>'sub'
         const { data: websitesData, error: websitesError } = await supabase
           .from('websites')
-          .select('*')
-          .eq('userid', userId);
+          .select('*');
 
         if (websitesError) {
           console.error('Error fetching websites:', websitesError);

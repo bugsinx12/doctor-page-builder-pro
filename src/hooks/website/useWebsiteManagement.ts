@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
+import { getClerkId } from '@/utils/clerkUtils';
 import { useSupabaseClient } from '@/utils/supabaseAuth';
 
 export const useWebsiteManagement = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
@@ -23,13 +23,14 @@ export const useWebsiteManagement = (websites: Website[], setWebsites: (websites
         throw new Error("Authentication required");
       }
       
-      const supabaseUserId = getUUIDFromClerkID(userId);
+      // With TPA, we use the Clerk ID directly
+      const clerkId = userId;
 
       const { error } = await supabaseClient
         .from('websites')
         .delete()
         .eq('id', websiteId)
-        .eq('userid', supabaseUserId);
+        .eq('userid', clerkId);
 
       if (error) throw error;
 
