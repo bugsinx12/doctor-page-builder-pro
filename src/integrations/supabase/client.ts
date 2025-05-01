@@ -39,63 +39,40 @@ export const getSessionStatus = async () => {
   }
 };
 
-// Helper function for JWT authentication with Clerk
-export const signInWithJWT = async (jwt: string) => {
-  try {
-    console.log("Signing in with JWT from Clerk");
-    
-    // Sign in to Supabase using JWT
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: `clerk+${Date.now()}@example.com`,
-      password: jwt
-    });
-    
-    if (error) {
-      console.error("JWT auth error:", error);
-      return { success: false, error, message: error.message };
-    }
-    
-    // Log successful authentication
-    console.log("Successfully authenticated with JWT", {
-      user: data.user?.id,
-      sub: data.user?.user_metadata?.sub,
-    });
-    
-    return { success: true, data };
-  } catch (error) {
-    console.error("Unexpected error in JWT auth:", error);
-    return { 
-      success: false, 
-      error, 
-      message: error instanceof Error ? error.message : "Unknown error occurred"
-    };
-  }
-};
-
 // Helper function for Clerk Third-Party Auth (TPA) integration
 export const signInWithClerk = async (token: string) => {
   try {
-    console.log("Signing in with Clerk token");
+    console.log("Signing in with Clerk token via TPA (signInWithIdToken)");
     
-    // Use the token from Clerk to authenticate with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: `clerk+${Date.now()}@example.com`,
-      password: token
+    // Use the token from Clerk to authenticate with Supabase via TPA
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'clerk',
+      token,
     });
     
     if (error) {
-      console.error("Clerk auth error:", error);
+      console.error("Clerk TPA auth error:", error);
       return { success: false, error, message: error.message };
     }
     
+    if (!data.user) {
+      console.error("No user data returned from signInWithIdToken");
+      return { 
+        success: false, 
+        error: new Error("No user data returned"),
+        message: "Authentication failed. No user data was returned."
+      };
+    }
+    
     // Log successful authentication
-    console.log("Successfully authenticated with Clerk", {
+    console.log("Successfully authenticated with Clerk via TPA", {
       user: data.user?.id,
+      metadata: data.user?.user_metadata,
     });
     
     return { success: true, data };
   } catch (error) {
-    console.error("Unexpected error in Clerk auth:", error);
+    console.error("Unexpected error in Clerk TPA auth:", error);
     return { 
       success: false, 
       error, 
@@ -124,7 +101,7 @@ export const verifyClerkTPA = async (token: string) => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
     if (userError) {
-      console.error("User error:", userError);
+      console.error("User data error:", userError);
       return {
         success: false,
         error: userError,
@@ -140,9 +117,10 @@ export const verifyClerkTPA = async (token: string) => {
       };
     }
     
-    // Log success
+    // Log success with detailed information for debugging
     console.log("TPA verification successful:", {
       user: userData.user.id,
+      email: userData.user.email,
       metadata: userData.user.user_metadata
     });
     
@@ -160,60 +138,42 @@ export const verifyClerkTPA = async (token: string) => {
   }
 };
 
-// Helper function to verify if JWT authentication is working correctly
-export const verifyJWTAuth = async (jwt: string) => {
+// Debugging function to log the session and tokens
+export const debugSessionInfo = async () => {
   try {
-    console.log("Verifying Clerk JWT integration");
+    console.log("Debugging Session Information");
     
-    // First try to sign in with the JWT
-    const { success, error, message } = await signInWithJWT(jwt);
+    // Get current session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
-    if (!success) {
-      return { 
-        success: false, 
-        error,
-        message: message || "Failed to authenticate with JWT"
-      };
+    if (sessionError) {
+      console.error("Error retrieving session:", sessionError);
+      return { success: false, error: sessionError };
     }
     
-    // Verify the session worked by getting user data and JWT claims
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      console.error("User error:", userError);
-      return {
-        success: false,
-        error: userError,
-        message: "Failed to verify authentication. Please check your Clerk JWT template."
-      };
+    if (!sessionData.session) {
+      console.log("No active Supabase session found");
+      return { success: false, message: "No active session" };
     }
     
-    if (!userData.user) {
-      return {
-        success: false,
-        error: new Error("No user data returned"),
-        message: "Authentication failed. No user data was returned."
-      };
-    }
-    
-    // Log JWT claims for debugging
-    console.log("Authentication verification successful:", {
-      user: userData.user.id,
-      sub: userData.user.user_metadata?.sub,
-      email: userData.user.email,
+    // Log session details for debugging
+    console.log("Active Supabase session:", {
+      userId: sessionData.session.user.id,
+      email: sessionData.session.user.email,
+      lastSignIn: sessionData.session.user.last_sign_in_at,
+      expiresAt: new Date(sessionData.session.expires_at * 1000).toISOString(),
+      providerToken: !!sessionData.session.provider_token,
+      providerRefreshToken: !!sessionData.session.provider_refresh_token,
+      metadata: sessionData.session.user.user_metadata,
     });
     
-    return { 
-      success: true, 
-      user: userData.user,
-      jwtClaims: userData.user.user_metadata
+    return {
+      success: true,
+      session: sessionData.session,
+      user: sessionData.session.user
     };
   } catch (error) {
-    console.error("Verification error:", error);
-    return {
-      success: false,
-      error,
-      message: "An unexpected error occurred during authentication verification."
-    };
+    console.error("Unexpected error debugging session:", error);
+    return { success: false, error };
   }
 };

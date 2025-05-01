@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase, verifyJWTAuth } from "@/integrations/supabase/client";
+import { supabase, verifyClerkTPA, debugSessionInfo } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,54 +18,59 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const [authSuccess, setAuthSuccess] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
-  const [jwtClaims, setJwtClaims] = useState<any>(null);
+  const [userInfo, setUserInfo] = useState<any>(null);
 
-  // Test JWT authentication
-  const testJWTAuthentication = async () => {
+  // Test TPA authentication
+  const testTPAAuthentication = async () => {
     try {
       setAuthTestInProgress(true);
-      console.log("Testing Clerk JWT integration");
+      console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a JWT token from Clerk
-      const token = await getToken({
-        template: "supabase-jwt"
-      });
+      // Get a token from Clerk for Supabase TPA
+      const token = await getToken();
       
       if (!token) {
         console.error("No Clerk token available");
         setAuthSuccess(false);
-        setAuthError("Could not get authentication token from Clerk. Please make sure JWT template is enabled for Supabase in your Clerk dashboard.");
+        setAuthError("Could not get authentication token from Clerk. Make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.");
         return false;
       }
       
-      // Test the token with Supabase JWT auth
-      const result = await verifyJWTAuth(token);
+      // Test the token with Supabase TPA integration
+      const result = await verifyClerkTPA(token);
       
       if (!result.success) {
-        console.error("JWT auth error:", result.error);
+        console.error("TPA auth error:", result.error);
         setAuthSuccess(false);
         setAuthError(result.message);
         toast({
           title: "Authentication Warning",
-          description: "JWT authentication failed. This may cause issues with app functionality.",
+          description: "TPA authentication failed. This may cause issues with app functionality.",
           variant: "destructive",
         });
         return false;
       }
       
-      // Display JWT claims
-      if (result.jwtClaims) {
-        setJwtClaims(result.jwtClaims);
-        setAuthSuccess(true);
+      // Get detailed session information
+      const sessionInfo = await debugSessionInfo();
+      
+      if (sessionInfo.success && sessionInfo.user) {
+        setUserInfo({
+          id: sessionInfo.user.id,
+          email: sessionInfo.user.email,
+          metadata: sessionInfo.user.user_metadata || {},
+          provider: "clerk"
+        });
         
+        setAuthSuccess(true);
         toast({
           title: "Authentication Success",
-          description: "Clerk JWT integration is working correctly.",
+          description: "Clerk-Supabase TPA integration is working correctly.",
         });
         return true;
       } else {
         setAuthSuccess(false);
-        setAuthError("JWT claims not available after authentication");
+        setAuthError("User information not available after authentication");
         return false;
       }
     } catch (error) {
@@ -137,10 +142,12 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           <CheckCircle className="h-4 w-4 text-green-500" />
           <AlertTitle className="text-green-600">Authentication Success</AlertTitle>
           <AlertDescription>
-            Your Clerk JWT integration is configured correctly.
-            {jwtClaims && (
+            Your Clerk-Supabase TPA integration is configured correctly.
+            {userInfo && (
               <div className="mt-2 text-xs">
-                <p>JWT 'sub' claim: {jwtClaims.sub}</p>
+                <p>User ID: {userInfo.id}</p>
+                <p>Email: {userInfo.email}</p>
+                <p>Provider: {userInfo.provider}</p>
               </div>
             )}
           </AlertDescription>
@@ -157,24 +164,24 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
 
       <Alert variant="default" className="mb-4">
         <Info className="h-4 w-4" />
-        <AlertTitle>JWT Authentication</AlertTitle>
+        <AlertTitle>Third-Party Authentication</AlertTitle>
         <AlertDescription>
-          Make sure you've configured the JWT template in your Clerk dashboard with 'sub' claim mapping to user ID.
+          Make sure you've configured the Clerk Third-Party Auth integration for Supabase correctly in both the Clerk dashboard and Supabase config.
         </AlertDescription>
         <div className="mt-2 space-x-2">
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.open('https://clerk.com/docs/backend-requests/making/custom-jwt-templates', '_blank')}
+            onClick={() => window.open('https://supabase.com/docs/guides/auth/third-party/clerk', '_blank')}
           >
-            View Clerk JWT Docs
+            View Supabase TPA Docs
           </Button>
           <Button 
             variant="outline" 
             size="sm"
-            onClick={testJWTAuthentication}
+            onClick={testTPAAuthentication}
           >
-            Test JWT Auth
+            Test TPA Auth
           </Button>
           {userId && (
             <Button 

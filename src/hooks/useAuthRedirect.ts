@@ -19,7 +19,7 @@ export function useAuthRedirect() {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk for Supabase using TPA (no template required)
+      // Get a token from Clerk for Supabase using TPA
       const token = await getToken();
       
       if (!token) {
@@ -40,7 +40,7 @@ export function useAuthRedirect() {
       if (!result.success) {
         toast({
           title: "Authentication Warning",
-          description: "Authentication check failed. This may cause issues with app functionality.",
+          description: result.message || "Authentication check failed. This may cause issues with app functionality.",
           variant: "destructive",
         });
         return false;
@@ -75,6 +75,15 @@ export function useAuthRedirect() {
         .maybeSingle();
         
       console.log("Profile data:", profileData, profileError);
+      
+      // Try to check with direct Clerk ID as well for comparison
+      const { data: directProfileData, error: directProfileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+        
+      console.log("Direct profile data using Clerk ID:", directProfileData, directProfileError);
       
       // Check subscribers table
       const { data: subscriberData, error: subscriberError } = await supabase

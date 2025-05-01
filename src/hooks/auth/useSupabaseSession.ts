@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * Hook that handles the Supabase session based on a Clerk authentication token
- * and ensures proper JWT claim handling
+ * using Supabase's Third-Party Auth (TPA) integration for Clerk
  */
 export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolean) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,6 +17,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
   // Function to authenticate with Supabase using the Clerk token
   const authenticateWithSupabase = useCallback(async (token: string | null) => {
     if (!token || !isSignedIn) {
+      console.log("No token or not signed in with Clerk, skipping Supabase auth");
       setIsAuthenticated(false);
       setIsLoading(false);
       setAuthAttempted(true);
@@ -27,7 +28,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
       setIsLoading(true);
       setError(null);
       
-      console.log("Signing in to Supabase with Clerk token via TPA");
+      console.log("Authenticating with Supabase using Clerk token via TPA...");
       
       // Sign in to Supabase using the Clerk token via the Third-Party Auth flow
       const { success, error: authError, message } = await signInWithClerk(token);
@@ -46,7 +47,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
         return false;
       }
       
-      // Verify the session worked by checking user and JWT claims
+      // Verify the session worked by checking user data
       const { data, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
@@ -63,13 +64,14 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
         return false;
       }
       
-      // Inspect JWT claims to ensure they contain the clerk user id in the 'sub' claim
+      // Log detailed session info for debugging
       const { data: sessionData } = await supabase.auth.getSession();
-      
       if (sessionData.session) {
-        console.log("Authentication successful with JWT claims:", {
-          sub: sessionData.session?.user.user_metadata?.sub,
-          aud: sessionData.session?.user?.aud,
+        console.log("Authentication successful with user information:", {
+          id: sessionData.session.user.id,
+          email: sessionData.session.user.email,
+          provider: "clerk",
+          metadata: sessionData.session.user.user_metadata,
         });
       }
       

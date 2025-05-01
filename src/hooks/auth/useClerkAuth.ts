@@ -16,6 +16,7 @@ export const useClerkAuth = () => {
   // Function to get a fresh token from Clerk
   const fetchClerkToken = useCallback(async () => {
     if (!userId || !isSignedIn) {
+      console.log("User not signed in or no user ID available");
       setClerkToken(null);
       setIsLoading(false);
       return null;
@@ -25,8 +26,9 @@ export const useClerkAuth = () => {
       setIsLoading(true);
       setError(null);
       
-      // Get the token from Clerk for Supabase TPA (without template parameter)
-      // The Third-Party Auth integration doesn't require a JWT template
+      console.log("Fetching Clerk token for Supabase TPA...");
+      
+      // Get the token from Clerk for Supabase TPA
       const token = await getToken();
       
       if (!token) {
@@ -43,6 +45,7 @@ export const useClerkAuth = () => {
         return null;
       }
       
+      console.log("Successfully retrieved Clerk token for Supabase TPA");
       setClerkToken(token);
       return token;
     } catch (err) {

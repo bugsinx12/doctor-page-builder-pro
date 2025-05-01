@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import { useClerkAuth } from './auth/useClerkAuth';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, signInWithClerk } from '@/integrations/supabase/client';
 
 /**
  * Main authentication hook that combines Clerk authentication with Supabase session management
- * using JWT claims with `sub` field for user identification
+ * using Supabase's Third-Party Auth (TPA) for Clerk integration
  */
 export const useClerkSupabaseAuth = () => {
   // Get Clerk authentication state
@@ -14,7 +14,8 @@ export const useClerkSupabaseAuth = () => {
     isLoading: clerkLoading, 
     error: clerkError,
     isSignedIn,
-    userId
+    userId,
+    clerkToken
   } = useClerkAuth();
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -25,7 +26,8 @@ export const useClerkSupabaseAuth = () => {
   
   // Authenticate with Supabase using Clerk JWT
   const authenticateWithSupabase = async () => {
-    if (!isSignedIn || !userId) {
+    if (!isSignedIn || !userId || !clerkToken) {
+      console.log("Not signed in or missing Clerk token, skipping Supabase auth");
       setIsAuthenticated(false);
       setIsLoading(false);
       setAuthAttempted(true);
@@ -35,9 +37,9 @@ export const useClerkSupabaseAuth = () => {
     try {
       setIsLoading(true);
       setError(null);
+      console.log("Authenticating with Supabase using Clerk TPA...");
       
-      // The JWT from Clerk will contain the user's ID in the 'sub' claim
-      // which is what our RLS policies will use
+      // First check for existing session
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -46,34 +48,54 @@ export const useClerkSupabaseAuth = () => {
       
       if (sessionData.session) {
         // We already have a valid session
-        console.log("Existing Supabase session found");
+        console.log("Existing Supabase session found:", {
+          id: sessionData.session.user.id,
+          email: sessionData.session.user.email,
+        });
         setIsAuthenticated(true);
         setIsLoading(false);
         setAuthAttempted(true);
         return true;
       }
       
-      // No session, try to get one using the current auth state
-      console.log("No existing session, checking current authentication");
+      // No session, try to get one using Clerk token
+      console.log("No existing session, attempting to authenticate with Clerk token");
       
-      // Get user data to verify authentication
+      const { success, error: tpaError, message } = await signInWithClerk(clerkToken);
+      
+      if (!success) {
+        console.error("TPA auth error:", tpaError);
+        setError(tpaError instanceof Error ? tpaError : new Error(message || "Authentication failed"));
+        toast({
+          title: "Authentication Error",
+          description: message || "Failed to authenticate with Supabase. Check your Clerk-Supabase configuration.",
+          variant: "destructive",
+        });
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        setAuthAttempted(true);
+        return false;
+      }
+      
+      // Verify by getting user data
       const { data: userData, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
         throw userError;
       }
       
-      setIsAuthenticated(!!userData.user);
-      console.log("Authentication status:", !!userData.user);
+      const authSuccess = !!userData.user;
+      console.log("Authentication status:", authSuccess);
+      setIsAuthenticated(authSuccess);
       
-      return !!userData.user;
+      return authSuccess;
     } catch (err) {
       console.error("Error authenticating with Supabase:", err);
       const errorInstance = err instanceof Error ? err : new Error('Authentication error');
       setError(errorInstance);
       toast({
         title: "Authentication Error",
-        description: "Please make sure you have configured your Clerk JWT template correctly.",
+        description: "Please make sure you have configured your Clerk-Supabase TPA correctly.",
         variant: "destructive",
       });
       return false;
@@ -85,14 +107,14 @@ export const useClerkSupabaseAuth = () => {
   
   // Effect to authenticate when Clerk state changes
   useEffect(() => {
-    if (!clerkLoading && isSignedIn) {
+    if (!clerkLoading && isSignedIn && clerkToken) {
       authenticateWithSupabase();
     } else if (!clerkLoading) {
       setIsAuthenticated(false);
       setIsLoading(false);
       setAuthAttempted(true);
     }
-  }, [clerkLoading, isSignedIn, userId]);
+  }, [clerkLoading, isSignedIn, userId, clerkToken]);
   
   // Function to refresh authentication that can be called on demand
   const refreshAuth = async () => {

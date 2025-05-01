@@ -64,6 +64,7 @@ secret = ""
 [auth.third_party.clerk]
 enabled = true
 domain = "funky-labrador-91.clerk.accounts.dev"
+auto_link_users = true
 
 [inbucket]
 enabled = false
