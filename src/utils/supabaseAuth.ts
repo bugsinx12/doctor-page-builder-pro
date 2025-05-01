@@ -30,7 +30,10 @@ export function useSupabaseClient() {
       setIsLoading(true);
       setError(null);
 
-      // Create a Supabase client that sends the Clerk token with every request
+      // Get token first, outside of the headers configuration
+      const token = await getToken();
+      
+      // Create a Supabase client with the Clerk token in the Authorization header
       const supabaseClient = createClient<Database>(
         SUPABASE_URL,
         SUPABASE_PUBLISHABLE_KEY,
@@ -42,19 +45,16 @@ export function useSupabaseClient() {
           },
           global: {
             headers: {
-              Authorization: async () => {
-                // Fix: Convert the async function to a synchronous string return
-                const token = await getToken();
-                return `Bearer ${token || ''}`;
-              },
+              // Fix: Use a static string for Authorization instead of an async function
+              Authorization: `Bearer ${token || ''}`,
             }
           }
         }
       );
 
       console.log("Created authenticated Supabase client with Clerk token");
-      // Fix: Don't set the client directly, instead create a new state with the client value
-      setClient(() => supabaseClient);
+      // Fix: Set the client directly without using an arrow function
+      setClient(supabaseClient);
       return supabaseClient;
     } catch (err) {
       console.error("Error initializing Supabase client:", err);
