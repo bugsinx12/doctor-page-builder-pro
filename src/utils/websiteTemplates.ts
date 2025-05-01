@@ -2,7 +2,7 @@
 import { WebsiteContent, WebsiteSettings } from '@/types';
 
 export const generateTemplateContent = (
-  templateType: 'general-practice' | 'specialist' | 'pediatric' | 'clinic',
+  templateId: string,
   practiceInfo: {
     name: string;
     specialty: string;
@@ -11,6 +11,18 @@ export const generateTemplateContent = (
     email?: string;
   }
 ): { content: WebsiteContent; settings: WebsiteSettings } => {
+  // Map templateId to template type
+  let templateType: 'general-practice' | 'specialist' | 'pediatric' | 'clinic' = 'general-practice';
+  
+  // Determine the template type based on the ID
+  if (templateId.includes('specialist')) {
+    templateType = 'specialist';
+  } else if (templateId.includes('pediatric')) {
+    templateType = 'pediatric';
+  } else if (templateId.includes('clinic')) {
+    templateType = 'clinic';
+  }
+  
   // Base templates
   const templates = {
     'general-practice': {

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
@@ -47,6 +46,7 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || `practice-${Date.now()}`;
       
+      // Pass the templateId to the function directly
       const { content, settings } = generateTemplateContent(templateId, practiceInfo);
       
       // Add the website with user_id set from JWT automatically via RLS
