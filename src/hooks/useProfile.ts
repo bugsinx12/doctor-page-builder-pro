@@ -28,12 +28,10 @@ export const useProfile = () => {
         setIsLoading(true);
         console.log("Fetching profile for user with Clerk ID:", userId);
         
-        // Check if profile exists using the user's Clerk ID directly
-        // Supabase RLS will use the JWT 'sub' claim which matches the Clerk ID
+        // RLS will filter profiles by the user's JWT 'sub' claim
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
-          .eq("id", userId)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
@@ -55,10 +53,10 @@ export const useProfile = () => {
               email: user.primaryEmailAddress?.emailAddress || null,
             };
             
+            // RLS will ensure we can only update our own profile
             const { data: updatedProfile, error: updateError } = await supabase
               .from("profiles")
               .update(updateData)
-              .eq("id", userId)
               .select()
               .single();
               
@@ -76,7 +74,8 @@ export const useProfile = () => {
         } else {
           console.log("No profile found, creating new profile with ID:", userId);
           
-          // Profile doesn't exist, create it with the user's Clerk ID as the ID
+          // Create profile with ID matching the Clerk userId
+          // Let RLS handle user_id via JWT
           const profileData: ProfileInsert = {
             id: userId,
             full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,

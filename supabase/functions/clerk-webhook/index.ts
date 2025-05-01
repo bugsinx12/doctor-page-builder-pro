@@ -36,8 +36,6 @@ const verifyClerkWebhookSignature = async (
   // In production, implement proper HMAC verification
   console.log("Webhook signature verification would happen here");
   
-  // We're returning true for now since we don't have the full verification logic
-  // In a real implementation, this would perform proper cryptographic verification
   return true;
 }
 
@@ -106,7 +104,7 @@ serve(async (req) => {
 
       console.log(`Processing user: ${clerkUserId}, ${email}`);
 
-      // Using Supabase admin client to create user in auth.users table
+      // Using Supabase admin client to create user in auth.users table with matching metadata
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
         email: email,
         email_confirm: true,
@@ -157,41 +155,6 @@ serve(async (req) => {
         }
       } else {
         console.log(`Created user: ${userData.user.id}`);
-        
-        // Update user profile if a profile table exists
-        // This is handled by the trigger function on auth.users in most projects
-      }
-
-      return new Response(
-        JSON.stringify({ success: true }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      );
-    } else if (event === 'user.deleted') {
-      // Handle user deletion
-      const clerkUserId = data.id;
-      
-      // Find user by Clerk ID in user_metadata
-      const { data: users } = await supabaseAdmin.auth.admin.listUsers();
-      
-      const userToDelete = users?.users?.find(
-        u => u.user_metadata?.clerk_id === clerkUserId
-      );
-      
-      if (userToDelete) {
-        const { error: deleteError } = await supabaseAdmin.auth.admin
-          .deleteUser(userToDelete.id);
-          
-        if (deleteError) {
-          console.error(`Error deleting user: ${deleteError.message}`);
-          throw deleteError;
-        }
-        
-        console.log(`Deleted user: ${userToDelete.id}`);
-      } else {
-        console.log(`User with Clerk ID ${clerkUserId} not found`);
       }
 
       return new Response(
@@ -203,20 +166,17 @@ serve(async (req) => {
       );
     }
 
-    // For other webhook events
     return new Response(
-      JSON.stringify({ success: true, message: "Webhook received" }),
+      JSON.stringify({ success: true }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       }
     );
-
   } catch (error) {
-    console.error("Webhook error:", error.message);
-    
+    console.error("Error processing webhook:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: "Internal server error", details: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,

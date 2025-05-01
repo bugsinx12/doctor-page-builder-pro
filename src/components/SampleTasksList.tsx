@@ -21,7 +21,7 @@ const SampleTasksList = () => {
     try {
       setLoading(true);
       
-      // This will use the JWT claim 'sub' for user_id because of our RLS policy
+      // RLS will filter tasks by the user's JWT 'sub' claim
       const { data, error } = await supabase
         .from('tasks')
         .select('*');

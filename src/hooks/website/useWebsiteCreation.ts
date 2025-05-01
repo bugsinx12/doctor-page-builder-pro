@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import { getClerkId } from '@/utils/clerkUtils';
 import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Database } from "@/integrations/supabase/types";
 import type { Json } from '@/integrations/supabase/types';
@@ -42,13 +41,6 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
 
     try {
       setLoading(true);
-      // With TPA, we use the Clerk ID directly
-      const clerkId = userId;
-
-      const templateType = templateId.includes('specialist') ? 'specialist'
-        : templateId.includes('pediatric') ? 'pediatric'
-        : templateId.includes('clinic') ? 'clinic'
-        : 'general-practice';
       
       const slug = practiceInfo.name
         .toLowerCase()
@@ -58,7 +50,6 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
       const { content, settings } = generateTemplateContent(templateType, practiceInfo);
       
       const websitePayload = {
-        userid: clerkId,
         name: practiceInfo.name,
         slug: slug,
         templateid: templateId,
@@ -68,6 +59,7 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
         updatedat: new Date().toISOString()
       };
       
+      // Let RLS handle user_id assignment through JWT
       const { data, error } = await supabaseClient
         .from('websites')
         .insert(websitePayload)
