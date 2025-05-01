@@ -61,6 +61,10 @@ enabled = false
 client_id = ""
 secret = ""
 
+[auth.third_party.clerk]
+enabled = true
+domain = "funky-labrador-91.clerk.accounts.dev"
+
 [inbucket]
 enabled = false
 port = 54324
