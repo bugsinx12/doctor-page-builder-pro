@@ -29,7 +29,6 @@ export const useClerkAuth = () => {
       console.log("Fetching Clerk token for Supabase TPA...");
       
       // Get token without specifying a template - this is what the Supabase TPA expects
-      // When third-party-clerk is enabled in Supabase, it will verify this token
       const token = await getToken();
       
       if (!token) {
@@ -38,7 +37,7 @@ export const useClerkAuth = () => {
         setError(noTokenError);
         toast({
           title: "Authentication Error",
-          description: "Failed to get authentication token from Clerk. Make sure you've enabled Third-Party Authentication for Supabase in your Clerk dashboard.",
+          description: "Failed to get authentication token from Clerk. Make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.",
           variant: "destructive",
         });
         setClerkToken(null);

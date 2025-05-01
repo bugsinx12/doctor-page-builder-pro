@@ -45,7 +45,7 @@ export function useSupabaseClient() {
           },
           global: {
             headers: {
-              // Fix: Use a static string for Authorization instead of an async function
+              // Use a static string for Authorization instead of an async function
               Authorization: `Bearer ${token || ''}`,
             }
           }
@@ -53,7 +53,7 @@ export function useSupabaseClient() {
       );
 
       console.log("Created authenticated Supabase client with Clerk token");
-      // Fix: Set the client directly without using an arrow function
+      // Set the client directly without using an arrow function
       setClient(supabaseClient);
       return supabaseClient;
     } catch (err) {

@@ -26,7 +26,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk for Supabase TPA
+      // Get a token from Clerk for Supabase TPA - no template needed for TPA
       const token = await getToken();
       
       if (!token) {
@@ -168,15 +168,20 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         <Info className="h-4 w-4" />
         <AlertTitle>Third-Party Authentication</AlertTitle>
         <AlertDescription>
-          Make sure you've configured the Clerk Third-Party Auth integration for Supabase correctly in both the Clerk dashboard and Supabase config.
+          <p className="mb-2">Make sure you have:</p>
+          <ol className="list-decimal pl-5 space-y-1">
+            <li>Enabled Supabase as a Third-Party Authentication provider in your Clerk Dashboard.</li>
+            <li>Added 'clerk' to the list of External OAuth providers in your Supabase project settings.</li>
+            <li>Copied your Supabase URL and anon key to the Clerk provider configuration.</li>
+          </ol>
         </AlertDescription>
         <div className="mt-2 space-x-2">
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => window.open('https://supabase.com/docs/guides/auth/third-party/clerk', '_blank')}
+            onClick={() => window.open('https://clerk.com/docs/integrations/databases/supabase', '_blank')}
           >
-            View Supabase TPA Docs
+            View Clerk-Supabase Docs
           </Button>
           <Button 
             variant="outline" 
