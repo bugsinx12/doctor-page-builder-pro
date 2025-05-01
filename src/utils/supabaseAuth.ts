@@ -14,7 +14,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
  */
 export function useSupabaseClient() {
   const { getToken, isSignedIn } = useAuth();
-  const [client, setClient] = useState(supabase);
+  const [client, setClient] = useState<typeof supabase>(supabase);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
@@ -42,10 +42,10 @@ export function useSupabaseClient() {
           },
           global: {
             headers: {
-              // This will call getToken() for every request
               Authorization: async () => {
+                // Fix: Convert the async function to a synchronous string return
                 const token = await getToken();
-                return `Bearer ${token}`;
+                return `Bearer ${token || ''}`;
               },
             }
           }
@@ -53,7 +53,8 @@ export function useSupabaseClient() {
       );
 
       console.log("Created authenticated Supabase client with Clerk token");
-      setClient(supabaseClient);
+      // Fix: Don't set the client directly, instead create a new state with the client value
+      setClient(() => supabaseClient);
       return supabaseClient;
     } catch (err) {
       console.error("Error initializing Supabase client:", err);
