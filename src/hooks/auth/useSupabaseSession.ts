@@ -14,7 +14,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
   const [authAttempted, setAuthAttempted] = useState(false);
   const { toast } = useToast();
 
-  // Function to authenticate with Supabase using the Clerk token
+  // Function to authenticate with Supabase using the Clerk token via TPA
   const authenticateWithSupabase = useCallback(async (token: string | null) => {
     if (!token || !isSignedIn) {
       console.log("No token or not signed in with Clerk, skipping Supabase auth");
@@ -70,6 +70,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
         console.log("Authentication successful with user information:", {
           id: sessionData.session.user.id,
           email: sessionData.session.user.email,
+          clerkId: sessionData.session.user.user_metadata?.clerk_id || sessionData.session.user.user_metadata?.sub,
           provider: "clerk",
           metadata: sessionData.session.user.user_metadata,
         });

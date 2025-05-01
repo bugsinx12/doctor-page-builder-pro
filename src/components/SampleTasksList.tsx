@@ -32,6 +32,7 @@ const SampleTasksList = () => {
       }
       
       if (data) {
+        console.log("Tasks fetched successfully:", data);
         setTasks(data);
       }
     } catch (err) {
@@ -63,6 +64,7 @@ const SampleTasksList = () => {
       }
       
       if (data) {
+        console.log("Task added successfully:", data);
         setTasks([...tasks, data]);
         setNewTask('');
       }

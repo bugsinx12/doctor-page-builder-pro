@@ -58,6 +58,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         setUserInfo({
           id: sessionInfo.user.id,
           email: sessionInfo.user.email,
+          clerkId: sessionInfo.user.user_metadata?.clerk_id || sessionInfo.user.user_metadata?.sub,
           metadata: sessionInfo.user.user_metadata || {},
           provider: "clerk"
         });
@@ -108,7 +109,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         
       console.log("Subscriber data:", subscriberData, subscriberError);
       
-      // Check tasks table
+      // Check tasks table - using sub claim from JWT
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select("*")
@@ -145,7 +146,8 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
             Your Clerk-Supabase TPA integration is configured correctly.
             {userInfo && (
               <div className="mt-2 text-xs">
-                <p>User ID: {userInfo.id}</p>
+                <p>Supabase User ID: {userInfo.id}</p>
+                <p>Clerk ID: {userInfo.clerkId || 'Unknown'}</p>
                 <p>Email: {userInfo.email}</p>
                 <p>Provider: {userInfo.provider}</p>
               </div>

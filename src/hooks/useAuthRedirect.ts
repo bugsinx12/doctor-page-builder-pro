@@ -4,8 +4,6 @@ import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { verifyClerkTPA } from '@/integrations/supabase/client';
-import getUUIDFromClerkID from '@/utils/getUUIDFromClerkID';
-import { supabase } from '@/integrations/supabase/client';
 
 export function useAuthRedirect() {
   const { isSignedIn, userId, getToken } = useAuth();
@@ -61,38 +59,37 @@ export function useAuthRedirect() {
   };
 
   // Debug function to check if user data is being properly saved to Supabase
-  const checkUserData = async (userId: string) => {
+  const checkUserData = async () => {
     try {
-      console.log("Checking user data for Clerk ID:", userId);
-      const supabaseUserId = getUUIDFromClerkID(userId);
-      console.log("Converted to Supabase UUID:", supabaseUserId);
+      if (!userId) return;
       
-      // Check profiles table
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
+      console.log("Checking user data for Clerk ID:", userId);
+      
+      // Try to check with direct Clerk ID for testing
+      const { data: subscriberData, error: subscriberError } = await supabase
+        .from("subscribers")
         .select("*")
-        .eq("id", supabaseUserId)
+        .eq("user_id", userId)
         .maybeSingle();
         
-      console.log("Profile data:", profileData, profileError);
+      console.log("Subscriber data:", subscriberData, subscriberError);
       
-      // Try to check with direct Clerk ID as well for comparison
-      const { data: directProfileData, error: directProfileError } = await supabase
+      // Check profiles
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", userId)
         .maybeSingle();
         
-      console.log("Direct profile data using Clerk ID:", directProfileData, directProfileError);
+      console.log("Profile data:", profileData, profileError);
       
-      // Check subscribers table
-      const { data: subscriberData, error: subscriberError } = await supabase
-        .from("subscribers")
-        .select("*")
-        .eq("user_id", supabaseUserId)
-        .maybeSingle();
+      // Check tasks table 
+      const { data: tasksData, error: tasksError } = await supabase
+        .from("tasks")
+        .select("*");
         
-      console.log("Subscriber data:", subscriberData, subscriberError);
+      console.log("Tasks data (should filter by JWT sub claim):", tasksData, tasksError);
+      
     } catch (error) {
       console.error("Error checking user data:", error);
     }
@@ -108,7 +105,7 @@ export function useAuthRedirect() {
         const authWorking = await testTPAAuthentication();
         
         // Even if auth failed, still check user data for debugging
-        await checkUserData(userId);
+        await checkUserData();
         
         // Only redirect if authentication is working
         if (authWorking) {
