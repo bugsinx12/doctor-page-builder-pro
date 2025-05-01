@@ -47,19 +47,20 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, '') || `practice-${Date.now()}`;
       
-      const { content, settings } = generateTemplateContent(templateType, practiceInfo);
+      const { content, settings } = generateTemplateContent(templateId, practiceInfo);
       
+      // Add the website with user_id set from JWT automatically via RLS
       const websitePayload = {
         name: practiceInfo.name,
         slug: slug,
         templateid: templateId,
         content: content as unknown as Json,
         settings: settings as unknown as Json,
+        userid: userId, // Required field for the insert operation
         createdat: new Date().toISOString(),
         updatedat: new Date().toISOString()
       };
       
-      // Let RLS handle user_id assignment through JWT
       const { data, error } = await supabaseClient
         .from('websites')
         .insert(websitePayload)
