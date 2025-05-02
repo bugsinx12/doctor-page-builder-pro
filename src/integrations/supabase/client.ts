@@ -11,9 +11,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // This client will be used when users are not authenticated
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   async accessToken() {
-    return await auth().getToken({
-      template: "supabase"
-    });
+    return await auth().getToken();
   },
 });
 
