@@ -28,8 +28,8 @@ export const useClerkAuth = () => {
       
       console.log("Fetching Clerk token for Supabase TPA...");
       
-      // Get token for TPA
-      const token = await getToken();
+      // Get token for TPA - use the 'supabase' template if configured
+      const token = await getToken({ template: 'supabase' });
       
       if (!token) {
         const noTokenError = new Error("Failed to get authentication token");
@@ -47,14 +47,14 @@ export const useClerkAuth = () => {
       
       console.log("Successfully retrieved Clerk token for Supabase");
       setClerkToken(token);
+      setIsLoading(false);
       return token;
     } catch (err) {
       console.error("Error getting Clerk token:", err);
       setError(err instanceof Error ? err : new Error("Failed to get authentication token"));
       setClerkToken(null);
-      return null;
-    } finally {
       setIsLoading(false);
+      return null;
     }
   }, [userId, getToken, toast, isSignedIn]);
 

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { supabase, getAuthenticatedClient, debugSessionInfo, testClerkTPAAuthentication } from "@/integrations/supabase/client";
@@ -25,8 +26,8 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk for Supabase
-      const token = await getToken();
+      // Get a token from Clerk for Supabase using the 'supabase' template if configured
+      const token = await getToken({ template: 'supabase' });
       
       if (!token) {
         console.error("No Clerk token available");
@@ -83,55 +84,6 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       setAuthTestInProgress(false);
     }
   };
-  
-  // Debug function to check user data in database
-  const checkUserData = async () => {
-    try {
-      if (!userId) return;
-      
-      console.log("Checking user data for Clerk ID:", userId);
-      
-      // Get token for authenticated queries
-      const token = await getToken();
-      const client = token ? getAuthenticatedClient(token) : supabase;
-      
-      // Check profiles table
-      const { data: profileData, error: profileError } = await client
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-        
-      console.log("Profile data:", profileData, profileError);
-      
-      // Check subscribers table
-      const { data: subscriberData, error: subscriberError } = await client
-        .from("subscribers")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-        
-      console.log("Subscriber data:", subscriberData, subscriberError);
-      
-      // Check tasks table - using sub claim from JWT
-      const { data: tasksData, error: tasksError } = await client
-        .from("tasks")
-        .select("*")
-        .maybeSingle();
-        
-      console.log("Task data:", tasksData, tasksError);
-      
-      return {
-        profile: profileData,
-        subscriber: subscriberData,
-        tasks: tasksData,
-        errors: { profile: profileError, subscriber: subscriberError, tasks: tasksError }
-      };
-    } catch (error) {
-      console.error("Error checking user data:", error);
-      return { error };
-    }
-  };
 
   return (
     <>
@@ -176,7 +128,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           <ol className="list-decimal pl-5 space-y-1">
             <li>Enabled Supabase as a Third-Party Authentication provider in your Clerk Dashboard.</li>
             <li>Added 'clerk' to the list of External OAuth providers in your Supabase project settings.</li>
-            <li>Copied your Supabase URL and anon key to the Clerk provider configuration.</li>
+            <li>Created a JWT Template named 'supabase' in your Clerk Dashboard with the correct signing key.</li>
           </ol>
         </AlertDescription>
         <div className="mt-2 space-x-2">
@@ -194,20 +146,6 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           >
             Test TPA Auth
           </Button>
-          {userId && (
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => {
-                setShowDebug(!showDebug);
-                if (!showDebug) {
-                  checkUserData();
-                }
-              }}
-            >
-              {showDebug ? "Hide Debug Info" : "Show Debug Info"}
-            </Button>
-          )}
         </div>
       </Alert>
     </>
