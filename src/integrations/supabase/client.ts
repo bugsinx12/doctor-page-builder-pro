@@ -9,6 +9,9 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Create a Supabase client for anonymous access
 // This client will be used when users are not authenticated
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  accessToken: () => {
+    return Clerk.session?.getToken()
+  }, 
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -37,6 +40,9 @@ export const getAuthenticatedClient = (token: string) => {
   console.log("Creating authenticated Supabase client with token");
   
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    accessToken: () => {
+       return Clerk.session?.getToken()
+    },
     auth: {
       persistSession: false,
       autoRefreshToken: false,
