@@ -29,7 +29,7 @@ export const useClerkAuth = () => {
       console.log("Fetching Clerk token for Supabase TPA...");
       
       // Get token for TPA - use the 'supabase' template if configured
-      const token = await getToken({ template: 'supabase' });
+      const token = await getToken();
       
       if (!token) {
         const noTokenError = new Error("Failed to get authentication token");
