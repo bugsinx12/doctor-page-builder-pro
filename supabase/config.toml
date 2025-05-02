@@ -3,3 +3,7 @@ project_id = "isjjzddntanbjopqylic"
 
 [functions.clerk-webhook]
 verify_jwt = false
+
+[auth.third_party.clerk]
+enabled = true
+domain = "funky-labrador-91.clerk.accounts.dev"
