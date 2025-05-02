@@ -27,7 +27,9 @@ export function useSupabaseClient() {
       setError(null);
 
       // Get token from Clerk for TPA
-      const token = await getToken();
+      const token = await getToken({
+        template: "supabase" // Use the configured JWT template if available
+      });
       
       if (!token) {
         throw new Error("No authentication token available");

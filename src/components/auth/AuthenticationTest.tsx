@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase, getAuthenticatedClient, debugSessionInfo } from "@/integrations/supabase/client";
+import { supabase, getAuthenticatedClient, debugSessionInfo, testClerkTPAAuthentication } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,16 +35,13 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         return false;
       }
       
-      // Create an authenticated client
-      const client = getAuthenticatedClient(token);
+      // Test TPA integration
+      const authResult = await testClerkTPAAuthentication(token);
       
-      // Test the client by getting user data
-      const { data, error: userError } = await client.auth.getUser();
-      
-      if (userError) {
-        console.error("Auth error:", userError);
+      if (!authResult.success) {
+        console.error("Auth error:", authResult.message);
         setAuthSuccess(false);
-        setAuthError(userError.message);
+        setAuthError(authResult.message);
         toast({
           title: "Authentication Warning",
           description: "Authentication failed. This may cause issues with app functionality.",
@@ -54,13 +50,8 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         return false;
       }
       
-      if (!data.user) {
-        setAuthSuccess(false);
-        setAuthError("User information not available after authentication");
-        return false;
-      }
-      
-      // Get detailed session information
+      // Get detailed session information with the authenticated client
+      const client = getAuthenticatedClient(token);
       const sessionInfo = await debugSessionInfo(client);
       
       if (sessionInfo.success && sessionInfo.user) {

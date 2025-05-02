@@ -71,6 +71,55 @@ export const getSessionStatus = async () => {
 };
 
 /**
+ * Tests the TPA (Third Party Authentication) integration between Clerk and Supabase
+ * @param token Clerk JWT token 
+ * @returns Result of authentication test
+ */
+export const testClerkTPAAuthentication = async (token: string) => {
+  try {
+    if (!token) {
+      return { success: false, message: "No authentication token provided" };
+    }
+    
+    // Create client with token
+    const client = getAuthenticatedClient(token);
+    
+    // Test if authentication works by trying to get user data
+    const { data, error } = await client.auth.getUser();
+    
+    if (error) {
+      console.error("TPA authentication error:", error);
+      return { 
+        success: false, 
+        message: `Authentication failed: ${error.message}`,
+        error 
+      };
+    }
+    
+    if (!data.user) {
+      return { 
+        success: false,
+        message: "No user data returned from authentication check" 
+      };
+    }
+    
+    // Authentication successful
+    return { 
+      success: true,
+      message: "Clerk-Supabase TPA integration is working correctly",
+      user: data.user
+    };
+  } catch (error) {
+    console.error("Error testing TPA authentication:", error);
+    return { 
+      success: false, 
+      message: "Unexpected error during authentication test",
+      error 
+    };
+  }
+};
+
+/**
  * Debugging function to log the session and tokens
  */
 export const debugSessionInfo = async (client = supabase) => {

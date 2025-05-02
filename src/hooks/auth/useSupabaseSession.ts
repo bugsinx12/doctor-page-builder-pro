@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { supabase, signInWithClerk } from '@/integrations/supabase/client';
+import { supabase, testClerkTPAAuthentication } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 /**
@@ -30,8 +30,8 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
       
       console.log("Authenticating with Supabase using Clerk token via TPA...");
       
-      // Sign in to Supabase using the Clerk token via the Third-Party Auth flow
-      const { success, error: authError, message } = await signInWithClerk(token);
+      // Test authentication with Clerk token
+      const { success, error: authError, message } = await testClerkTPAAuthentication(token);
       
       if (!success) {
         console.error("Supabase-Clerk auth error:", authError);

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { supabase, verifyClerkTPA } from '@/integrations/supabase/client';
+import { supabase, testClerkTPAAuthentication } from '@/integrations/supabase/client';
 
 export function useAuthRedirect() {
   const { isSignedIn, userId, getToken } = useAuth();
@@ -31,7 +31,7 @@ export function useAuthRedirect() {
       }
       
       // Test the token with Supabase TPA integration
-      const result = await verifyClerkTPA(token);
+      const result = await testClerkTPAAuthentication(token);
       
       console.log("TPA test result:", result);
       

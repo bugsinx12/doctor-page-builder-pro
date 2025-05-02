@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useClerkAuth } from './auth/useClerkAuth';
 import { useToast } from '@/hooks/use-toast';
-import { getAuthenticatedClient, debugSessionInfo } from '@/integrations/supabase/client';
+import { getAuthenticatedClient, debugSessionInfo, testClerkTPAAuthentication } from '@/integrations/supabase/client';
 
 /**
  * Main authentication hook that connects Clerk authentication with Supabase
@@ -39,15 +39,12 @@ export const useClerkSupabaseAuth = () => {
       setError(null);
       console.log("Authenticating with Supabase using Clerk token...");
       
-      // Get authenticated client using token
-      const client = getAuthenticatedClient(clerkToken);
+      // Test TPA authentication
+      const authResult = await testClerkTPAAuthentication(clerkToken);
       
-      // Verify the client works by getting user data
-      const { data, error: userError } = await client.auth.getUser();
-      
-      if (userError) {
-        console.error("Authentication error:", userError);
-        setError(userError);
+      if (!authResult.success) {
+        console.error("Authentication error:", authResult.message);
+        setError(new Error(authResult.message));
         toast({
           title: "Authentication Error",
           description: "Failed to connect with Supabase using your Clerk token. Check your TPA configuration.",
@@ -57,19 +54,8 @@ export const useClerkSupabaseAuth = () => {
         return false;
       }
       
-      if (!data.user) {
-        console.error("No user data returned");
-        setError(new Error("No user data returned"));
-        toast({
-          title: "Authentication Error",
-          description: "Failed to authenticate with Supabase. Check your Clerk-Supabase TPA configuration.",
-          variant: "destructive",
-        });
-        setIsAuthenticated(false);
-        return false;
-      }
-      
       // Log detailed session info for debugging
+      const client = getAuthenticatedClient(clerkToken);
       const sessionInfo = await debugSessionInfo(client);
       console.log("Authentication session info:", sessionInfo);
       
