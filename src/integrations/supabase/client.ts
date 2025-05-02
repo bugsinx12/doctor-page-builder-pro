@@ -26,11 +26,9 @@ export const getAuthenticatedClient = (token: string) => {
   console.log("Creating authenticated Supabase client with token");
   
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    }
+accessToken: () => {
+    return Clerk.session?.getToken()
+  }
   });
 };
 
