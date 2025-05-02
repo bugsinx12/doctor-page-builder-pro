@@ -53,7 +53,7 @@ export const getClerkAuthenticatedClient = async () => {
   const { getToken } = useAuth();
   
   // Get token using the JWT template configured in Clerk
-  const token = await getToken({ template: 'supabase' });
+  const token = await getToken();
   
   if (!token) {
     console.error("No authentication token available from Clerk");
@@ -80,7 +80,7 @@ export const useSupabaseClient = async () => {
   const { getToken } = useAuth();
   
   if (!authenticatedClient) {
-    const token = await getToken({ template: 'supabase' });
+    const token = await getToken();
     
     if (token) {
       authenticatedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
