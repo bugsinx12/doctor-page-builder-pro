@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase, verifyClerkTPA, debugSessionInfo } from "@/integrations/supabase/client";
+import { supabase, getAuthenticatedClient, debugSessionInfo } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,13 +20,13 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const [showDebug, setShowDebug] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
 
-  // Test TPA authentication
-  const testTPAAuthentication = async () => {
+  // Test authentication
+  const testAuthentication = async () => {
     try {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk for Supabase TPA - no template needed for TPA
+      // Get a token from Clerk for Supabase
       const token = await getToken();
       
       if (!token) {
@@ -36,23 +36,32 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         return false;
       }
       
-      // Test the token with Supabase TPA integration
-      const result = await verifyClerkTPA(token);
+      // Create an authenticated client
+      const client = getAuthenticatedClient(token);
       
-      if (!result.success) {
-        console.error("TPA auth error:", result.error);
+      // Test the client by getting user data
+      const { data, error: userError } = await client.auth.getUser();
+      
+      if (userError) {
+        console.error("Auth error:", userError);
         setAuthSuccess(false);
-        setAuthError(result.message);
+        setAuthError(userError.message);
         toast({
           title: "Authentication Warning",
-          description: "TPA authentication failed. This may cause issues with app functionality.",
+          description: "Authentication failed. This may cause issues with app functionality.",
           variant: "destructive",
         });
         return false;
       }
       
+      if (!data.user) {
+        setAuthSuccess(false);
+        setAuthError("User information not available after authentication");
+        return false;
+      }
+      
       // Get detailed session information
-      const sessionInfo = await debugSessionInfo();
+      const sessionInfo = await debugSessionInfo(client);
       
       if (sessionInfo.success && sessionInfo.user) {
         setUserInfo({
@@ -91,8 +100,12 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       
       console.log("Checking user data for Clerk ID:", userId);
       
+      // Get token for authenticated queries
+      const token = await getToken();
+      const client = token ? getAuthenticatedClient(token) : supabase;
+      
       // Check profiles table
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await client
         .from("profiles")
         .select("*")
         .eq("id", userId)
@@ -101,7 +114,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       console.log("Profile data:", profileData, profileError);
       
       // Check subscribers table
-      const { data: subscriberData, error: subscriberError } = await supabase
+      const { data: subscriberData, error: subscriberError } = await client
         .from("subscribers")
         .select("*")
         .eq("user_id", userId)
@@ -110,7 +123,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       console.log("Subscriber data:", subscriberData, subscriberError);
       
       // Check tasks table - using sub claim from JWT
-      const { data: tasksData, error: tasksError } = await supabase
+      const { data: tasksData, error: tasksError } = await client
         .from("tasks")
         .select("*")
         .maybeSingle();
@@ -186,7 +199,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={testTPAAuthentication}
+            onClick={testAuthentication}
           >
             Test TPA Auth
           </Button>

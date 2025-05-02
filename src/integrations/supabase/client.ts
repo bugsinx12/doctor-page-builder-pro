@@ -6,44 +6,39 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://isjjzddntanbjopqylic.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzamp6ZGRudGFuYmpvcHF5bGljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NzEyMDAsImV4cCI6MjA2MDE0NzIwMH0._Y8ux53LbbT5aAVAyHJduvMGvHuBmKD34fU6xktyjR8";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-/**
- * Create Supabase client with Clerk authentication
- * Uses the anonymous key for initial setup, 
- * but will send the Clerk token with each request when authenticated
- */
+// Create a Supabase client for anonymous access
+// This client will be used when users are not authenticated
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  accessToken: () => {
-    return Clerk.session?.getToken()
-  },
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false, // Disable detecting tokens in URL for Clerk integration
-    flowType: 'pkce',
+    detectSessionInUrl: false,
   },
   global: {
     headers: {
-      'x-client-info': 'supabase-js/2.49.4' // Client info header
+      'x-client-info': 'supabase-js/2.49.4'
     }
   }
 });
 
 /**
  * Creates an authenticated Supabase client using a Clerk token
- * This is the preferred way to access Supabase with Clerk authentication
+ * This function sets up a Supabase client with the token in the Authorization header
+ * 
+ * @param token JWT token from Clerk
+ * @returns Authenticated Supabase client
  */
-export const createAuthenticatedClient = (token: string) => {
-  console.log("Creating authenticated Supabase client with Clerk token");
+export const getAuthenticatedClient = (token: string) => {
+  if (!token) {
+    console.warn("No auth token provided, using anonymous client");
+    return supabase;
+  }
+  
+  console.log("Creating authenticated Supabase client with token");
   
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    accessToken: () => {
-      return Clerk.session?.getToken()
-    },
     auth: {
-      persistSession: false, // Don't persist as we'll be providing the token directly
+      persistSession: false,
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
@@ -56,7 +51,10 @@ export const createAuthenticatedClient = (token: string) => {
   });
 };
 
-// Helper function to get current session
+/**
+ * Helper function to check if the current user has a valid session
+ * @returns Object with session status
+ */
 export const getSessionStatus = async () => {
   try {
     const { data, error } = await supabase.auth.getSession();
@@ -73,117 +71,14 @@ export const getSessionStatus = async () => {
 };
 
 /**
- * Helper function for Clerk Third-Party Auth (TPA) integration
- * Uses the signInWithIdToken method from Supabase Client
+ * Debugging function to log the session and tokens
  */
-export const signInWithClerk = async (token: string) => {
-  try {
-    console.log("Signing in with Clerk token via TPA (signInWithIdToken)");
-    
-    // Use the token from Clerk to authenticate with Supabase via TPA
-    const { data, error } = await supabase.auth.signInWithIdToken({
-      provider: 'clerk',
-      token,
-    });
-    
-    if (error) {
-      console.error("Clerk TPA auth error:", error);
-      return { success: false, error, message: error.message };
-    }
-    
-    if (!data.user) {
-      console.error("No user data returned from signInWithIdToken");
-      return { 
-        success: false, 
-        error: new Error("No user data returned"),
-        message: "Authentication failed. No user data was returned."
-      };
-    }
-    
-    // Log successful authentication with details for debugging
-    console.log("Successfully authenticated with Clerk via TPA", {
-      user: data.user?.id,
-      email: data.user?.email,
-      clerkId: data.user?.user_metadata?.clerk_id || data.user?.user_metadata?.sub,
-      metadata: data.user?.user_metadata,
-    });
-    
-    return { success: true, data };
-  } catch (error) {
-    console.error("Unexpected error in Clerk TPA auth:", error);
-    return { 
-      success: false, 
-      error, 
-      message: error instanceof Error ? error.message : "Unknown error occurred"
-    };
-  }
-};
-
-// Helper function to verify Clerk TPA integration
-export const verifyClerkTPA = async (token: string) => {
-  try {
-    console.log("Verifying Clerk TPA integration");
-    
-    // First try to sign in with the token
-    const { success, error, message } = await signInWithClerk(token);
-    
-    if (!success) {
-      return { 
-        success: false, 
-        error,
-        message: message || "Failed to authenticate with token"
-      };
-    }
-    
-    // Verify the session worked by getting user data
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    
-    if (userError) {
-      console.error("User data error:", userError);
-      return {
-        success: false,
-        error: userError,
-        message: "Failed to verify authentication"
-      };
-    }
-    
-    if (!userData.user) {
-      return {
-        success: false,
-        error: new Error("No user data returned"),
-        message: "Authentication failed. No user data was returned."
-      };
-    }
-    
-    // Log successful authentication with details for debugging
-    console.log("TPA verification successful:", {
-      user: userData.user.id,
-      email: userData.user.email,
-      clerkId: userData.user.user_metadata?.clerk_id || userData.user.user_metadata?.sub,
-      metadata: userData.user.user_metadata
-    });
-    
-    return { 
-      success: true, 
-      user: userData.user
-    };
-  } catch (error) {
-    console.error("Verification error:", error);
-    return {
-      success: false,
-      error,
-      message: "An unexpected error occurred during authentication verification"
-    };
-  }
-};
-
-// Debugging function to log the session and tokens
-export const debugSessionInfo = async () => {
+export const debugSessionInfo = async (client = supabase) => {
   try {
     console.log("Debugging Session Information");
     
     // Get current session
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const { data: sessionData, error: sessionError } = await client.auth.getSession();
     
     if (sessionError) {
       console.error("Error retrieving session:", sessionError);

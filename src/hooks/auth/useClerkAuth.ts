@@ -4,7 +4,7 @@ import { useAuth } from '@clerk/clerk-react';
 import { useToast } from '@/hooks/use-toast';
 
 /**
- * Hook that manages Clerk authentication state and token retrieval for Supabase TPA
+ * Hook that manages Clerk authentication state and token retrieval
  */
 export const useClerkAuth = () => {
   const { userId, getToken, isSignedIn } = useAuth();
@@ -13,7 +13,7 @@ export const useClerkAuth = () => {
   const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
-  // Function to get a fresh token from Clerk specifically for Supabase TPA
+  // Function to get a fresh token from Clerk
   const fetchClerkToken = useCallback(async () => {
     if (!userId || !isSignedIn) {
       console.log("User not signed in or no user ID available");
@@ -28,7 +28,7 @@ export const useClerkAuth = () => {
       
       console.log("Fetching Clerk token for Supabase TPA...");
       
-      // Get token without specifying a template - this is what the Supabase TPA expects
+      // Get token for TPA
       const token = await getToken();
       
       if (!token) {
@@ -45,7 +45,7 @@ export const useClerkAuth = () => {
         return null;
       }
       
-      console.log("Successfully retrieved Clerk token for Supabase TPA");
+      console.log("Successfully retrieved Clerk token for Supabase");
       setClerkToken(token);
       return token;
     } catch (err) {

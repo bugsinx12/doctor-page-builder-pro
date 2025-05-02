@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import { useClerkAuth } from './auth/useClerkAuth';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithClerk, debugSessionInfo } from '@/integrations/supabase/client';
+import { getAuthenticatedClient, debugSessionInfo } from '@/integrations/supabase/client';
 
 /**
- * Main authentication hook that combines Clerk authentication with Supabase session management
- * using Supabase's Third-Party Auth (TPA) for Clerk integration
+ * Main authentication hook that connects Clerk authentication with Supabase
+ * using the Clerk token directly in the Authorization header
  */
 export const useClerkSupabaseAuth = () => {
   // Get Clerk authentication state
@@ -24,10 +24,10 @@ export const useClerkSupabaseAuth = () => {
   const [authAttempted, setAuthAttempted] = useState(false);
   const { toast } = useToast();
   
-  // Authenticate with Supabase using Clerk TPA
+  // Authenticate with Supabase using Clerk token
   const authenticateWithSupabase = async () => {
     if (!isSignedIn || !userId || !clerkToken) {
-      console.log("Not signed in or missing Clerk token, skipping Supabase TPA auth");
+      console.log("Not signed in or missing Clerk token, skipping Supabase auth");
       setIsAuthenticated(false);
       setIsLoading(false);
       setAuthAttempted(true);
@@ -37,31 +37,43 @@ export const useClerkSupabaseAuth = () => {
     try {
       setIsLoading(true);
       setError(null);
-      console.log("Authenticating with Supabase using Clerk TPA...");
+      console.log("Authenticating with Supabase using Clerk token...");
       
-      // Use the signInWithClerk helper to authenticate using TPA
-      const { success, error: tpaError, message } = await signInWithClerk(clerkToken);
+      // Get authenticated client using token
+      const client = getAuthenticatedClient(clerkToken);
       
-      if (!success) {
-        console.error("Clerk TPA auth error:", tpaError);
-        setError(tpaError instanceof Error ? tpaError : new Error(message || "Authentication failed"));
+      // Verify the client works by getting user data
+      const { data, error: userError } = await client.auth.getUser();
+      
+      if (userError) {
+        console.error("Authentication error:", userError);
+        setError(userError);
         toast({
           title: "Authentication Error",
-          description: message || "Failed to connect with Supabase. Check your Clerk-Supabase TPA configuration.",
+          description: "Failed to connect with Supabase using your Clerk token. Check your TPA configuration.",
           variant: "destructive",
         });
         setIsAuthenticated(false);
-        setIsLoading(false);
-        setAuthAttempted(true);
+        return false;
+      }
+      
+      if (!data.user) {
+        console.error("No user data returned");
+        setError(new Error("No user data returned"));
+        toast({
+          title: "Authentication Error",
+          description: "Failed to authenticate with Supabase. Check your Clerk-Supabase TPA configuration.",
+          variant: "destructive",
+        });
+        setIsAuthenticated(false);
         return false;
       }
       
       // Log detailed session info for debugging
-      const sessionInfo = await debugSessionInfo();
-      console.log("TPA Authentication session info:", sessionInfo);
+      const sessionInfo = await debugSessionInfo(client);
+      console.log("Authentication session info:", sessionInfo);
       
       setIsAuthenticated(true);
-      
       return true;
     } catch (err) {
       console.error("Error authenticating with Supabase:", err);
