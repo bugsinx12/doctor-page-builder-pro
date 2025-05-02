@@ -27,7 +27,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       console.log("Testing Clerk-Supabase TPA integration");
       
       // Get a token from Clerk for Supabase using the 'supabase' template if configured
-      const token = await getToken();
+      const token = await getToken({ template: "__session" });
       
       if (!token) {
         console.error("No Clerk token available");
