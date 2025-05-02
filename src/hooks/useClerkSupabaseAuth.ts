@@ -28,7 +28,7 @@ export const useClerkSupabaseAuth = () => {
     try {
       // Get token from Clerk - use JWT template specifically configured for Supabase
       // Make sure you've created this template in your Clerk dashboard
-      const token = await getToken{ template: "__session" }();
+      const token = await getToken({ template: "__session" });
       
       if (!token) {
         console.error("No token available from Clerk");
