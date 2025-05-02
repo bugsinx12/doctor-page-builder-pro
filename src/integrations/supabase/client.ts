@@ -10,16 +10,9 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // Create a Supabase client for anonymous access
 // This client will be used when users are not authenticated
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true
-  },
-  global: {
-    headers: {
-      'x-application-name': 'boost-doctor'
-    }
-  }
+accessToken: () => {
+    return Clerk.session?.getToken()
+  } 
 });
 
 /**
