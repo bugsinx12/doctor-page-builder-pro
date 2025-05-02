@@ -11,16 +11,6 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   accessToken: () => {
     return Clerk.session?.getToken()
-  }, 
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
-  },
-  global: {
-    headers: {
-      'x-client-info': 'supabase-js/2.49.4'
-    }
   }
 });
 
@@ -32,27 +22,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
  * @returns Authenticated Supabase client
  */
 export const getAuthenticatedClient = (token: string) => {
-  if (!token) {
-    console.warn("No auth token provided, using anonymous client");
-    return supabase;
-  }
-  
   console.log("Creating authenticated Supabase client with token");
   
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     accessToken: () => {
        return Clerk.session?.getToken()
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-    global: {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'x-client-info': 'supabase-js/2.49.4'
-      }
     }
   });
 };
