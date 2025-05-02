@@ -15,6 +15,9 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
  * but will send the Clerk token with each request when authenticated
  */
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  accessToken: () => {
+    return Clerk.session?.getToken()
+  },
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -36,6 +39,9 @@ export const createAuthenticatedClient = (token: string) => {
   console.log("Creating authenticated Supabase client with Clerk token");
   
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    accessToken: () => {
+      return Clerk.session?.getToken()
+    },
     auth: {
       persistSession: false, // Don't persist as we'll be providing the token directly
       autoRefreshToken: false,
