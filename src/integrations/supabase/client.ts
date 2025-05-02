@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { useAuth } from '@clerk/clerk-react';
-import { Clerk } from '@clerk/clerk-js'
 
+// Supabase project URL and anonymous key
 const SUPABASE_URL = "https://isjjzddntanbjopqylic.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzamp6ZGRudGFuYmpvcHF5bGljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NzEyMDAsImV4cCI6MjA2MDE0NzIwMH0._Y8ux53LbbT5aAVAyHJduvMGvHuBmKD34fU6xktyjR8";
 
@@ -49,17 +49,57 @@ export const getAuthenticatedClient = (token: string) => {
  * Returns a Supabase client configured with Clerk authentication.
  * This implements the pattern from Clerk documentation for Third-Party Auth (TPA).
  */
-export const getClerkAuthenticatedClient = () => {
+export const getClerkAuthenticatedClient = async () => {
+  const { getToken } = useAuth();
+  
+  // Get token using the JWT template configured in Clerk
+  const token = await getToken({ template: 'supabase' });
+  
+  if (!token) {
+    console.error("No authentication token available from Clerk");
+    return supabase; // Return anonymous client as fallback
+  }
+  
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
       persistSession: false,
+      autoRefreshToken: false,
     },
     global: {
       headers: {
-        Authorization: `Bearer ${Clerk.session?.getToken()}`,
+        Authorization: `Bearer ${token}`,
       },
     },
   });
+};
+
+// Helper function to create a singleton client with Clerk authentication
+let authenticatedClient: ReturnType<typeof createClient<Database>> | null = null;
+
+export const useSupabaseClient = async () => {
+  const { getToken } = useAuth();
+  
+  if (!authenticatedClient) {
+    const token = await getToken({ template: 'supabase' });
+    
+    if (token) {
+      authenticatedClient = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      });
+    } else {
+      return supabase; // Return anonymous client as fallback
+    }
+  }
+  
+  return authenticatedClient;
 };
 
 /**
