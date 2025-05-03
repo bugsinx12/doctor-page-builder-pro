@@ -1,114 +1,36 @@
 
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@clerk/clerk-react';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/integrations/supabase/types';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
+import { useSession } from '@clerk/clerk-react';
+import { createSupabaseClientWithClerk } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/types';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 /**
- * Hook to get a Supabase client authenticated via Clerk TPA (Third-Party Auth).
- * This client uses the Clerk session token dynamically.
+ * Hook to get a Supabase client authenticated with Clerk's session token
+ * This is an alternative to useClerkSupabaseClient with less validation
  */
 export function useAuthenticatedSupabase() {
-  const { getToken, isSignedIn, userId } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { session, isSignedIn } = useSession();
+  const userId = session?.user?.id || null;
 
-  // Memoize the client creation to avoid re-creating it on every render
-  const client = useMemo(() => {
-    // Create ONE Supabase client that uses the Clerk token via accessToken function
-    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      global: {
-        fetch: async (input, init) => {
-          try {
-            // Get the latest token before each request
-            const token = await getToken({ template: 'supabase' }); // Use supabase template
-            if (!token) {
-              console.warn("No Clerk token available for Supabase request.");
-              // Allow request to proceed without Authorization header if desired,
-              // or throw an error if auth is strictly required.
-              // Supabase RLS should handle unauthorized access gracefully.
-            } else {
-              // Inject the token into the Authorization header
-              init = init || {};
-              init.headers = { ...init.headers, Authorization: `Bearer ${token}` };
-            }
-            return fetch(input, init);
-          } catch (e) {
-            console.error("Error fetching Clerk token for Supabase:", e);
-            setError(e instanceof Error ? e : new Error("Failed to get auth token"));
-            // Re-throw or handle error appropriately
-            throw e;
-          }
-        },
-      },
-      auth: {
-        // TPA doesn't rely on Supabase's session persistence
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    });
-  }, [getToken]); // Re-create client only if getToken function instance changes (rarely)
-
-  // Verify authentication works on mount
-  useEffect(() => {
-    const verifyAuth = async () => {
-      if (!isSignedIn) {
-        setIsLoading(false);
-        setIsAuthenticated(false);
-        return;
-      }
-
-      try {
-        // Get a token for authentication
-        const token = await getToken({ template: 'supabase' });
-        
-        if (!token) {
-          setIsAuthenticated(false);
-          setError(new Error("No authentication token available"));
-          setIsLoading(false);
-          return;
-        }
-
-        // A simple query to test if authentication is working - use direct fetch to avoid URL issues
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
-          headers: {
-            'apikey': SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          console.error("Authentication verification failed:", response.statusText);
-          setError(new Error(`Authentication failed: ${response.statusText}`));
-          setIsAuthenticated(false);
-        } else {
-          setError(null);
-          setIsAuthenticated(true);
-        }
-      } catch (e) {
-        console.error("Error verifying authentication:", e);
-        setError(e instanceof Error ? e : new Error("Failed to verify authentication"));
-        setIsAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (isSignedIn) {
-      verifyAuth();
-    } else {
-      setIsLoading(false);
+  // Create a token getter function
+  const getToken = async () => {
+    if (!session) return null;
+    try {
+      return await session.getToken({ template: 'supabase' }) ?? null;
+    } catch (error) {
+      console.error("Failed to get Clerk token:", error);
+      return null;
     }
-  }, [isSignedIn, getToken]);
+  };
+
+  // Create the client with the token getter
+  const client: SupabaseClient<Database> = createSupabaseClientWithClerk(getToken);
 
   return {
     client,
-    isLoading,
-    error,
-    isAuthenticated,
+    isLoading: false,
+    error: null,
+    isAuthenticated: isSignedIn,
     userId
   };
 }

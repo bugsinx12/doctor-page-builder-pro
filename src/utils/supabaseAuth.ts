@@ -1,16 +1,21 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useSession } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
+
+/**
+ * @deprecated Use useClerkSupabaseAuth or useClerkSupabaseClient instead.
+ * This file is kept for backward compatibility.
+ */
 
 /**
  * Hook to check if the user is authenticated with Supabase via Clerk JWT
  * This revised approach uses the JWT 'sub' claim directly for authentication
  */
 export function useSupabaseAuth() {
-  const { userId, getToken, isSignedIn } = useAuth();
+  const { session, isSignedIn } = useSession();
+  const userId = session?.user?.id || null;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -34,7 +39,7 @@ export function useSupabaseAuth() {
       setSupabaseUserId(userId);
       
       // Get token from Clerk with custom claims
-      const token = await getToken({
+      const token = await session?.getToken({
         template: "supabase"
       });
       
@@ -51,25 +56,30 @@ export function useSupabaseAuth() {
         return false;
       }
 
-      // Test authentication by making a direct fetch request
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
-        headers: {
-          'apikey': SUPABASE_PUBLISHABLE_KEY,
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        console.error("Supabase auth error:", response.statusText);
-        setError(new Error(`Authentication failed: ${response.statusText}`));
-        toast({
-          title: "Authentication Error",
-          description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
-          variant: "destructive",
+      // Test our authentication
+      try {
+        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+          headers: {
+            'apikey': supabase.supabaseKey,
+            'Authorization': `Bearer ${token}`
+          }
         });
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        return false;
+
+        if (!response.ok) {
+          console.error("Supabase auth error:", response.statusText);
+          setError(new Error(`Authentication failed: ${response.statusText}`));
+          toast({
+            title: "Authentication Error",
+            description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
+            variant: "destructive",
+          });
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return false;
+        }
+      } catch (err) {
+        console.error("Error testing auth:", err);
+        throw err;
       }
 
       // Authentication successful
@@ -89,7 +99,7 @@ export function useSupabaseAuth() {
     } finally {
       setIsLoading(false);
     }
-  }, [userId, getToken, toast, isSignedIn]);
+  }, [userId, session, toast, isSignedIn]);
 
   useEffect(() => {
     checkAuth();
@@ -104,69 +114,4 @@ export function useSupabaseAuth() {
     userId, // Add userId here for components that need it
     authAttempted: !isLoading // If we're not loading, we've attempted auth
   };
-}
-
-/**
- * Hook to get an authenticated Supabase client
- * This revised approach uses JWT with 'sub' claim directly
- */
-export function useSupabaseClient() {
-  const { getToken, isSignedIn } = useAuth();
-  const [client, setClient] = useState(supabase);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const { toast } = useToast();
-
-  // Function to initialize the client that can be called on demand
-  const initClient = useCallback(async () => {
-    if (!isSignedIn) {
-      setIsLoading(false);
-      return supabase;
-    }
-    
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Get token from Clerk for authentication
-      const token = await getToken({
-        template: "supabase-jwt"
-      });
-      
-      if (!token) {
-        throw new Error("No authentication token available");
-      }
-
-      // Since we can't extend the Supabase client directly, we'll just use the original client
-      // and provide a helper function to get the authentication headers when needed
-      const authenticatedClient = {
-        ...supabase,
-        getAuthHeaders: () => ({
-          Authorization: `Bearer ${token}`
-        })
-      };
-
-      setClient(authenticatedClient as typeof supabase);
-      return authenticatedClient as typeof supabase;
-    } catch (err) {
-      console.error("Error initializing Supabase client:", err);
-      setError(err instanceof Error ? err : new Error("Failed to initialize Supabase client"));
-      toast({
-        title: "Authentication Error",
-        description: "Failed to initialize secure connection. Please check your Clerk JWT template.",
-        variant: "destructive",
-      });
-      return supabase;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getToken, toast, isSignedIn]);
-
-  useEffect(() => {
-    if (isSignedIn) {
-      initClient();
-    }
-  }, [initClient, isSignedIn]);
-
-  return { client, isLoading, error, refreshClient: initClient };
 }

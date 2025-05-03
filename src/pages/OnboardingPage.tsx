@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import { useUser } from '@clerk/clerk-react';
 import Onboarding from '@/components/onboarding/Onboarding';
 import { Shell } from '@/components/Shell';
 import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
@@ -13,7 +13,6 @@ import OnboardingController from '@/components/onboarding/OnboardingController';
 
 const OnboardingPage = () => {
   const { user } = useUser();
-  const { userId } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const { 
@@ -78,7 +77,7 @@ const OnboardingPage = () => {
         <InitializeUserProfile 
           isAuthenticated={isAuthenticated} 
           isLoading={loading} 
-          userId={userId || clerkUserId} 
+          userId={clerkUserId || ''} 
         />
         <OnboardingController authenticated={isAuthenticated}>
           <Onboarding onComplete={handleOnboardingComplete} />

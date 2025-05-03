@@ -1,22 +1,23 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useSession } from '@clerk/clerk-react';
 import { useToast } from '@/hooks/use-toast';
 
 /**
  * Hook to check if the user is authenticated with Supabase via Clerk TPA
  */
 export function useClerkSupabaseAuth() {
-  const { isSignedIn, getToken, userId } = useAuth();
+  const { isSignedIn, session } = useSession();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [authAttempted, setAuthAttempted] = useState(false);
   const { toast } = useToast();
+  const userId = session?.user.id || null;
 
   useEffect(() => {
     const checkAuth = async () => {
-      if (!isSignedIn) {
+      if (!isSignedIn || !session) {
         setIsAuthenticated(false);
         setIsLoading(false);
         setAuthAttempted(true);
@@ -27,12 +28,13 @@ export function useClerkSupabaseAuth() {
         setIsLoading(true);
         
         // Get a token from Clerk for Supabase using the 'supabase' template
-        const token = await getToken({ template: 'supabase' });
+        const token = await session.getToken({ template: 'supabase' });
         
         if (!token) {
           setIsAuthenticated(false);
           setError(new Error("No authentication token available"));
           console.error("No authentication token available from Clerk");
+          setIsLoading(false);
           setAuthAttempted(true);
           return;
         }
@@ -51,13 +53,19 @@ export function useClerkSupabaseAuth() {
     };
     
     checkAuth();
-  }, [isSignedIn, getToken]);
+  }, [isSignedIn, session]);
   
   const refreshAuth = async () => {
     setIsLoading(true);
     try {
+      if (!session) {
+        setIsAuthenticated(false);
+        setError(new Error("No session available"));
+        return;
+      }
+      
       // Get a fresh token and verify it works
-      const token = await getToken({ template: 'supabase' });
+      const token = await session.getToken({ template: 'supabase' });
       if (token) {
         setIsAuthenticated(true);
         setError(null);

@@ -23,46 +23,21 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Create an authenticated client using a Clerk JWT token
-export function getAuthenticatedClient(token: string) {
+// Create a function to get an authenticated Supabase client using Clerk's session
+export function createSupabaseClientWithClerk(getToken: () => Promise<string | null>) {
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
       headers: {
-        Authorization: `Bearer ${token}`,
+        'x-application-name': 'doctor-landing-pages',
       },
     },
     auth: {
       persistSession: false,
+      autoRefreshToken: false,
+    },
+    // Inject the Clerk token into each request
+    async accessToken() {
+      return getToken();
     },
   });
-}
-
-// Test Clerk TPA authentication with Supabase
-export async function testClerkTPAAuthentication(token: string) {
-  try {
-    const client = getAuthenticatedClient(token);
-    
-    // Try to access a protected resource using direct fetch (avoiding .url issues)
-    const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
-      headers: {
-        'apikey': SUPABASE_PUBLISHABLE_KEY,
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (!response.ok) {
-      console.error("TPA authentication error:", response.statusText);
-      return { success: false, error: new Error(response.statusText), message: response.statusText };
-    }
-    
-    const data = await response.json();
-    return { success: true, data, message: "Authentication successful" };
-  } catch (error) {
-    console.error("TPA authentication error:", error);
-    return { 
-      success: false, 
-      error, 
-      message: error instanceof Error ? error.message : "Unknown authentication error" 
-    };
-  }
 }

@@ -1,28 +1,27 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
-import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
+import { useClerkSupabaseClient } from '@/hooks/useClerkSupabaseClient';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
-// Sample component to demonstrate using direct JWT claims for tasks
+// Sample component to demonstrate using the Clerk-authenticated Supabase client
 const SampleTasksList = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const { isAuthenticated, isLoading: authLoading } = useClerkSupabaseAuth();
+  const { client, isAuthenticated, isLoading: authLoading } = useClerkSupabaseClient();
   
-  // Fetch tasks using the JWT claim directly
+  // Fetch tasks using the authenticated client
   const fetchTasks = async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || !client) return;
     
     try {
       setLoading(true);
       
-      // RLS will filter tasks by the user's JWT 'sub' claim
-      const { data, error } = await supabase
+      // Client has Clerk token injected automatically
+      const { data, error } = await client
         .from('tasks')
         .select('*');
       
@@ -46,13 +45,13 @@ const SampleTasksList = () => {
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newTask.trim() || !isAuthenticated) return;
+    if (!newTask.trim() || !isAuthenticated || !client) return;
     
     try {
       setAdding(true);
       
-      // The user_id will be automatically set from the JWT claim 'sub'
-      const { data, error } = await supabase
+      // Client has Clerk token injected automatically
+      const { data, error } = await client
         .from('tasks')
         .insert({ name: newTask.trim() })
         .select()
@@ -76,10 +75,10 @@ const SampleTasksList = () => {
   };
   
   useEffect(() => {
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated && !authLoading && client) {
       fetchTasks();
     }
-  }, [isAuthenticated, authLoading]);
+  }, [isAuthenticated, authLoading, client]);
   
   if (authLoading) {
     return (

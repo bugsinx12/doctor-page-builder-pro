@@ -8,20 +8,20 @@ import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import NavigationItems from "@/components/dashboard/NavigationItems";
 import SubscriptionStatus from "@/components/dashboard/SubscriptionStatus";
 import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
-import { useAuth } from "@clerk/clerk-react";
+import { useSession } from "@clerk/clerk-react";
 
 const Dashboard = () => {
-  const { userId } = useAuth();
+  const { session } = useSession();
   const { isAuthenticated, userId: clerkId } = useClerkSupabaseAuth();
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useSyncUserProfile();
   const { subscriptionStatus, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
   
   useEffect(() => {
-    if (!userId || !isAuthenticated) {
+    if (!session?.user?.id || !isAuthenticated) {
       navigate("/auth");
     }
-  }, [userId, navigate, isAuthenticated]);
+  }, [session, navigate, isAuthenticated]);
 
   useEffect(() => {
     console.log("Dashboard - Profile:", profile);
