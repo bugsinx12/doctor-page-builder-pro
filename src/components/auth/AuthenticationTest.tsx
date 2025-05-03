@@ -1,11 +1,12 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase } from "@/integrations/supabase/client"; // Remove the deleted functions
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase";
+import { createClient } from '@supabase/supabase-js';
 
 interface AuthenticationTestProps {
   userId?: string | null;
@@ -19,6 +20,68 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
+  const { client: authClient, isAuthenticated } = useAuthenticatedSupabase();
+
+  // Get an authenticated Supabase client with a token
+  const getAuthenticatedClient = (token: string) => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://isjjzddntanbjopqylic.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzamp6ZGRudGFuYmpvcHF5bGljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NzEyMDAsImV4cCI6MjA2MDE0NzIwMH0._Y8ux53LbbT5aAVAyHJduvMGvHuBmKD34fU6xktyjR8";
+    
+    return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+      auth: {
+        persistSession: false,
+      },
+    });
+  };
+
+  // Test TPA integration with Clerk
+  const testClerkTPAAuthentication = async (token: string) => {
+    console.log("Testing Clerk-Supabase TPA integration with token");
+    
+    try {
+      const client = getAuthenticatedClient(token);
+      
+      // Try to access a protected resource
+      const { data, error } = await client
+        .from('profiles')
+        .select('id')
+        .limit(1);
+      
+      if (error) {
+        console.error("TPA authentication error:", error);
+        return { success: false, message: error.message };
+      }
+      
+      console.log("TPA authentication successful:", data);
+      return { success: true, message: "Authentication successful" };
+    } catch (error) {
+      console.error("TPA authentication error:", error);
+      return { 
+        success: false, 
+        message: error instanceof Error ? error.message : "Unknown authentication error" 
+      };
+    }
+  };
+
+  // Get debug session info
+  const debugSessionInfo = async (client: any) => {
+    try {
+      const { data: { user, session }, error } = await client.auth.getSession();
+      
+      if (error || !user) {
+        return { success: false, error };
+      }
+      
+      return { success: true, user, session };
+    } catch (error) {
+      return { success: false, error };
+    }
+  };
 
   // Test authentication
   const testAuthentication = async () => {
@@ -26,8 +89,8 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       setAuthTestInProgress(true);
       console.log("Testing Clerk-Supabase TPA integration");
       
-      // Get a token from Clerk for Supabase using the 'supabase' template if configured
-      const token = await getToken();
+      // Get a token from Clerk for Supabase using the 'supabase' template
+      const token = await getToken({ template: 'supabase' });
       
       if (!token) {
         console.error("No Clerk token available");

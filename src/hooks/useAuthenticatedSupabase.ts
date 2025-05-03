@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -15,6 +16,7 @@ export function useAuthenticatedSupabase() {
   const { getToken, isSignedIn } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Memoize the client creation to avoid re-creating it on every render
   const client = useMemo(() => {
@@ -24,7 +26,7 @@ export function useAuthenticatedSupabase() {
         fetch: async (input, init) => {
           try {
             // Get the latest token before each request
-            const token = await getToken(); // Use default getToken for TPA
+            const token = await getToken({ template: 'supabase' }); // Use supabase template
             if (!token) {
               console.warn("No Clerk token available for Supabase request.");
               // Allow request to proceed without Authorization header if desired,
@@ -53,19 +55,50 @@ export function useAuthenticatedSupabase() {
     });
   }, [getToken]); // Re-create client only if getToken function instance changes (rarely)
 
-  // Update loading state based on Clerk's sign-in status
+  // Verify authentication works on mount
   useEffect(() => {
-    // Consider Clerk's loading state if available, otherwise just use isSignedIn
-    setIsLoading(!isSignedIn); // Simple loading state, adjust if Clerk provides its own loading status
+    const verifyAuth = async () => {
+      if (!isSignedIn) {
+        setIsLoading(false);
+        setIsAuthenticated(false);
+        return;
+      }
+
+      try {
+        // A simple query to test if authentication is working
+        const { error: authError } = await client
+          .from('profiles')
+          .select('id')
+          .limit(1);
+        
+        if (authError) {
+          console.error("Authentication verification failed:", authError);
+          setError(new Error(authError.message));
+          setIsAuthenticated(false);
+        } else {
+          setError(null);
+          setIsAuthenticated(true);
+        }
+      } catch (e) {
+        console.error("Error verifying authentication:", e);
+        setError(e instanceof Error ? e : new Error("Failed to verify authentication"));
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (isSignedIn) {
-      setError(null); // Clear error on sign-in
+      verifyAuth();
+    } else {
+      setIsLoading(false);
     }
-  }, [isSignedIn]);
+  }, [isSignedIn, client]);
 
   return {
     client,
-    isLoading, // Reflects Clerk's sign-in readiness primarily
-    error,     // Reflects errors during token fetching for requests
-    isAuthenticated: isSignedIn ?? false, // Directly use Clerk's state
+    isLoading,
+    error,
+    isAuthenticated,
   };
 }

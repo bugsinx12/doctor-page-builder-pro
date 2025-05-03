@@ -10,7 +10,6 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
 
 // Create a Supabase client for anonymous access
 // This client will be used when users are not authenticated
-// NOTE: If all access requires authentication via Clerk TPA, you might not need this exported.
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: true,

@@ -1,15 +1,14 @@
+
 // src/hooks/useAuthRedirect.ts
 import { useEffect } from 'react';
-import { useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase'; // Import the new hook
-import { useProfile } from './useProfile'; // Import useProfile to check profile status
-
+import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase';
+import { useProfile } from './useProfile';
 
 export function useAuthRedirect() {
   const { isSignedIn, isLoaded } = useAuth(); // Only need isSignedIn and isLoaded from useAuth
-  const { user } = useUser(); // Need user to check profile potentially
   const navigate = useNavigate();
   const { toast } = useToast();
   // Use the new hook to get the authenticated client and its status
@@ -70,10 +69,9 @@ export function useAuthRedirect() {
     profile,
     supabaseError,
     navigate,
-    toast,
-    user // Added user dependency as profile hook might depend on it indirectly
-  ]); // Removed optional semicolon
+    toast
+  ]);
 
   // Return loading state if needed by the component using this hook
-  return { isLoading: !isLoaded || supabaseLoading || profileLoading }; // Ensure this line is clean
- }
+  return { isLoading: !isLoaded || supabaseLoading || profileLoading };
+}

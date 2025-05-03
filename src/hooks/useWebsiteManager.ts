@@ -5,9 +5,9 @@ import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useTemplates } from './website/useTemplates';
 import { useWebsiteOperations } from './website/useWebsiteOperations';
-import { useAuth } from '@clerk/clerk-react'; // Added useAuth
+import { useAuth } from '@clerk/clerk-react';
 import { usePracticeInfo } from './website/usePracticeInfo';
-import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase'; // Use the new hook
+import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase';
 import type { Database } from "@/integrations/supabase/types";
 
 type WebsiteRow = Database['public']['Tables']['websites']['Row'];
@@ -19,11 +19,11 @@ export const useWebsiteManager = () => {
   const { templates, loading: templatesLoading } = useTemplates();
   const { isPracticeInfoSet, practiceInfo } = usePracticeInfo();
   const { loading: operationsLoading, createWebsite, deleteWebsite, copyLandingPageUrl } = useWebsiteOperations(websites, setWebsites);
-  const { userId } = useAuth(); // Get userId directly
-  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase(); // Use the authenticated client
+  const { userId } = useAuth();
+  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase();
 
   useEffect(() => {
-    if (!authLoading && !userId) { // Check userId only after auth is loaded
+    if (!authLoading && !userId) {
       navigate('/auth');
       return;
     }
@@ -82,7 +82,7 @@ export const useWebsiteManager = () => {
     if (isAuthenticated && !authLoading) {
       fetchWebsites();
     }
-  }, [userId, navigate, isAuthenticated, authLoading, supabase]); // Add supabase client dependency
+  }, [userId, navigate, isAuthenticated, authLoading, supabase]);
 
   return {
     loading: loading || operationsLoading || templatesLoading || authLoading,
