@@ -30,26 +30,18 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
       
       console.log("Authenticating with Supabase using Clerk token via TPA...");
       
-      // Test if authentication works by making a simple query
-      const { data, error: authError } = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1)
-        .then(response => {
-          // Add the Authorization header to the request
-          const requestOptions = {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          };
-          return fetch(response.url, requestOptions)
-            .then(res => res.json())
-            .then(result => ({ data: result.data, error: result.error }));
-        });
+      // Test authentication by making a request with the token
+      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+        headers: {
+          'apikey': supabase.supabaseKey,
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
-      if (authError) {
+      if (!response.ok) {
+        const authError = new Error(`Authentication failed: ${response.statusText}`);
         console.error("Supabase-Clerk auth error:", authError);
-        setError(authError instanceof Error ? authError : new Error(authError.message));
+        setError(authError);
         toast({
           title: "Authentication Error",
           description: "Failed to connect Clerk with Supabase. Please check your Third-Party Auth configuration.",
@@ -61,6 +53,7 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
         return false;
       }
       
+      const data = await response.json();
       console.log("Authentication successful with data:", data);
       setIsAuthenticated(true);
       setIsLoading(false);

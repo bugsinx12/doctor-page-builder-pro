@@ -13,7 +13,7 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJh
  * This client uses the Clerk session token dynamically.
  */
 export function useAuthenticatedSupabase() {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn, userId } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -65,15 +65,27 @@ export function useAuthenticatedSupabase() {
       }
 
       try {
-        // A simple query to test if authentication is working
-        const { error: authError } = await client
-          .from('profiles')
-          .select('id')
-          .limit(1);
+        // Get a token for authentication
+        const token = await getToken({ template: 'supabase' });
         
-        if (authError) {
-          console.error("Authentication verification failed:", authError);
-          setError(new Error(authError.message));
+        if (!token) {
+          setIsAuthenticated(false);
+          setError(new Error("No authentication token available"));
+          setIsLoading(false);
+          return;
+        }
+
+        // A simple query to test if authentication is working - use direct fetch to avoid URL issues
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
+          headers: {
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (!response.ok) {
+          console.error("Authentication verification failed:", response.statusText);
+          setError(new Error(`Authentication failed: ${response.statusText}`));
           setIsAuthenticated(false);
         } else {
           setError(null);
@@ -93,12 +105,13 @@ export function useAuthenticatedSupabase() {
     } else {
       setIsLoading(false);
     }
-  }, [isSignedIn, client]);
+  }, [isSignedIn, getToken]);
 
   return {
     client,
     isLoading,
     error,
     isAuthenticated,
+    userId
   };
 }

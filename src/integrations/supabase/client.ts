@@ -42,17 +42,20 @@ export async function testClerkTPAAuthentication(token: string) {
   try {
     const client = getAuthenticatedClient(token);
     
-    // Try to access a protected resource
-    const { data, error } = await client
-      .from('profiles')
-      .select('id')
-      .limit(1);
-    
-    if (error) {
-      console.error("TPA authentication error:", error);
-      return { success: false, error, message: error.message };
+    // Try to access a protected resource using direct fetch (avoiding .url issues)
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
+      headers: {
+        'apikey': SUPABASE_PUBLISHABLE_KEY,
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      console.error("TPA authentication error:", response.statusText);
+      return { success: false, error: new Error(response.statusText), message: response.statusText };
     }
     
+    const data = await response.json();
     return { success: true, data, message: "Authentication successful" };
   } catch (error) {
     console.error("TPA authentication error:", error);

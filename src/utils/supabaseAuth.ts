@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -49,26 +50,17 @@ export function useSupabaseAuth() {
         return false;
       }
 
-      // Test if authentication works using the Authorization header
-      // We use Promise.then() because we can't directly attach headers to the builder
-      const result = await supabase
-        .from('profiles')
-        .select('id')
-        .limit(1)
-        .then(async response => {
-          const requestOptions = {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          };
-          const res = await fetch(response.url, requestOptions);
-          const data = await res.json();
-          return { data: data.data, error: data.error };
-        });
+      // Test authentication by making a direct fetch request
+      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+        headers: {
+          'apikey': supabase.supabaseKey,
+          'Authorization': `Bearer ${token}`
+        }
+      });
 
-      if (result.error) {
-        console.error("Supabase auth error:", result.error);
-        setError(new Error(result.error.message));
+      if (!response.ok) {
+        console.error("Supabase auth error:", response.statusText);
+        setError(new Error(`Authentication failed: ${response.statusText}`));
         toast({
           title: "Authentication Error",
           description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
@@ -144,37 +136,19 @@ export function useSupabaseClient() {
         throw new Error("No authentication token available");
       }
 
-      // Instead of modifying the client, we'll return methods to help with authenticated requests
-      const authMethods = {
-        getAuthHeaders: () => ({
-          Authorization: `Bearer ${token}`
-        }),
-        authFetch: async (url: string, options: RequestInit = {}) => {
-          const authOptions = {
-            ...options,
-            headers: {
-              ...options.headers,
-              Authorization: `Bearer ${token}`
-            }
-          };
-          return fetch(url, authOptions);
-        }
+      // Create a wrapper that adds auth to requests
+      const enhancedClient = {
+        ...supabase,
+        // Add authentication helper
+        withAuth: () => ({
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
       };
 
-      // Keep the original client, but store the auth methods for future use
-      setClient({
-        ...supabase,
-        auth: {
-          ...supabase.auth,
-          // Add helper method to get the current token
-          getToken: () => token
-        }
-      });
-      
-      return {
-        ...supabase,
-        ...authMethods
-      };
+      setClient(enhancedClient);
+      return enhancedClient;
     } catch (err) {
       console.error("Error initializing Supabase client:", err);
       setError(err instanceof Error ? err : new Error("Failed to initialize Supabase client"));

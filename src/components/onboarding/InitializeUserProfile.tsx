@@ -1,122 +1,97 @@
 
-import { useEffect } from 'react';
-import { useUser, useAuth } from '@clerk/clerk-react';
+import React, { useEffect, useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 
 interface InitializeUserProfileProps {
   isAuthenticated: boolean;
   isLoading: boolean;
-  userId?: string | null;
+  userId: string | null | undefined;
 }
 
-const InitializeUserProfile = ({ isAuthenticated, isLoading, userId }: InitializeUserProfileProps) => {
-  const { user } = useUser();
+// This component verifies/initializes the user profile in Supabase after Clerk auth
+const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({ 
+  isAuthenticated, 
+  isLoading,
+  userId 
+}) => {
+  const [profileInitialized, setProfileInitialized] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    const initializeProfile = async () => {
-      if (!user || !userId || !isAuthenticated || isLoading) {
-        return;
-      }
-      
+    // Don't proceed if not authenticated, still loading, or if we don't have a userId
+    if (!isAuthenticated || isLoading || !userId || processing || profileInitialized) {
+      return;
+    }
+
+    const initProfile = async () => {
       try {
-        // Initialize profile in Supabase (if needed)
-        // Check if profile already exists
-        const { data: existingProfile, error: profileError } = await supabase
+        setProcessing(true);
+        console.log("Initializing user profile...", { userId });
+        
+        // Check if profile exists
+        const { data: existingProfile, error } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id')
           .eq('id', userId)
-          .maybeSingle();
-          
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error("Error checking profile:", profileError);
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking profile:", error);
           toast({
             title: "Profile Error",
-            description: "Could not check your profile information.",
+            description: "Could not check if profile exists. Please reload the page.",
             variant: "destructive",
           });
+          return;
         }
-        
-        // Only create profile if it doesn't exist
+
+        // If profile doesn't exist, create it
         if (!existingProfile) {
-          const profileData = {
-            id: userId,
-            full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
-            avatar_url: user.imageUrl || null,
-            // Initialize practice fields as null so they can be updated later
-            practice_name: null,
-            specialty: null,
-            address: null,
-            phone: null,
-            email: user.primaryEmailAddress?.emailAddress || null
-          };
-          
+          console.log("Creating new profile for user:", userId);
           const { error: insertError } = await supabase
             .from('profiles')
-            .insert(profileData);
-            
+            .insert({ id: userId });
+
           if (insertError) {
             console.error("Error creating profile:", insertError);
             toast({
               title: "Profile Error",
-              description: "Could not create your profile.",
+              description: "Could not create your profile. Please try again.",
               variant: "destructive",
             });
+            return;
+          } else {
+            console.log("Profile created successfully");
+            toast({
+              title: "Profile Created",
+              description: "Your profile is ready. Let's complete the onboarding process.",
+            });
           }
+        } else {
+          console.log("Profile already exists for user:", userId);
         }
 
-        // Check if subscriber record exists
-        const { data: existingSubscriber, error: subError } = await supabase
-          .from('subscribers')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
-          
-        if (subError && subError.code !== 'PGRST116') {
-          console.error('Error checking subscriber:', subError);
-          toast({
-            title: "Subscription Error",
-            description: "Could not check your subscription status.",
-            variant: "destructive",
-          });
-        }
-        
-        // Only create subscriber if it doesn't exist
-        if (!existingSubscriber) {
-          const subscriberData = {
-            user_id: userId,
-            email: user.primaryEmailAddress?.emailAddress || "",
-            subscribed: false
-          };
-          
-          const { error: insertError } = await supabase
-            .from('subscribers')
-            .insert(subscriberData);
-            
-          if (insertError) {
-            console.error('Error creating subscriber record:', insertError);
-            toast({
-              title: "Subscription Error",
-              description: "Could not create your subscription record.",
-              variant: "destructive",
-            });
-          }
-        }
+        setProfileInitialized(true);
       } catch (error) {
-        console.error('Unexpected error:', error);
+        console.error("Error initializing profile:", error);
         toast({
-          title: "Error",
+          title: "Profile Error",
           description: "An unexpected error occurred. Please try again.",
           variant: "destructive",
         });
+      } finally {
+        setProcessing(false);
       }
     };
-    
-    initializeProfile();
-  }, [user, userId, toast, isAuthenticated, isLoading]);
 
-  return null; // This component doesn't render anything
+    initProfile();
+  }, [isAuthenticated, isLoading, userId, toast, processing, profileInitialized]);
+
+  // This component doesn't render anything visible
+  return null;
 };
 
 export default InitializeUserProfile;

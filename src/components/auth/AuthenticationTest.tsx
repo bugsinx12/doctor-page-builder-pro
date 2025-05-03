@@ -5,6 +5,7 @@ import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AuthenticationTestProps {
   userId?: string | null;
@@ -26,26 +27,20 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
     
     try {
       // Try to access a protected resource by making a manual fetch with the token
-      const { data, error } = await authClient
-        .from('profiles')
-        .select('id')
-        .limit(1)
-        .then(async response => {
-          const requestOptions = {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          };
-          const res = await fetch(response.url, requestOptions);
-          const data = await res.json();
-          return { data: data.data, error: data.error };
-        });
+      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+        headers: {
+          'apikey': supabase.supabaseKey,
+          'Authorization': `Bearer ${token}`
+        }
+      });
       
-      if (error) {
-        console.error("TPA authentication error:", error);
-        return { success: false, message: error.message };
+      if (!response.ok) {
+        const errorMessage = await response.text();
+        console.error("TPA authentication error:", errorMessage);
+        return { success: false, message: `Authentication failed: ${response.statusText}` };
       }
       
+      const data = await response.json();
       console.log("TPA authentication successful:", data);
       return { success: true, message: "Authentication successful" };
     } catch (error) {
@@ -60,13 +55,17 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   // Get debug session info
   const debugSessionInfo = async () => {
     try {
-      const { data: { user, session }, error } = await authClient.auth.getSession();
+      const { data, error } = await authClient.auth.getSession();
       
-      if (error || !user) {
+      if (error || !data.session?.user) {
         return { success: false, error };
       }
       
-      return { success: true, user, session };
+      return { 
+        success: true, 
+        user: data.session.user,
+        session: data.session 
+      };
     } catch (error) {
       return { success: false, error };
     }

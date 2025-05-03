@@ -12,7 +12,7 @@ import { useAuth } from "@clerk/clerk-react";
 
 const Dashboard = () => {
   const { userId } = useAuth();
-  const { isAuthenticated } = useClerkSupabaseAuth();
+  const { isAuthenticated, userId: clerkId } = useClerkSupabaseAuth();
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useSyncUserProfile();
   const { subscriptionStatus, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
