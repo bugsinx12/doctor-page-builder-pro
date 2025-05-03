@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -6,7 +5,6 @@ import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase";
-import { createClient } from '@supabase/supabase-js';
 
 interface AuthenticationTestProps {
   userId?: string | null;
@@ -22,35 +20,26 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const [userInfo, setUserInfo] = useState<any>(null);
   const { client: authClient, isAuthenticated } = useAuthenticatedSupabase();
 
-  // Get an authenticated Supabase client with a token
-  const getAuthenticatedClient = (token: string) => {
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://isjjzddntanbjopqylic.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlzamp6ZGRudGFuYmpvcHF5bGljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ1NzEyMDAsImV4cCI6MjA2MDE0NzIwMH0._Y8ux53LbbT5aAVAyHJduvMGvHuBmKD34fU6xktyjR8";
-    
-    return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      },
-      auth: {
-        persistSession: false,
-      },
-    });
-  };
-
-  // Test TPA integration with Clerk
+  // Test Clerk TPA integration with Supabase
   const testClerkTPAAuthentication = async (token: string) => {
     console.log("Testing Clerk-Supabase TPA integration with token");
     
     try {
-      const client = getAuthenticatedClient(token);
-      
-      // Try to access a protected resource
-      const { data, error } = await client
+      // Try to access a protected resource by making a manual fetch with the token
+      const { data, error } = await authClient
         .from('profiles')
         .select('id')
-        .limit(1);
+        .limit(1)
+        .then(async response => {
+          const requestOptions = {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          };
+          const res = await fetch(response.url, requestOptions);
+          const data = await res.json();
+          return { data: data.data, error: data.error };
+        });
       
       if (error) {
         console.error("TPA authentication error:", error);
@@ -69,9 +58,9 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   };
 
   // Get debug session info
-  const debugSessionInfo = async (client: any) => {
+  const debugSessionInfo = async () => {
     try {
-      const { data: { user, session }, error } = await client.auth.getSession();
+      const { data: { user, session }, error } = await authClient.auth.getSession();
       
       if (error || !user) {
         return { success: false, error };
@@ -114,9 +103,8 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         return false;
       }
       
-      // Get detailed session information with the authenticated client
-      const client = getAuthenticatedClient(token);
-      const sessionInfo = await debugSessionInfo(client);
+      // Get detailed session information
+      const sessionInfo = await debugSessionInfo();
       
       if (sessionInfo.success && sessionInfo.user) {
         setUserInfo({

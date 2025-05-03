@@ -30,17 +30,22 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
       
       console.log("Authenticating with Supabase using Clerk token via TPA...");
       
-      // Create headers with the token
-      const headers = {
-        Authorization: `Bearer ${token}`
-      };
-      
       // Test if authentication works by making a simple query
       const { data, error: authError } = await supabase
         .from('profiles')
         .select('id')
         .limit(1)
-        .headers(headers);
+        .then(response => {
+          // Add the Authorization header to the request
+          const requestOptions = {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          };
+          return fetch(response.url, requestOptions)
+            .then(res => res.json())
+            .then(result => ({ data: result.data, error: result.error }));
+        });
       
       if (authError) {
         console.error("Supabase-Clerk auth error:", authError);
