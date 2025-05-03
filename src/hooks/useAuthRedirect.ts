@@ -75,5 +75,5 @@ export function useAuthRedirect() {
   ]);
 
   // Return loading state if needed by the component using this hook
-+  return { isLoading: !isLoaded || supabaseLoading || profileLoading };
+  return { isLoading: !isLoaded || supabaseLoading || profileLoading };
  }
