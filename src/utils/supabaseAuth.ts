@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useSession } from '@clerk/clerk-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 /**
@@ -58,9 +58,9 @@ export function useSupabaseAuth() {
 
       // Test our authentication
       try {
-        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
           headers: {
-            'apikey': supabase.supabaseKey,
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
             'Authorization': `Bearer ${token}`
           }
         });

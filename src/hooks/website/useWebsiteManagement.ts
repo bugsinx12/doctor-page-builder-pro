@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
-import { useSupabaseClient } from '@/utils/supabaseAuth';
+import { useSupabaseClient } from '@/utils/useSupabaseClient';
 
 export const useWebsiteManagement = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
   const { userId } = useAuth();

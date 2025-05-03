@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
@@ -6,7 +7,7 @@ import { generateTemplateContent } from '@/utils/websiteTemplates';
 import type { Database } from "@/integrations/supabase/types";
 import type { Json } from '@/integrations/supabase/types';
 import { getWebsiteError, getValidationError } from '@/utils/websiteErrors';
-import { useSupabaseClient } from '@/utils/supabaseAuth';
+import { useSupabaseClient } from '@/utils/useSupabaseClient';
 
 interface PracticeInfo {
   name: string;
