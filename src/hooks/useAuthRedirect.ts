@@ -1,133 +1,79 @@
-
-import { useEffect, useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+// src/hooks/useAuthRedirect.ts
+import { useEffect } from 'react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { supabase, testClerkTPAAuthentication } from '@/integrations/supabase/client';
+import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase'; // Import the new hook
+import { useProfile } from './useProfile'; // Import useProfile to check profile status
+
 
 export function useAuthRedirect() {
-  const { isSignedIn, userId, getToken } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth(); // Only need isSignedIn and isLoaded from useAuth
+  const { user } = useUser(); // Need user to check profile potentially
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [authTestInProgress, setAuthTestInProgress] = useState(false);
+  // Use the new hook to get the authenticated client and its status
+  const { isLoading: supabaseLoading, error: supabaseError, isAuthenticated: supabaseAuthenticated } = useAuthenticatedSupabase();
+  // Use useProfile to check if the profile exists (indicating onboarding completion)
+  const { profile, isLoading: profileLoading } = useProfile();
 
-  // Test Third-Party authentication if user is signed in
-  const testTPAAuthentication = async () => {
-    try {
-      setAuthTestInProgress(true);
-      console.log("Testing Clerk-Supabase TPA integration");
-      
-      // Get a token from Clerk for Supabase using TPA
-      const token = await getToken();
-      
-      if (!token) {
-        console.error("No Clerk token available");
-        toast({
-          title: "Authentication Error",
-          description: "Could not get authentication token from Clerk. Please make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.",
-          variant: "destructive",
-        });
-        return false;
-      }
-      
-      // Test the token with Supabase TPA integration
-      const result = await testClerkTPAAuthentication(token);
-      
-      console.log("TPA test result:", result);
-      
-      if (!result.success) {
-        toast({
-          title: "Authentication Warning",
-          description: result.message || "Authentication check failed. This may cause issues with app functionality.",
-          variant: "destructive",
-        });
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Error testing authentication:", error);
-      toast({
-        title: "Authentication Error",
-        description: "An unexpected error occurred testing authentication",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setAuthTestInProgress(false);
-    }
-  };
-
-  // Debug function to check if user data is being properly saved to Supabase
-  const checkUserData = async () => {
-    try {
-      if (!userId) return;
-      
-      console.log("Checking user data for Clerk ID:", userId);
-      
-      // Try to check with direct Clerk ID for testing
-      const { data: subscriberData, error: subscriberError } = await supabase
-        .from("subscribers")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-        
-      console.log("Subscriber data:", subscriberData, subscriberError);
-      
-      // Check profiles
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .maybeSingle();
-        
-      console.log("Profile data:", profileData, profileError);
-      
-      // Check tasks table 
-      const { data: tasksData, error: tasksError } = await supabase
-        .from("tasks")
-        .select("*");
-        
-      console.log("Tasks data (should filter by JWT sub claim):", tasksData, tasksError);
-      
-    } catch (error) {
-      console.error("Error checking user data:", error);
-    }
-  };
-  
   useEffect(() => {
-    if (isSignedIn && userId) {
-      console.log("User is signed in with Clerk ID:", userId);
-      
-      const handleAuthAndRedirect = async () => {
-        setAuthTestInProgress(true);
-        // Test authentication
-        const authWorking = await testTPAAuthentication();
-        
-        // Even if auth failed, still check user data for debugging
-        await checkUserData();
-        
-        // Only redirect if authentication is working
-        if (authWorking) {
-          navigate("/onboarding", { replace: true });
-        } else {
-          // Show a more visible error to the user
-          toast({
-            title: "Authentication Error",
-            description: "There was a problem connecting Clerk with Supabase. Please check your Third-Party Auth configuration.",
-            variant: "destructive",
-          });
-        }
-        setAuthTestInProgress(false);
-      };
-      
-      handleAuthAndRedirect();
+    // Wait for Clerk, Supabase client, and profile to finish loading
+    if (!isLoaded || supabaseLoading || profileLoading) {
+      console.log("AuthRedirect: Waiting for loading states...", { isLoaded, supabaseLoading, profileLoading });
+      return;
     }
-  }, [isSignedIn, userId, navigate, toast]);
 
-  return {
+    console.log("AuthRedirect: Checking authentication status...", { isSignedIn, supabaseAuthenticated });
+
+    if (isSignedIn && supabaseAuthenticated) {
+      // User is signed in via Clerk and Supabase client is authenticated via TPA
+      console.log("AuthRedirect: User is signed in and Supabase client is authenticated.");
+
+      // Check if the profile exists
+      if (profile) {
+        console.log("AuthRedirect: Profile exists.");
+        // If profile exists, user is likely onboarded. Stay on current page or redirect to dashboard if desired.
+        // Example: if (window.location.pathname === '/onboarding') navigate('/dashboard');
+      } else {
+        console.log("AuthRedirect: Profile does not exist, redirecting to onboarding.");
+        // If profile doesn't exist, redirect to onboarding
+        if (window.location.pathname !== '/onboarding') {
+          navigate("/onboarding", { replace: true });
+        }
+      }
+
+      // Handle Supabase client errors during authentication attempts
+      if (supabaseError) {
+        console.error("AuthRedirect: Supabase client encountered an error:", supabaseError);
+        toast({
+          title: "Database Connection Issue",
+          description: `Could not reliably connect to the database: ${supabaseError.message}. Some features might be unavailable.`,
+          variant: "destructive",
+        });
+      }
+
+    } else if (!isSignedIn) {
+      // User is not signed in, redirect to auth page
+      console.log("AuthRedirect: User is not signed in, redirecting to /auth");
+      if (window.location.pathname !== '/auth') {
+        navigate('/auth');
+      }
+    }
+
+  }, [
     isSignedIn,
-    userId,
-    authTestInProgress
-  };
-}
+    isLoaded,
+    supabaseAuthenticated,
+    supabaseLoading,
+    profileLoading,
+    profile,
+    supabaseError,
+    navigate,
+    toast,
+    user // Added user dependency as profile hook might depend on it indirectly
+  ]);
+
+  // Return loading state if needed by the component using this hook
++  return { isLoading: !isLoaded || supabaseLoading || profileLoading };
+ }
