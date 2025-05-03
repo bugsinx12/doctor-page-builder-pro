@@ -74,11 +74,11 @@ export const useSubscription = () => {
           console.log("Found existing subscriber:", existingSubscriber);
           // Use the existing data while we wait for the API check
           if (existingSubscriber) {
-            setSubscriptionStatus(prev => ({ // Update state based on previous state if needed
+            setSubscriptionStatus(prev => ({
               subscribed: existingSubscriber.subscribed,
               subscription_tier: existingSubscriber.subscription_tier,
               subscription_end: existingSubscriber.subscription_end,
-            });
+            })); // Ensure correct parentheses for the arrow function returning an object
           }
         }
 
