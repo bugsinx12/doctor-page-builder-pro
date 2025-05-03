@@ -72,8 +72,8 @@ export function useAuthRedirect() {
     navigate,
     toast,
     user // Added user dependency as profile hook might depend on it indirectly
-  ]);
+  ]); // Removed optional semicolon
 
   // Return loading state if needed by the component using this hook
-  return { isLoading: !isLoaded || supabaseLoading || profileLoading };
+  return { isLoading: !isLoaded || supabaseLoading || profileLoading }; // Ensure this line is clean
  }
