@@ -5,9 +5,9 @@ import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useTemplates } from './website/useTemplates';
 import { useWebsiteOperations } from './website/useWebsiteOperations';
+import { useAuth } from '@clerk/clerk-react'; // Added useAuth
 import { usePracticeInfo } from './website/usePracticeInfo';
-import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase'; // Use the new hook
 import type { Database } from "@/integrations/supabase/types";
 
 type WebsiteRow = Database['public']['Tables']['websites']['Row'];
@@ -19,10 +19,11 @@ export const useWebsiteManager = () => {
   const { templates, loading: templatesLoading } = useTemplates();
   const { isPracticeInfoSet, practiceInfo } = usePracticeInfo();
   const { loading: operationsLoading, createWebsite, deleteWebsite, copyLandingPageUrl } = useWebsiteOperations(websites, setWebsites);
-  const { isAuthenticated, isLoading: authLoading, error: authError, userId } = useClerkSupabaseAuth();
+  const { userId } = useAuth(); // Get userId directly
+  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase(); // Use the authenticated client
 
   useEffect(() => {
-    if (!userId) {
+    if (!authLoading && !userId) { // Check userId only after auth is loaded
       navigate('/auth');
       return;
     }
@@ -32,7 +33,7 @@ export const useWebsiteManager = () => {
         setLoading(true);
 
         if (!isAuthenticated) {
-          console.error("Not authenticated with Supabase");
+          console.warn("WebsiteManager: Not authenticated with Supabase, cannot fetch websites.");
           return;
         }
 
@@ -81,7 +82,7 @@ export const useWebsiteManager = () => {
     if (isAuthenticated && !authLoading) {
       fetchWebsites();
     }
-  }, [userId, navigate, isAuthenticated, authLoading]);
+  }, [userId, navigate, isAuthenticated, authLoading, supabase]); // Add supabase client dependency
 
   return {
     loading: loading || operationsLoading || templatesLoading || authLoading,

@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react"; // Added useAuth
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
+import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase"; // Use the new hook
 import type { Database } from "@/integrations/supabase/types";
 
 type Subscriber = Database['public']['Tables']['subscribers']['Row'];
@@ -17,7 +16,8 @@ interface SubscriptionStatus {
 
 export const useSubscription = () => {
   const { user } = useUser();
-  const { userId, isAuthenticated, isLoading: authLoading } = useClerkSupabaseAuth();
+  const { userId } = useAuth(); // Get userId directly
+  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase(); // Use the authenticated client
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({
     subscribed: false,
@@ -27,7 +27,7 @@ export const useSubscription = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId || !user || !isAuthenticated) {
+    if (!userId || !user || !isAuthenticated || authLoading) { // Wait for auth to load too
       setIsLoading(false);
       return;
     }
@@ -38,7 +38,7 @@ export const useSubscription = () => {
         console.log("Checking subscription for user ID:", userId);
 
         // Use the user's Clerk ID directly
-        // First, check if subscriber exists in Supabase
+        // First, check if subscriber exists in Supabase using the authenticated client
         const { data: existingSubscriber, error: fetchError } = await supabase
           .from("subscribers")
           .select("*")
@@ -47,6 +47,7 @@ export const useSubscription = () => {
 
         if (fetchError) {
           console.error("Error fetching subscriber:", fetchError);
+          // Potentially throw or handle error based on severity
         }
 
         // If no subscriber exists, create one
@@ -73,7 +74,7 @@ export const useSubscription = () => {
           console.log("Found existing subscriber:", existingSubscriber);
           // Use the existing data while we wait for the API check
           if (existingSubscriber) {
-            setSubscriptionStatus({
+            setSubscriptionStatus(prev => ({ // Update state based on previous state if needed
               subscribed: existingSubscriber.subscribed,
               subscription_tier: existingSubscriber.subscription_tier,
               subscription_end: existingSubscriber.subscription_end,
@@ -82,18 +83,12 @@ export const useSubscription = () => {
         }
 
         // Check subscription status from edge function (if implemented)
+        // NOTE: The edge function invocation needs to rely on the TPA token
+        // injected by the useAuthenticatedSupabase client's fetch wrapper,
+        // not the custom btoa token.
         try {
-          const authData = {
-            userId: userId,
-            userEmail: user.primaryEmailAddress?.emailAddress
-          };
-          const authToken = btoa(JSON.stringify(authData));
-
           console.log("Calling check-subscription edge function");
           const { data, error } = await supabase.functions.invoke('check-subscription', {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
           });
 
           if (error) {
@@ -130,7 +125,15 @@ export const useSubscription = () => {
     };
 
     checkSubscription();
-  }, [userId, user, toast, isAuthenticated]);
+  }, [
+      userId,
+      user,
+      toast,
+      isAuthenticated,
+      authLoading, // Add authLoading dependency
+      supabase // Add supabase client dependency
+    ]
+  );
 
   return { subscriptionStatus, isLoading: isLoading || authLoading };
 };
