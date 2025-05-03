@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { supabase, getAuthenticatedClient, debugSessionInfo, testClerkTPAAuthentication } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client"; // Remove the deleted functions
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
