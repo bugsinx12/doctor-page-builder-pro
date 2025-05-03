@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from "react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
+import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase"; // Import the new hook
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -12,20 +11,22 @@ type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export const useProfile = () => {
   const { user } = useUser();
-  const { userId, isAuthenticated, isLoading: authLoading } = useClerkSupabaseAuth();
-  const [isLoading, setIsLoading] = useState(true);
+  const { userId } = useAuth(); // Get userId directly from Clerk useAuth
+  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase(); // Use the authenticated client
+  const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     if (!userId || !user || !isAuthenticated) {
-      setIsLoading(false);
+      // If not authenticated or user data isn't loaded, don't fetch profile
+      setProfileLoading(false);
       return;
     }
 
     const fetchProfile = async () => {
       try {
-        setIsLoading(true);
+        setProfileLoading(true);
         console.log("Fetching profile for user with Clerk ID:", userId);
         
         // RLS will filter profiles by the user's JWT 'sub' claim
@@ -34,7 +35,11 @@ export const useProfile = () => {
           .select("*")
           .maybeSingle();
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+          // Handle potential auth errors propagated from the client fetch wrapper
+          console.error("Error fetching profile:", fetchError);
+          throw fetchError;
+        }
 
         if (existingProfile) {
           console.log("Found existing profile:", existingProfile);
@@ -105,12 +110,19 @@ export const useProfile = () => {
           variant: "destructive",
         });
       } finally {
-        setIsLoading(false);
+        setProfileLoading(false);
       }
     };
 
     fetchProfile();
-  }, [userId, user, toast, isAuthenticated]);
+  }, [userId, user, toast, isAuthenticated, supabase]); // Add supabase client to dependency array
 
-  return { profile, isLoading: isLoading || authLoading };
+  // Combine loading states
+  const isLoading = authLoading || profileLoading;
+
+  return {
+    profile,
+    isLoading,
+    error: authError // Propagate auth errors if needed
+  };
 };
