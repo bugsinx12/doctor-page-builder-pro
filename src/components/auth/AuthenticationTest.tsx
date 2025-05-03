@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@clerk/clerk-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -5,7 +6,7 @@ import { Loader2, AlertCircle, Info, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase";
-import { supabase } from "@/integrations/supabase/client";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/integrations/supabase/client";
 
 interface AuthenticationTestProps {
   userId?: string | null;
@@ -27,9 +28,9 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
     
     try {
       // Try to access a protected resource by making a manual fetch with the token
-      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
         headers: {
-          'apikey': supabase.supabaseKey,
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
           'Authorization': `Bearer ${token}`
         }
       });
@@ -57,7 +58,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
     try {
       const { data, error } = await authClient.auth.getSession();
       
-      if (error || !data.session?.user) {
+      if (error || !data.session) {
         return { success: false, error };
       }
       

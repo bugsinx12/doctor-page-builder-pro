@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 /**
  * Hook that handles the Supabase session based on a Clerk authentication token
@@ -31,9 +32,9 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
       console.log("Authenticating with Supabase using Clerk token via TPA...");
       
       // Test authentication by making a request with the token
-      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
         headers: {
-          'apikey': supabase.supabaseKey,
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
           'Authorization': `Bearer ${token}`
         }
       });

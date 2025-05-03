@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 /**
  * Hook to check if the user is authenticated with Supabase via Clerk JWT
@@ -34,7 +35,7 @@ export function useSupabaseAuth() {
       
       // Get token from Clerk with custom claims
       const token = await getToken({
-        template: "supabase-jwt"
+        template: "supabase"
       });
       
       if (!token) {
@@ -51,9 +52,9 @@ export function useSupabaseAuth() {
       }
 
       // Test authentication by making a direct fetch request
-      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/profiles?select=id&limit=1`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
         headers: {
-          'apikey': supabase.supabaseKey,
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
           'Authorization': `Bearer ${token}`
         }
       });
@@ -136,19 +137,17 @@ export function useSupabaseClient() {
         throw new Error("No authentication token available");
       }
 
-      // Create a wrapper that adds auth to requests
-      const enhancedClient = {
+      // Since we can't extend the Supabase client directly, we'll just use the original client
+      // and provide a helper function to get the authentication headers when needed
+      const authenticatedClient = {
         ...supabase,
-        // Add authentication helper
-        withAuth: () => ({
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+        getAuthHeaders: () => ({
+          Authorization: `Bearer ${token}`
         })
       };
 
-      setClient(enhancedClient);
-      return enhancedClient;
+      setClient(authenticatedClient as typeof supabase);
+      return authenticatedClient as typeof supabase;
     } catch (err) {
       console.error("Error initializing Supabase client:", err);
       setError(err instanceof Error ? err : new Error("Failed to initialize Supabase client"));
