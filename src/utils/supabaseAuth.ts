@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import type { Database } from "@/integrations/supabase/types";
 
 /**
  * Hook to check if the user is authenticated with Supabase via Clerk JWT
@@ -51,16 +50,17 @@ export function useSupabaseAuth() {
         return false;
       }
 
-      // Create authenticated client with token
-      const authClient = supabase.rest.headers.set({
+      // Create headers with the token
+      const headers = {
         Authorization: `Bearer ${token}`
-      });
+      };
       
       // Test if authentication works
-      const { data, error: authError } = await authClient
+      const { data, error: authError } = await supabase
         .from('profiles')
         .select('id')
-        .limit(1);
+        .limit(1)
+        .headers(headers);
 
       if (authError) {
         console.error("Supabase auth error:", authError);
@@ -103,7 +103,8 @@ export function useSupabaseAuth() {
     isLoading, 
     error, 
     supabaseUserId,
-    refreshAuth: checkAuth
+    refreshAuth: checkAuth,
+    userId // Add userId here for components that need it
   };
 }
 
@@ -138,10 +139,16 @@ export function useSupabaseClient() {
         throw new Error("No authentication token available");
       }
 
-      // Create authenticated client with token
-      const authenticatedClient = supabase.rest.headers.set({
-        Authorization: `Bearer ${token}`
-      });
+      // We'll return the supabase client, but with a method to inject auth headers
+      const authenticatedClient = {
+        ...supabase,
+        // Create a function to get authenticated headers for any request
+        withAuth: () => ({
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+      };
 
       setClient(authenticatedClient);
       return authenticatedClient;

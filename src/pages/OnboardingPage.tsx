@@ -16,7 +16,7 @@ const OnboardingPage = () => {
   const { userId } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, isLoading: authLoading, error: authError, refreshAuth } = useClerkSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, error: authError, refreshAuth, authAttempted, userId: clerkUserId } = useClerkSupabaseAuth();
   
   // When authentication verification is complete, update loading state
   useEffect(() => {
@@ -68,7 +68,7 @@ const OnboardingPage = () => {
   if (isAuthenticated) {
     return (
       <Shell>
-        <InitializeUserProfile isAuthenticated={isAuthenticated} isLoading={loading} userId={userId} />
+        <InitializeUserProfile isAuthenticated={isAuthenticated} isLoading={loading} userId={userId || clerkUserId} />
         <OnboardingController authenticated={isAuthenticated}>
           <Onboarding onComplete={handleOnboardingComplete} />
         </OnboardingController>

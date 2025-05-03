@@ -86,5 +86,12 @@ export function useClerkSupabaseAuth() {
     }
   };
   
-  return { isAuthenticated, isLoading, error, refreshAuth, userId, authAttempted };
+  return { 
+    isAuthenticated, 
+    isLoading, 
+    error, 
+    refreshAuth, 
+    userId, 
+    authAttempted 
+  };
 }
