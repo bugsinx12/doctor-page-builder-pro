@@ -8,9 +8,11 @@ import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import NavigationItems from "@/components/dashboard/NavigationItems";
 import SubscriptionStatus from "@/components/dashboard/SubscriptionStatus";
 import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
+import { useAuth } from "@clerk/clerk-react";
 
 const Dashboard = () => {
-  const { userId, isAuthenticated } = useClerkSupabaseAuth();
+  const { userId } = useAuth();
+  const { isAuthenticated } = useClerkSupabaseAuth();
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useSyncUserProfile();
   const { subscriptionStatus, isLoading: isSubscriptionLoading } = useSubscriptionStatus();

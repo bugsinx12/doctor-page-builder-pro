@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import Onboarding from '@/components/onboarding/Onboarding';
 import { Shell } from '@/components/Shell';
 import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
@@ -13,16 +13,17 @@ import OnboardingController from '@/components/onboarding/OnboardingController';
 
 const OnboardingPage = () => {
   const { user } = useUser();
+  const { userId } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const { isAuthenticated, isLoading: authLoading, error: authError, authAttempted, refreshAuth, userId } = useClerkSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, error: authError, refreshAuth } = useClerkSupabaseAuth();
   
   // When authentication verification is complete, update loading state
   useEffect(() => {
-    if (!authLoading && authAttempted) {
+    if (!authLoading) {
       setLoading(false);
     }
-  }, [authLoading, authAttempted]);
+  }, [authLoading]);
   
   const handleOnboardingComplete = () => {
     navigate('/dashboard', { replace: true });
@@ -43,7 +44,7 @@ const OnboardingPage = () => {
   };
   
   // Authentication error screen
-  if (!authLoading && !isAuthenticated && authAttempted) {
+  if (!authLoading && !isAuthenticated) {
     return (
       <Shell>
         <AuthenticationError 
@@ -67,7 +68,7 @@ const OnboardingPage = () => {
   if (isAuthenticated) {
     return (
       <Shell>
-        <InitializeUserProfile isAuthenticated={isAuthenticated} isLoading={loading} />
+        <InitializeUserProfile isAuthenticated={isAuthenticated} isLoading={loading} userId={userId} />
         <OnboardingController authenticated={isAuthenticated}>
           <Onboarding onComplete={handleOnboardingComplete} />
         </OnboardingController>

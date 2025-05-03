@@ -1,18 +1,17 @@
 
 import { useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
 import { useToast } from '@/components/ui/use-toast';
 
 interface InitializeUserProfileProps {
   isAuthenticated: boolean;
   isLoading: boolean;
+  userId?: string | null;
 }
 
-const InitializeUserProfile = ({ isAuthenticated, isLoading }: InitializeUserProfileProps) => {
+const InitializeUserProfile = ({ isAuthenticated, isLoading, userId }: InitializeUserProfileProps) => {
   const { user } = useUser();
-  const { userId } = useClerkSupabaseAuth();
   const { toast } = useToast();
 
   useEffect(() => {

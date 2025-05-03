@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { supabase, testClerkTPAAuthentication } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 /**
@@ -30,15 +30,23 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
       
       console.log("Authenticating with Supabase using Clerk token via TPA...");
       
-      // Test authentication with Clerk token
-      const { success, error: authError, message } = await testClerkTPAAuthentication(token);
+      // Create authenticated client with token
+      const authClient = supabase.rest.headers.set({
+        Authorization: `Bearer ${token}`
+      });
       
-      if (!success) {
+      // Test if authentication works by making a simple query
+      const { data, error: authError } = await authClient
+        .from('profiles')
+        .select('id')
+        .limit(1);
+      
+      if (authError) {
         console.error("Supabase-Clerk auth error:", authError);
-        setError(authError instanceof Error ? authError : new Error(message || "Authentication failed"));
+        setError(authError instanceof Error ? authError : new Error(authError.message));
         toast({
           title: "Authentication Error",
-          description: message || "Failed to connect Clerk with Supabase. Please check your Third-Party Auth configuration.",
+          description: "Failed to connect Clerk with Supabase. Please check your Third-Party Auth configuration.",
           variant: "destructive",
         });
         setIsAuthenticated(false);
@@ -47,40 +55,11 @@ export const useSupabaseSession = (clerkToken: string | null, isSignedIn: boolea
         return false;
       }
       
-      // Verify the session worked by checking user data
-      const { data, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error("Supabase get user error:", userError);
-        setError(userError);
-        toast({
-          title: "Authentication Error",
-          description: "Failed to verify user authentication. Please check your Clerk-Supabase integration.",
-          variant: "destructive",
-        });
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        setAuthAttempted(true);
-        return false;
-      }
-      
-      // Log detailed session info for debugging
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData.session) {
-        console.log("Authentication successful with user information:", {
-          id: sessionData.session.user.id,
-          email: sessionData.session.user.email,
-          clerkId: sessionData.session.user.user_metadata?.clerk_id || sessionData.session.user.user_metadata?.sub,
-          provider: "clerk",
-          metadata: sessionData.session.user.user_metadata,
-        });
-      }
-      
-      console.log("Authentication check result:", !!data.user);
-      setIsAuthenticated(!!data.user);
+      console.log("Authentication successful with data:", data);
+      setIsAuthenticated(true);
       setIsLoading(false);
       setAuthAttempted(true);
-      return !!data.user;
+      return true;
     } catch (err) {
       console.error('Error authenticating with Supabase:', err);
       const errorInstance = err instanceof Error ? err : new Error('Authentication error');

@@ -3,12 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useSearchParams } from "react-router-dom";
 import AuthTabs from "@/components/auth/AuthTabs";
 import { useAuthRedirect } from "@/hooks/useAuthRedirect";
+import { useAuth } from "@clerk/clerk-react";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") || "login";
   const templateId = searchParams.get("template");
-  const { isSignedIn, userId, authTestInProgress } = useAuthRedirect();
+  const { isLoading } = useAuthRedirect();
+  const { userId } = useAuth();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

@@ -11,7 +11,7 @@ export function useAuthRedirect() {
   const { isSignedIn, isLoaded } = useAuth(); // Only need isSignedIn and isLoaded from useAuth
   const navigate = useNavigate();
   const { toast } = useToast();
-  // Use the new hook to get the authenticated client and its status
+  // Use the hook to get the authenticated client and its status
   const { isLoading: supabaseLoading, error: supabaseError, isAuthenticated: supabaseAuthenticated } = useAuthenticatedSupabase();
   // Use useProfile to check if the profile exists (indicating onboarding completion)
   const { profile, isLoading: profileLoading } = useProfile();

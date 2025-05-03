@@ -7,10 +7,11 @@ import { useToast } from '@/hooks/use-toast';
  * Hook to check if the user is authenticated with Supabase via Clerk TPA
  */
 export function useClerkSupabaseAuth() {
-  const { isSignedIn, getToken } = useAuth();
+  const { isSignedIn, getToken, userId } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [authAttempted, setAuthAttempted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -18,6 +19,7 @@ export function useClerkSupabaseAuth() {
       if (!isSignedIn) {
         setIsAuthenticated(false);
         setIsLoading(false);
+        setAuthAttempted(true);
         return;
       }
 
@@ -31,6 +33,7 @@ export function useClerkSupabaseAuth() {
           setIsAuthenticated(false);
           setError(new Error("No authentication token available"));
           console.error("No authentication token available from Clerk");
+          setAuthAttempted(true);
           return;
         }
         
@@ -43,6 +46,7 @@ export function useClerkSupabaseAuth() {
         setError(err instanceof Error ? err : new Error("Authentication failed"));
       } finally {
         setIsLoading(false);
+        setAuthAttempted(true);
       }
     };
     
@@ -78,8 +82,9 @@ export function useClerkSupabaseAuth() {
       });
     } finally {
       setIsLoading(false);
+      setAuthAttempted(true);
     }
   };
   
-  return { isAuthenticated, isLoading, error, refreshAuth };
+  return { isAuthenticated, isLoading, error, refreshAuth, userId, authAttempted };
 }

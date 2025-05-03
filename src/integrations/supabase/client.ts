@@ -22,3 +22,44 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     },
   },
 });
+
+// Create an authenticated client using a Clerk JWT token
+export function getAuthenticatedClient(token: string) {
+  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+    },
+  });
+}
+
+// Test Clerk TPA authentication with Supabase
+export async function testClerkTPAAuthentication(token: string) {
+  try {
+    const client = getAuthenticatedClient(token);
+    
+    // Try to access a protected resource
+    const { data, error } = await client
+      .from('profiles')
+      .select('id')
+      .limit(1);
+    
+    if (error) {
+      console.error("TPA authentication error:", error);
+      return { success: false, error, message: error.message };
+    }
+    
+    return { success: true, data, message: "Authentication successful" };
+  } catch (error) {
+    console.error("TPA authentication error:", error);
+    return { 
+      success: false, 
+      error, 
+      message: error instanceof Error ? error.message : "Unknown authentication error" 
+    };
+  }
+}
