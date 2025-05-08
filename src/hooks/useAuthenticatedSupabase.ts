@@ -12,11 +12,13 @@ export function useAuthenticatedSupabase() {
   const { session, isSignedIn } = useSession();
   const userId = session?.user?.id || null;
 
-  // Create a token getter function
+  // Create a token getter function that doesn't specify a template
+  // This avoids the "No JWT template exists with name: supabase" error
   const getToken = async () => {
     if (!session) return null;
     try {
-      return await session.getToken({ template: 'supabase' }) ?? null;
+      // Get the default JWT token without specifying a template
+      return await session.getToken() ?? null;
     } catch (error) {
       console.error("Failed to get Clerk token:", error);
       return null;

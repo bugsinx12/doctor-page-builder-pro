@@ -22,9 +22,9 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const [userInfo, setUserInfo] = useState<any>(null);
   const { client: authClient, isAuthenticated } = useAuthenticatedSupabase();
 
-  // Test Clerk TPA integration with Supabase
+  // Test Clerk integration with Supabase
   const testClerkTPAAuthentication = async (token: string) => {
-    console.log("Testing Clerk-Supabase TPA integration with token");
+    console.log("Testing Clerk-Supabase integration with token");
     
     try {
       // Try to access a protected resource by making a manual fetch with the token
@@ -37,15 +37,15 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
       
       if (!response.ok) {
         const errorMessage = await response.text();
-        console.error("TPA authentication error:", errorMessage);
+        console.error("Authentication error:", errorMessage);
         return { success: false, message: `Authentication failed: ${response.statusText}` };
       }
       
       const data = await response.json();
-      console.log("TPA authentication successful:", data);
+      console.log("Authentication successful:", data);
       return { success: true, message: "Authentication successful" };
     } catch (error) {
-      console.error("TPA authentication error:", error);
+      console.error("Authentication error:", error);
       return { 
         success: false, 
         message: error instanceof Error ? error.message : "Unknown authentication error" 
@@ -76,19 +76,19 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
   const testAuthentication = async () => {
     try {
       setAuthTestInProgress(true);
-      console.log("Testing Clerk-Supabase TPA integration");
+      console.log("Testing Clerk-Supabase integration");
       
-      // Get a token from Clerk for Supabase using the 'supabase' template
-      const token = await getToken({ template: 'supabase' });
+      // Get a default token from Clerk without specifying a template
+      const token = await getToken();
       
       if (!token) {
         console.error("No Clerk token available");
         setAuthSuccess(false);
-        setAuthError("Could not get authentication token from Clerk. Make sure Third-Party Authentication is enabled for Supabase in your Clerk dashboard.");
+        setAuthError("Could not get authentication token from Clerk");
         return false;
       }
       
-      // Test TPA integration
+      // Test integration
       const authResult = await testClerkTPAAuthentication(token);
       
       if (!authResult.success) {
@@ -118,7 +118,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
         setAuthSuccess(true);
         toast({
           title: "Authentication Success",
-          description: "Clerk-Supabase TPA integration is working correctly.",
+          description: "Clerk-Supabase integration is working correctly.",
         });
         return true;
       } else {
@@ -150,7 +150,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
           <CheckCircle className="h-4 w-4 text-green-500" />
           <AlertTitle className="text-green-600">Authentication Success</AlertTitle>
           <AlertDescription>
-            Your Clerk-Supabase TPA integration is configured correctly.
+            Your Clerk-Supabase integration is configured correctly.
             {userInfo && (
               <div className="mt-2 text-xs">
                 <p>Supabase User ID: {userInfo.id}</p>
@@ -173,13 +173,13 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
 
       <Alert variant="default" className="mb-4">
         <Info className="h-4 w-4" />
-        <AlertTitle>Third-Party Authentication</AlertTitle>
+        <AlertTitle>Authentication</AlertTitle>
         <AlertDescription>
-          <p className="mb-2">Make sure you have:</p>
+          <p className="mb-2">Using Clerk authentication with Supabase without a JWT template.</p>
+          <p className="mb-2">For production environments, you should:</p>
           <ol className="list-decimal pl-5 space-y-1">
-            <li>Enabled Supabase as a Third-Party Authentication provider in your Clerk Dashboard.</li>
-            <li>Added 'clerk' to the list of External OAuth providers in your Supabase project settings.</li>
-            <li>Created a JWT Template named 'supabase' in your Clerk Dashboard with the correct signing key.</li>
+            <li>Create a JWT Template named 'supabase' in your Clerk Dashboard to improve security.</li>
+            <li>Configure Row Level Security (RLS) policies in Supabase to protect your data.</li>
           </ol>
         </AlertDescription>
         <div className="mt-2 space-x-2">
@@ -195,7 +195,7 @@ const AuthenticationTest = ({ userId }: AuthenticationTestProps) => {
             size="sm"
             onClick={testAuthentication}
           >
-            Test TPA Auth
+            Test Auth
           </Button>
         </div>
       </Alert>
