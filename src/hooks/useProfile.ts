@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
+import { useUser } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import type { Database } from "@/integrations/supabase/types";
@@ -10,7 +10,7 @@ type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export const useProfile = () => {
-  const { user } = useAuth();
+  const { user } = useUser();
   const { client: supabase, isLoading: authLoading, isAuthenticated, userId } = useSupabaseAuth();
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -18,7 +18,7 @@ export const useProfile = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId || !user || !isAuthenticated) {
+    if (!userId || !user || !isAuthenticated || !supabase) {
       // If not authenticated or user data isn't loaded, don't fetch profile
       setProfileLoading(false);
       return;

@@ -30,8 +30,8 @@ export function useClerkSupabaseClient() {
       // Create a token getter function
       const getToken = async () => {
         try {
-          // Get a default token without specifying a template
-          return await session.getToken() ?? null;
+          // Get a token with the Supabase template
+          return await session.getToken({ template: "supabase" }) ?? null;
         } catch (error) {
           console.error("Failed to get Clerk token:", error);
           return null;

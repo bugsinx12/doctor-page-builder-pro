@@ -39,6 +39,33 @@ export function getSupabaseWithClerkToken(token: string) {
   });
 }
 
+// Function that creates a Supabase client with Clerk token
+export const createSupabaseClientWithClerk = (getToken: () => Promise<string | null>) => {
+  return createClient<Database>(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY,
+    {
+      global: {
+        headers: {
+          'x-application-name': 'doctor-landing-pages',
+          async Authorization() {
+            const token = await getToken();
+            if (token) {
+              return `Bearer ${token}`;
+            }
+            return '';
+          },
+        },
+      },
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false,
+      },
+    }
+  );
+};
+
 /**
  * Helper function for debugging auth issues
  * This will clear any existing Supabase auth state from local storage

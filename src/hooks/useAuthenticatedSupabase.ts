@@ -33,8 +33,8 @@ export function useAuthenticatedSupabase() {
     const getToken = async () => {
       if (!session) return null;
       try {
-        // Get the default JWT token without specifying a template
-        return await session.getToken() ?? null;
+        // Get the token using the Supabase template
+        return await session.getToken({ template: "supabase" }) ?? null;
       } catch (error) {
         console.error("Failed to get Clerk token:", error);
         return null;
