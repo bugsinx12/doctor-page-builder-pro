@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react';
 import { useSession } from '@clerk/clerk-react';
 import { useToast } from '@/hooks/use-toast';
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 /**
  * Hook to check if the user is authenticated with Supabase via Clerk TPA
+ * This is used for auth verification without requiring a full Supabase client
  */
 export function useClerkSupabaseAuth() {
   const { isSignedIn, session } = useSession();
@@ -39,9 +41,28 @@ export function useClerkSupabaseAuth() {
           return;
         }
         
-        // Just verify we have a valid token - actual auth is tested on first API call
-        setIsAuthenticated(true);
-        setError(null);
+        // Verify token works with a direct API call to Supabase
+        try {
+          const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
+            headers: {
+              'apikey': SUPABASE_PUBLISHABLE_KEY,
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Supabase auth error: ${response.status} - ${errorText}`);
+          }
+          
+          // Authentication successful
+          setIsAuthenticated(true);
+          setError(null);
+        } catch (fetchError) {
+          console.error("Error verifying Supabase auth:", fetchError);
+          setIsAuthenticated(false);
+          setError(fetchError instanceof Error ? fetchError : new Error("Failed to verify authentication"));
+        }
       } catch (err) {
         console.error("Authentication error:", err);
         setIsAuthenticated(false);
@@ -53,7 +74,7 @@ export function useClerkSupabaseAuth() {
     };
     
     checkAuth();
-  }, [isSignedIn, session]);
+  }, [isSignedIn, session, toast]);
   
   const refreshAuth = async () => {
     setIsLoading(true);
@@ -66,7 +87,22 @@ export function useClerkSupabaseAuth() {
       
       // Get a fresh token and verify it works
       const token = await session.getToken();
-      if (token) {
+      
+      if (!token) {
+        setIsAuthenticated(false);
+        setError(new Error("Failed to get authentication token"));
+        return;
+      }
+      
+      // Test that the token works with Supabase
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
+        headers: {
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
         setIsAuthenticated(true);
         setError(null);
         
@@ -75,8 +111,8 @@ export function useClerkSupabaseAuth() {
           description: "Your authentication status has been updated.",
         });
       } else {
-        setIsAuthenticated(false);
-        setError(new Error("Failed to get authentication token"));
+        const errorText = await response.text();
+        throw new Error(`Auth verification failed: ${response.status} - ${errorText}`);
       }
     } catch (err) {
       console.error("Error refreshing authentication:", err);

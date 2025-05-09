@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 
 /**
  * Hook that provides a Supabase client authenticated with the Clerk session
+ * @deprecated Use useAuthenticatedSupabase instead for simpler and more reliable auth
  */
 export function useClerkSupabaseClient() {
   const { session, isSignedIn } = useSession();
@@ -29,7 +30,8 @@ export function useClerkSupabaseClient() {
       // Create a token getter function
       const getToken = async () => {
         try {
-          return await session.getToken({ template: 'supabase' }) ?? null;
+          // Get a default token without specifying a template
+          return await session.getToken() ?? null;
         } catch (error) {
           console.error("Failed to get Clerk token:", error);
           return null;

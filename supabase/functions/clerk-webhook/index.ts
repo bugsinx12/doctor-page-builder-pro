@@ -32,10 +32,11 @@ const verifyClerkWebhookSignature = async (
     return false;
   }
 
-  // For this example, we're simplifying the verification
+  // For this demo implementation, we're simplifying the verification
   // In production, implement proper HMAC verification
   console.log("Webhook signature verification would happen here");
   
+  // For now, we'll trust the webhook (assume it's properly verified)
   return true;
 }
 
@@ -103,67 +104,53 @@ serve(async (req) => {
       }
 
       console.log(`Processing user: ${clerkUserId}, ${email}`);
-
-      // Using Supabase admin client to create user in auth.users table with matching metadata
-      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-        email: email,
-        email_confirm: true,
-        user_metadata: {
-          clerk_id: clerkUserId,
-          first_name: firstName,
-          last_name: lastName,
-        },
-      });
-
-      if (userError) {
-        console.error(`Error creating user: ${userError.message}`);
-        
-        // If user already exists, update instead
-        if (userError.message.includes('already exists')) {
-          // Try to find user by email first
-          const { data: existingUsers } = await supabaseAdmin.auth.admin
-            .listUsers();
-          
-          const existingUser = existingUsers?.users?.find(u => 
-            u.email === email || u.user_metadata?.clerk_id === clerkUserId
-          );
-
-          if (existingUser) {
-            // Update existing user
-            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-              existingUser.id,
-              {
-                user_metadata: {
-                  clerk_id: clerkUserId,
-                  first_name: firstName,
-                  last_name: lastName,
-                }
-              }
-            );
-            
-            if (updateError) {
-              console.error(`Error updating user: ${updateError.message}`);
-              throw updateError;
-            }
-            
-            console.log(`Updated user: ${existingUser.id}`);
-          } else {
-            throw userError;
-          }
-        } else {
-          throw userError;
-        }
-      } else {
-        console.log(`Created user: ${userData.user.id}`);
+      
+      // Using RLS for the profile, we'll just make sure the profile exists
+      const { data: existingProfile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('id', clerkUserId)
+        .maybeSingle();
+      
+      if (profileError) {
+        console.error("Error checking for profile:", profileError);
       }
-
-      return new Response(
-        JSON.stringify({ success: true }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
+      
+      // Create profile if it doesn't exist
+      if (!existingProfile) {
+        const { error: insertError } = await supabaseAdmin
+          .from('profiles')
+          .insert({
+            id: clerkUserId,
+            email: email || null,
+            full_name: `${firstName} ${lastName}`.trim() || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+          throw insertError;
         }
-      );
+        
+        console.log(`Created profile for user: ${clerkUserId}`);
+      } else {
+        // Update existing profile
+        const { error: updateError } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            email: email || null,
+            full_name: `${firstName} ${lastName}`.trim() || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', clerkUserId);
+          
+        if (updateError) {
+          console.error("Error updating profile:", updateError);
+        } else {
+          console.log(`Updated profile for user: ${clerkUserId}`);
+        }
+      }
     }
 
     return new Response(

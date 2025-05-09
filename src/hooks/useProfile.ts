@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase"; // Import the new hook
+import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -12,13 +12,13 @@ type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 export const useProfile = () => {
   const { user } = useUser();
   const { userId } = useAuth(); // Get userId directly from Clerk useAuth
-  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase(); // Use the authenticated client
+  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase();
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId || !user || !isAuthenticated) {
+    if (!userId || !user || !isAuthenticated || !supabase) {
       // If not authenticated or user data isn't loaded, don't fetch profile
       setProfileLoading(false);
       return;
@@ -33,6 +33,7 @@ export const useProfile = () => {
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
+          .eq("id", userId)
           .maybeSingle();
 
         if (fetchError) {
@@ -62,6 +63,7 @@ export const useProfile = () => {
             const { data: updatedProfile, error: updateError } = await supabase
               .from("profiles")
               .update(updateData)
+              .eq("id", userId)
               .select()
               .single();
               
@@ -80,7 +82,6 @@ export const useProfile = () => {
           console.log("No profile found, creating new profile with ID:", userId);
           
           // Create profile with ID matching the Clerk userId
-          // Let RLS handle user_id via JWT
           const profileData: ProfileInsert = {
             id: userId,
             full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
@@ -115,7 +116,7 @@ export const useProfile = () => {
     };
 
     fetchProfile();
-  }, [userId, user, toast, isAuthenticated, supabase]); // Add supabase client to dependency array
+  }, [userId, user, toast, isAuthenticated, supabase]);
 
   // Combine loading states
   const isLoading = authLoading || profileLoading;

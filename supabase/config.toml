@@ -4,6 +4,4 @@ project_id = "isjjzddntanbjopqylic"
 [functions.clerk-webhook]
 verify_jwt = false
 
-# Clerk setup without JWT template for now
-[auth.jwt]
-custom_claims = {}
+# No JWT template needed with Clerk TPA
