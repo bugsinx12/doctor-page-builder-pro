@@ -22,30 +22,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Create a function to get an authenticated Supabase client using Clerk's session
-export function createSupabaseClientWithClerk(getToken: () => Promise<string | null>) {
+// Create a function to get an authenticated Supabase client using Clerk's JWT
+export function getSupabaseWithClerkToken(token: string) {
   return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     global: {
       headers: {
         'x-application-name': 'doctor-landing-pages',
+        Authorization: `Bearer ${token}`,
       },
     },
     auth: {
       persistSession: false,
       autoRefreshToken: false,
-      // Don't detect session changes - we'll handle this with Clerk
       detectSessionInUrl: false,
-      flowType: 'pkce',
-    },
-    // Inject the Clerk token into each request
-    async accessToken() {
-      try {
-        const token = await getToken();
-        return token || '';
-      } catch (error) {
-        console.error("Error getting token for Supabase request:", error);
-        return '';
-      }
     },
   });
 }

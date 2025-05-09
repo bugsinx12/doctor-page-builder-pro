@@ -105,7 +105,7 @@ serve(async (req) => {
 
       console.log(`Processing user: ${clerkUserId}, ${email}`);
       
-      // Using RLS for the profile, we'll just make sure the profile exists
+      // Check if profile exists
       const { data: existingProfile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .select('id')

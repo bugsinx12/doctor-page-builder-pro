@@ -4,16 +4,14 @@ import { useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useProfile } from './useProfile';
 
 export function useAuthRedirect() {
-  const { isSignedIn, isLoaded } = useAuth(); // Only need isSignedIn and isLoaded from useAuth
+  const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  // Use the hook to get the authenticated client and its status
-  const { isLoading: supabaseLoading, error: supabaseError, isAuthenticated: supabaseAuthenticated } = useAuthenticatedSupabase();
-  // Use useProfile to check if the profile exists (indicating onboarding completion)
+  const { isLoading: supabaseLoading, error: supabaseError, isAuthenticated: supabaseAuthenticated } = useSupabaseAuth();
   const { profile, isLoading: profileLoading } = useProfile();
 
   useEffect(() => {
@@ -26,7 +24,7 @@ export function useAuthRedirect() {
     console.log("AuthRedirect: Checking authentication status...", { isSignedIn, supabaseAuthenticated });
 
     if (isSignedIn && supabaseAuthenticated) {
-      // User is signed in via Clerk and Supabase client is authenticated via TPA
+      // User is signed in via Clerk and Supabase client is authenticated via JWT
       console.log("AuthRedirect: User is signed in and Supabase client is authenticated.");
 
       // Check if the profile exists

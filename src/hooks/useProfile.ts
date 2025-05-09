@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from "react";
-import { useUser, useAuth } from "@clerk/clerk-react";
+import { useAuth } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -10,15 +10,15 @@ type ProfileInsert = Database['public']['Tables']['profiles']['Insert'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export const useProfile = () => {
-  const { user } = useUser();
-  const { userId } = useAuth(); // Get userId directly from Clerk useAuth
-  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase();
+  const { user } = useAuth();
+  const { client: supabase, isLoading: authLoading, isAuthenticated, userId } = useSupabaseAuth();
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [error, setError] = useState<Error | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId || !user || !isAuthenticated || !supabase) {
+    if (!userId || !user || !isAuthenticated) {
       // If not authenticated or user data isn't loaded, don't fetch profile
       setProfileLoading(false);
       return;
@@ -29,7 +29,6 @@ export const useProfile = () => {
         setProfileLoading(true);
         console.log("Fetching profile for user with Clerk ID:", userId);
         
-        // RLS will filter profiles by the user's JWT 'sub' claim
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
@@ -37,7 +36,6 @@ export const useProfile = () => {
           .maybeSingle();
 
         if (fetchError) {
-          // Handle potential auth errors propagated from the client fetch wrapper
           console.error("Error fetching profile:", fetchError);
           throw fetchError;
         }
@@ -57,9 +55,9 @@ export const useProfile = () => {
               full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
               avatar_url: user.imageUrl || null,
               email: user.primaryEmailAddress?.emailAddress || null,
+              updated_at: new Date().toISOString()
             };
             
-            // RLS will ensure we can only update our own profile
             const { data: updatedProfile, error: updateError } = await supabase
               .from("profiles")
               .update(updateData)
@@ -87,6 +85,8 @@ export const useProfile = () => {
             full_name: `${user.firstName || ""} ${user.lastName || ""}`.trim() || null,
             avatar_url: user.imageUrl || null,
             email: user.primaryEmailAddress?.emailAddress || null,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
           };
 
           const { data: newProfile, error: insertError } = await supabase
@@ -105,6 +105,7 @@ export const useProfile = () => {
         }
       } catch (error) {
         console.error("Error in profile operations:", error);
+        setError(error instanceof Error ? error : new Error("Unknown error"));
         toast({
           title: "Profile Error",
           description: "Could not load or create your profile.",
@@ -124,6 +125,6 @@ export const useProfile = () => {
   return {
     profile,
     isLoading,
-    error: authError // Propagate auth errors if needed
+    error
   };
 };
