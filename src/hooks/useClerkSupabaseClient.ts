@@ -41,8 +41,8 @@ export function useClerkSupabaseClient() {
       // Create client with the token getter
       const supabaseClient = createSupabaseClientWithClerk(getToken);
       
-      // We need to explicitly cast here to avoid TypeScript errors
-      setClient(supabaseClient as SupabaseClient<Database>);
+      // Handle the type casting properly to avoid TypeScript errors
+      setClient(supabaseClient as unknown as SupabaseClient<Database>);
 
       // Verify that authentication works
       const verifyAuth = async () => {
