@@ -48,6 +48,7 @@ export const createSupabaseClientWithClerk = (getToken: () => Promise<string | n
       global: {
         headers: {
           'x-application-name': 'doctor-landing-pages',
+          // Use the async headers feature of Supabase client instead of passing a function directly
           async Authorization() {
             const token = await getToken();
             if (token) {
