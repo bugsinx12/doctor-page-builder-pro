@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from '@clerk/clerk-react';
-import { createSupabaseClientWithClerk } from '@/integrations/supabase/client';
+import { createSupabaseClientWithClerk, supabase } from '@/integrations/supabase/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
  */
 export function useClerkSupabaseClient() {
   const { session, isSignedIn } = useSession();
-  const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
+  const [client, setClient] = useState<SupabaseClient<Database, "public"> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
