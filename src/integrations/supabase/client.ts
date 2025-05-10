@@ -41,7 +41,7 @@ export function getSupabaseWithClerkToken(token: string) {
 
 // Function that creates a Supabase client with Clerk token
 export const createSupabaseClientWithClerk = (getToken: () => Promise<string | null>) => {
-  return createClient<Database, "public">(
+  return createClient<Database>(
     SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY,
     {

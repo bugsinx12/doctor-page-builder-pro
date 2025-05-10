@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 export function useAuthenticatedSupabase() {
   const { session, isSignedIn } = useSession();
   const { userId } = useAuth();
-  const [client, setClient] = useState<SupabaseClient<Database, "public"> | null>(null);
+  const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,7 +43,9 @@ export function useAuthenticatedSupabase() {
 
     // Create the client with the token getter
     const supabaseClient = createSupabaseClientWithClerk(getToken);
-    setClient(supabaseClient);
+    
+    // We need to explicitly cast here to avoid TypeScript errors
+    setClient(supabaseClient as SupabaseClient<Database>);
 
     // Test authentication with a simple query
     const testAuth = async () => {
