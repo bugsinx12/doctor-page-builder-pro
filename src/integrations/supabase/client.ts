@@ -52,12 +52,12 @@ export const createSupabaseClientWithClerk = (getToken: () => Promise<string | n
           Authorization: '',
         },
         // Add request interceptor to dynamically set the Authorization header
-        fetch: async (url, options = {}) => {
+        fetch: async (url, options: RequestInit = {}) => {
           const token = await getToken();
           if (token) {
             // Set the Authorization header for each request
             options.headers = {
-              ...options.headers,
+              ...(options.headers || {}),
               Authorization: `Bearer ${token}`,
             };
           }
