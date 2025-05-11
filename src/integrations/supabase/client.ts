@@ -48,10 +48,20 @@ export const createSupabaseClientWithClerk = (getToken: () => Promise<string | n
       global: {
         headers: {
           'x-application-name': 'doctor-landing-pages',
-          Authorization: async () => {
-            const token = await getToken();
-            return token ? `Bearer ${token}` : '';
+          // Use a synchronous string for the initial header value
+          Authorization: '',
+        },
+        // Add request interceptor to dynamically set the Authorization header
+        fetch: async (url, options = {}) => {
+          const token = await getToken();
+          if (token) {
+            // Set the Authorization header for each request
+            options.headers = {
+              ...options.headers,
+              Authorization: `Bearer ${token}`,
+            };
           }
+          return fetch(url, options);
         },
       },
       auth: {
