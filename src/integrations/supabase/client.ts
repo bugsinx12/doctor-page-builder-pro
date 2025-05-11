@@ -48,12 +48,9 @@ export const createSupabaseClientWithClerk = (getToken: () => Promise<string | n
       global: {
         headers: {
           'x-application-name': 'doctor-landing-pages',
-          Authorization: {
-            // Using Supabase's header function pattern
-            async value() {
-              const token = await getToken();
-              return token ? `Bearer ${token}` : '';
-            }
+          Authorization: async () => {
+            const token = await getToken();
+            return token ? `Bearer ${token}` : '';
           }
         },
       },
