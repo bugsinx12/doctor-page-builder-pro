@@ -82,7 +82,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subscribers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       tasks: {
         Row: {
@@ -93,14 +101,22 @@ export type Database = {
         Insert: {
           id?: number
           name: string
-          user_id?: string
+          user_id: string
         }
         Update: {
           id?: number
           name?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "tasks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       websites: {
         Row: {
@@ -118,7 +134,7 @@ export type Database = {
         }
         Insert: {
           content: Json
-          createdat: string
+          createdat?: string
           customdomain?: string | null
           id?: string
           name: string
@@ -126,7 +142,7 @@ export type Database = {
           settings: Json
           slug: string
           templateid: string
-          updatedat: string
+          updatedat?: string
           userid: string
         }
         Update: {
@@ -142,7 +158,15 @@ export type Database = {
           updatedat?: string
           userid?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "websites_userid_fkey"
+            columns: ["userid"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

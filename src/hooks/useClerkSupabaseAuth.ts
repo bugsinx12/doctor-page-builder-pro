@@ -29,8 +29,8 @@ export function useClerkSupabaseAuth() {
       try {
         setIsLoading(true);
         
-        // Get a default token from Clerk without specifying a template
-        const token = await session.getToken();
+        // Get JWT token with Supabase template
+        const token = await session.getToken({ template: 'supabase' });
         
         if (!token) {
           setIsAuthenticated(false);
@@ -86,7 +86,7 @@ export function useClerkSupabaseAuth() {
       }
       
       // Get a fresh token and verify it works
-      const token = await session.getToken();
+      const token = await session.getToken({ template: 'supabase' });
       
       if (!token) {
         setIsAuthenticated(false);
