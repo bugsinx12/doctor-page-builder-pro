@@ -14,6 +14,7 @@ export function useClerkSupabaseClient() {
   const [client, setClient] = useState<SupabaseClient<Database> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     const setupSupabase = async () => {
@@ -21,11 +22,13 @@ export function useClerkSupabaseClient() {
         setClient(null);
         setIsAuthenticated(false);
         setIsLoading(false);
+        setError(null);
         return;
       }
 
       try {
         setIsLoading(true);
+        setError(null);
 
         // Get token from Clerk using the supabase template
         const token = await getToken({ template: 'supabase' });
@@ -33,7 +36,9 @@ export function useClerkSupabaseClient() {
         if (!token) {
           console.error('Failed to get Clerk JWT token for Supabase');
           setIsAuthenticated(false);
+          setClient(null);
           setIsLoading(false);
+          setError(new Error('Failed to get authentication token'));
           return;
         }
 
@@ -54,12 +59,32 @@ export function useClerkSupabaseClient() {
           }
         );
 
-        setClient(supabase);
-        setIsAuthenticated(true);
+        // Test that we can access the database with this client
+        try {
+          const { error: testError } = await supabase
+            .from('profiles')
+            .select('id')
+            .limit(1);
+          
+          if (testError && !testError.message.includes('no rows found')) {
+            console.error('Authentication test failed:', testError);
+            throw new Error(`Authentication test failed: ${testError.message}`);
+          }
+          
+          // Authentication successful
+          setClient(supabase);
+          setIsAuthenticated(true);
+        } catch (testErr) {
+          console.error('Error testing authentication:', testErr);
+          setClient(null);
+          setIsAuthenticated(false);
+          setError(testErr instanceof Error ? testErr : new Error('Authentication test failed'));
+        }
       } catch (error) {
         console.error('Error setting up Supabase client:', error);
         setClient(null);
         setIsAuthenticated(false);
+        setError(error instanceof Error ? error : new Error('Failed to set up Supabase client'));
       } finally {
         setIsLoading(false);
       }
@@ -68,5 +93,5 @@ export function useClerkSupabaseClient() {
     setupSupabase();
   }, [getToken, userId, isSignedIn]);
 
-  return { client, isLoading, isAuthenticated, userId };
+  return { client, isLoading, isAuthenticated, userId, error };
 }

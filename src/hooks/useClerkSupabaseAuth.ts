@@ -43,6 +43,7 @@ export function useClerkSupabaseAuth() {
         
         // Verify token works with a direct API call to Supabase
         try {
+          console.log("Testing auth with Clerk userId:", userId);
           const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
             headers: {
               'apikey': SUPABASE_PUBLISHABLE_KEY,
@@ -52,6 +53,7 @@ export function useClerkSupabaseAuth() {
           
           if (!response.ok) {
             const errorText = await response.text();
+            console.error("Auth verification failed:", response.status, errorText);
             throw new Error(`Supabase auth error: ${response.status} - ${errorText}`);
           }
           
@@ -74,7 +76,7 @@ export function useClerkSupabaseAuth() {
     };
     
     checkAuth();
-  }, [isSignedIn, session, toast]);
+  }, [isSignedIn, session, toast, userId]);
   
   const refreshAuth = async () => {
     setIsLoading(true);
@@ -112,6 +114,7 @@ export function useClerkSupabaseAuth() {
         });
       } else {
         const errorText = await response.text();
+        console.error("Auth refresh failed:", response.status, errorText);
         throw new Error(`Auth verification failed: ${response.status} - ${errorText}`);
       }
     } catch (err) {

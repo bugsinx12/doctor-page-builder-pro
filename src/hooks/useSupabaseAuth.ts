@@ -1,25 +1,24 @@
 
-import { useState, useCallback, useEffect } from "react";
-import { useAuth } from "@clerk/clerk-react";
-import { supabase, getSupabaseWithClerkToken } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useCallback, useEffect } from 'react';
+import { useSession } from '@clerk/clerk-react';
+import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 /**
  * Hook to check if the user is authenticated with Supabase via Clerk JWT
  */
 export function useSupabaseAuth() {
-  const { userId, getToken, isSignedIn } = useAuth();
+  const { session, isSignedIn } = useSession();
+  const userId = session?.user?.id || null;
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [client, setClient] = useState(supabase);
   const { toast } = useToast();
 
   // Function to check authentication that can be called on demand
   const checkAuth = useCallback(async () => {
     if (!userId || !isSignedIn) {
       setIsAuthenticated(false);
-      setClient(supabase);
       setIsLoading(false);
       return false;
     }
@@ -27,9 +26,9 @@ export function useSupabaseAuth() {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Get token from Clerk with supabase template
-      const token = await getToken({
+
+      // Get token from Clerk with custom claims
+      const token = await session?.getToken({
         template: "supabase"
       });
       
@@ -46,31 +45,40 @@ export function useSupabaseAuth() {
         return false;
       }
 
-      // Create authenticated client
-      const authenticatedClient = getSupabaseWithClerkToken(token);
-      setClient(authenticatedClient);
-      
-      // Test authentication with a simple query
-      const { error: testError } = await authenticatedClient
-        .from('profiles')
-        .select('id')
-        .limit(1);
-      
-      if (testError && !testError.message.includes('No rows found')) {
-        console.error("Supabase auth error:", testError);
-        setError(testError);
-        toast({
-          title: "Authentication Error",
-          description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
-          variant: "destructive",
+      // Test our authentication with a direct API call using the token
+      try {
+        // Use text format for the Clerk ID in the request
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
+          headers: {
+            'apikey': SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${token}`
+          }
         });
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        return false;
+
+        if (!response.ok) {
+          console.error("Supabase auth error:", response.statusText);
+          setError(new Error(`Authentication failed: ${response.statusText}`));
+          
+          // Log more details for debugging
+          const errorText = await response.text();
+          console.error("Auth error details:", errorText);
+          
+          toast({
+            title: "Authentication Error",
+            description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
+            variant: "destructive",
+          });
+          setIsAuthenticated(false);
+          setIsLoading(false);
+          return false;
+        }
+      } catch (err) {
+        console.error("Error testing auth:", err);
+        throw err;
       }
 
+      // Authentication successful
       setIsAuthenticated(true);
-      setError(null);
       setIsLoading(false);
       return true;
     } catch (err) {
@@ -82,10 +90,11 @@ export function useSupabaseAuth() {
         description: "Please ensure your Clerk JWT template is configured correctly.",
         variant: "destructive",
       });
-      setIsLoading(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
-  }, [userId, getToken, toast, isSignedIn]);
+  }, [userId, session, toast, isSignedIn]);
 
   useEffect(() => {
     checkAuth();
@@ -95,8 +104,8 @@ export function useSupabaseAuth() {
     isAuthenticated, 
     isLoading, 
     error, 
-    userId,
-    client,
-    refreshAuth: checkAuth
+    refreshAuth: checkAuth,
+    userId, // Add userId here for components that need it
+    authAttempted: !isLoading // If we're not loading, we've attempted auth
   };
 }
