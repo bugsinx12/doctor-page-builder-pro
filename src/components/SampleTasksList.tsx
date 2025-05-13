@@ -11,7 +11,7 @@ const SampleTasksList = () => {
   const [newTask, setNewTask] = useState('');
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const { client, isAuthenticated, isLoading: authLoading } = useClerkSupabaseClient();
+  const { client, isAuthenticated, isLoading: authLoading, userId } = useClerkSupabaseClient();
   
   // Fetch tasks using the authenticated client
   const fetchTasks = async () => {
@@ -45,7 +45,7 @@ const SampleTasksList = () => {
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newTask.trim() || !isAuthenticated || !client) return;
+    if (!newTask.trim() || !isAuthenticated || !client || !userId) return;
     
     try {
       setAdding(true);
@@ -53,7 +53,10 @@ const SampleTasksList = () => {
       // Client has Clerk token injected automatically
       const { data, error } = await client
         .from('tasks')
-        .insert({ name: newTask.trim() })
+        .insert({ 
+          name: newTask.trim(),
+          user_id: userId // Add the user_id field from Clerk
+        })
         .select()
         .single();
       
