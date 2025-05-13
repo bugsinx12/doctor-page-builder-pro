@@ -27,8 +27,9 @@ export const useProfile = () => {
     const fetchProfile = async () => {
       try {
         setProfileLoading(true);
-        console.log("Fetching profile for user with Clerk ID:", userId);
+        console.log("Fetching profile for Clerk ID:", userId);
         
+        // Use the Clerk ID directly as the profile ID
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
           .select("*")
@@ -77,7 +78,7 @@ export const useProfile = () => {
             setProfile(existingProfile);
           }
         } else {
-          console.log("No profile found, creating new profile with ID:", userId);
+          console.log("No profile found, creating new profile with Clerk ID:", userId);
           
           // Create profile with ID matching the Clerk userId
           const profileData: ProfileInsert = {

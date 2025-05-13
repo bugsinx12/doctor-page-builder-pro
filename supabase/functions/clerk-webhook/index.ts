@@ -105,7 +105,7 @@ serve(async (req) => {
 
       console.log(`Processing user: ${clerkUserId}, ${email}`);
       
-      // Check if profile exists
+      // Check if profile exists - use the Clerk ID string directly
       const { data: existingProfile, error: profileError } = await supabaseAdmin
         .from('profiles')
         .select('id')
@@ -116,7 +116,7 @@ serve(async (req) => {
         console.error("Error checking for profile:", profileError);
       }
       
-      // Create profile if it doesn't exist
+      // Create profile if it doesn't exist - using the Clerk ID string directly
       if (!existingProfile) {
         const { error: insertError } = await supabaseAdmin
           .from('profiles')

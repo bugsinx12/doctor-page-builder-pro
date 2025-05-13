@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { getClerkId } from '@/utils/clerkUtils';
 import type { Database } from "@/integrations/supabase/types";
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -36,13 +35,13 @@ export const usePracticeInfo = () => {
     const fetchPracticeInfo = async () => {
       try {
         setLoading(true);
-        // With TPA, we use the Clerk ID directly
-        const clerkId = userId;
+        console.log("Fetching practice info with Clerk ID:", userId);
         
+        // Use the Clerk ID directly with the profiles table
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
-          .eq('id', clerkId)
+          .eq('id', userId)
           .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
@@ -97,8 +96,7 @@ export const usePracticeInfo = () => {
     
     try {
       setLoading(true);
-      // With TPA, we use the Clerk ID directly
-      const clerkId = userId;
+      console.log('Updating practice info with Clerk ID:', userId);
       
       console.log('Updating practice info to Supabase:', {
         practice_name: newInfo.name,
@@ -120,7 +118,7 @@ export const usePracticeInfo = () => {
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', clerkId);
+        .eq('id', userId);
         
       if (error) {
         console.error('Supabase update error:', error);

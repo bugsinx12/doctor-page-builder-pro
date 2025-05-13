@@ -29,9 +29,9 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
     const initProfile = async () => {
       try {
         setProcessing(true);
-        console.log("Initializing user profile...", { userId });
+        console.log("Initializing user profile for Clerk ID:", userId);
         
-        // Check if profile exists
+        // Check if profile exists - use the string ID from Clerk directly
         const { data: existingProfile, error } = await supabase
           .from('profiles')
           .select('id')
@@ -48,12 +48,17 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
           return;
         }
 
-        // If profile doesn't exist, create it
+        // If profile doesn't exist, create it using the Clerk ID directly
         if (!existingProfile) {
-          console.log("Creating new profile for user:", userId);
+          console.log("Creating new profile for Clerk user:", userId);
+          
           const { error: insertError } = await supabase
             .from('profiles')
-            .insert({ id: userId });
+            .insert({ 
+              id: userId,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
 
           if (insertError) {
             console.error("Error creating profile:", insertError);
