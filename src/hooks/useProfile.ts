@@ -1,8 +1,9 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/clerk-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { useSupabaseClient } from "@/utils/useSupabaseClient";
 import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -11,7 +12,8 @@ type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export const useProfile = () => {
   const { user } = useUser();
-  const { client: supabase, isLoading: authLoading, isAuthenticated, userId } = useSupabaseAuth();
+  const { isAuthenticated, isLoading: authLoading, userId } = useSupabaseAuth();
+  const { client: supabase, isLoading: clientLoading } = useSupabaseClient();
   const [profileLoading, setProfileLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -121,7 +123,7 @@ export const useProfile = () => {
   }, [userId, user, toast, isAuthenticated, supabase]);
 
   // Combine loading states
-  const isLoading = authLoading || profileLoading;
+  const isLoading = authLoading || clientLoading || profileLoading;
 
   return {
     profile,
