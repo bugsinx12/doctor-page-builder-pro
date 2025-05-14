@@ -1,42 +1,39 @@
 
+import { PracticeInfo } from '@/hooks/useOnboardingState';
 import { WebsiteContent, WebsiteSettings } from '@/types';
-import { TemplateGenerationProps, TemplateType } from './templates/types';
-import { generateGeneralPracticeTemplate } from './templates/generalPractice';
-import { generateSpecialistTemplate } from './templates/specialist';
-import { generatePediatricTemplate } from './templates/pediatric';
-import { generateClinicTemplate } from './templates/clinic';
+import { generateTemplateContent } from '@/pages/websiteManagerUtils';
 
-export const generateTemplateContent = (
-  templateId: string,
-  practiceInfo: {
-    name: string;
-    specialty: string;
-    address?: string;
-    phone?: string;
-    email?: string;
+// Re-export the generateTemplateContent function
+export { generateTemplateContent };
+
+// Define available templates
+export const availableTemplates = [
+  {
+    id: 'general',
+    name: 'General Practice',
+    description: 'A clean, professional template for general medical practices.',
+    thumbnail: '/templates/general-thumbnail.jpg',
+    preview: '/templates/general-preview.jpg',
+  },
+  {
+    id: 'specialist',
+    name: 'Specialist',
+    description: 'Designed for medical specialists showcasing advanced services.',
+    thumbnail: '/templates/specialist-thumbnail.jpg',
+    preview: '/templates/specialist-preview.jpg',
+  },
+  {
+    id: 'pediatric',
+    name: 'Pediatric',
+    description: 'Friendly and colorful design for pediatric practices.',
+    thumbnail: '/templates/pediatric-thumbnail.jpg',
+    preview: '/templates/pediatric-preview.jpg',
+  },
+  {
+    id: 'dental',
+    name: 'Dental',
+    description: 'Professional template for dental practices and clinics.',
+    thumbnail: '/templates/dental-thumbnail.jpg',
+    preview: '/templates/dental-preview.jpg',
   }
-): { content: WebsiteContent; settings: WebsiteSettings } => {
-  // Determine the template type based on the ID
-  let templateType: TemplateType = 'general-practice';
-  
-  if (templateId.includes('specialist')) {
-    templateType = 'specialist';
-  } else if (templateId.includes('pediatric')) {
-    templateType = 'pediatric';
-  } else if (templateId.includes('clinic')) {
-    templateType = 'clinic';
-  }
-  
-  // Generate the template based on the determined type
-  switch (templateType) {
-    case 'specialist':
-      return generateSpecialistTemplate(practiceInfo);
-    case 'pediatric':
-      return generatePediatricTemplate(practiceInfo);
-    case 'clinic':
-      return generateClinicTemplate(practiceInfo);
-    case 'general-practice':
-    default:
-      return generateGeneralPracticeTemplate(practiceInfo);
-  }
-};
+];

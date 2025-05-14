@@ -92,32 +92,6 @@ export type Database = {
           },
         ]
       }
-      tasks: {
-        Row: {
-          id: number
-          name: string
-          user_id: string
-        }
-        Insert: {
-          id?: number
-          name: string
-          user_id: string
-        }
-        Update: {
-          id?: number
-          name?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       websites: {
         Row: {
           content: Json

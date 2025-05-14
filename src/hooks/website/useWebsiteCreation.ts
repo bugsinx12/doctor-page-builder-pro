@@ -2,11 +2,10 @@
 import { useState } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
-import { useToast } from '@/components/ui/use-toast';
-import { generateTemplateContent } from '@/utils/websiteTemplates';
+import { useToast } from '@/hooks/use-toast';
+import { generateTemplateContent, getWebsiteError, getValidationError } from '@/pages/websiteManagerUtils';
 import type { Database } from "@/integrations/supabase/types";
 import type { Json } from '@/integrations/supabase/types';
-import { getWebsiteError, getValidationError } from '@/utils/websiteErrors';
 import { useSupabaseClient } from '@/utils/useSupabaseClient';
 
 interface PracticeInfo {
@@ -21,13 +20,13 @@ export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: 
   const { userId } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const { client: supabaseClient } = useSupabaseClient();
+  const { client: supabaseClient, isAuthenticated } = useSupabaseClient();
 
   const createWebsite = async (
     templateId: string, 
     practiceInfo: PracticeInfo
   ): Promise<Website | null> => {
-    if (!userId || !supabaseClient) {
+    if (!userId || !supabaseClient || !isAuthenticated) {
       const error = getWebsiteError(new Error("Authentication failed"));
       toast(error);
       return null;
