@@ -1,4 +1,3 @@
-
 import { PracticeInfo } from '@/hooks/useOnboardingState';
 import { WebsiteContent, WebsiteSettings } from '@/types';
 

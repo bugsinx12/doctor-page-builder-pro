@@ -13,6 +13,9 @@ export interface PracticeInfoState {
   email: string;
 }
 
+// Also export as PracticeInfo to maintain compatibility with imports
+export type PracticeInfo = PracticeInfoState;
+
 export function useOnboardingState() {
   const { user } = useUser();
   const [currentStep, setCurrentStep] = useState(0);
