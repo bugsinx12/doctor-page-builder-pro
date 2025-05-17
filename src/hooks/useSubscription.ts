@@ -15,7 +15,7 @@ interface SubscriptionStatus {
 }
 
 export const useSubscription = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const userId = user?.id;
   const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase();
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +27,7 @@ export const useSubscription = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userId || !user || !isAuthenticated || authLoading) {
+    if (!userId || !user || !isAuthenticated || authLoading || !session) {
       setIsLoading(false);
       return;
     }
@@ -79,22 +79,17 @@ export const useSubscription = () => {
             });
           }
         }
-
-        // Get the current session
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          console.log("No active session found");
-          setIsLoading(false);
-          return;
-        }
         
         // Check subscription status from edge function
         try {
           console.log("Calling check-subscription edge function");
+          
+          // Get the access token from the current session
+          const accessToken = session.access_token;
+          
           const { data, error } = await supabase.functions.invoke('check-subscription', {
             headers: {
-              Authorization: `Bearer ${session.access_token}`
+              Authorization: `Bearer ${accessToken}`
             }
           });
 
@@ -132,7 +127,7 @@ export const useSubscription = () => {
     };
 
     checkSubscription();
-  }, [userId, user, toast, isAuthenticated, authLoading, supabase]);
+  }, [userId, user, session, toast, isAuthenticated, authLoading, supabase]);
 
   return { subscriptionStatus, isLoading: isLoading || authLoading };
 };

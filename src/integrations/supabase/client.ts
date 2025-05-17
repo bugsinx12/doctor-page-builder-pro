@@ -23,7 +23,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     storage: typeof localStorage !== 'undefined' ? localStorage : undefined,
     flowType: 'pkce', // More secure flow for browser-based auth
-    detectSessionInUrl: true // Important for handling redirect URLs
+    detectSessionInUrl: true, // Important for handling redirect URLs
+    redirectTo: `${getRedirectBase()}/auth` // Ensure email verification redirects to the auth page
   }
 });
 

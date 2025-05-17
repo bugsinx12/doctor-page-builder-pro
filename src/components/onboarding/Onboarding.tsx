@@ -8,14 +8,14 @@ import { onboardingSteps, getStepContent } from '@/components/onboarding/Onboard
 import { useWebsiteOperations } from '@/hooks/website/useWebsiteOperations';
 import { useOnboardingState } from '@/hooks/useOnboardingState';
 import OnboardingCompletion from '@/components/onboarding/OnboardingCompletion';
-import { useAuth } from '@/contexts/AuthContext'; // Use our custom Supabase AuthContext
+import { useAuth } from '@/contexts/AuthContext';
 
 interface OnboardingProps {
   onComplete: () => void;
 }
 
 const Onboarding = ({ onComplete }: OnboardingProps) => {
-  const { user } = useAuth(); // Using our custom AuthContext
+  const { user } = useAuth();
   const {
     currentStep,
     setCurrentStep,
@@ -35,7 +35,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
 
   // Get completion handler
   const { handleComplete, isCompleting } = OnboardingCompletion({
-    userId: user?.id || null, // Use our user object from AuthContext
+    userId: user?.id || null,
     selectedTemplate,
     practiceInfo: localPracticeInfo,
     websites,
