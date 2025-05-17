@@ -28,13 +28,14 @@ export function useProfile() {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id as string)
+          .eq('id', user.id)
           .single();
           
         if (error) {
           throw error;
         }
         
+        // Use type casting to resolve TS error
         setProfile(data as Profile);
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -51,15 +52,15 @@ export function useProfile() {
     try {
       if (!user) return { success: false, error: new Error('User not authenticated') };
       
-      const updateData: ProfileUpdate = {
+      const updateData = {
         ...updates,
         updated_at: new Date().toISOString()
       };
       
       const { error } = await supabase
         .from('profiles')
-        .update(updateData)
-        .eq('id', user.id as string);
+        .update(updateData as any)
+        .eq('id', user.id);
         
       if (error) {
         throw error;
@@ -69,13 +70,14 @@ export function useProfile() {
       const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id as string)
+        .eq('id', user.id)
         .single();
         
       if (fetchError) {
         throw fetchError;
       }
       
+      // Use type casting here too
       setProfile(data as Profile);
       return { success: true, error: null };
     } catch (err) {

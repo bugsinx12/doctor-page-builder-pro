@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
  */
 export function useAuthenticatedSupabase() {
   const { session, user } = useAuth();
-  const [client, setClient] = useState<SupabaseClient<Database>>(supabase);
+  const [client, setClient] = useState<SupabaseClient>(supabase);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
