@@ -28,14 +28,14 @@ export function useProfile() {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id as string)
+          .eq('id', user.id)
           .single();
           
         if (error) {
           throw error;
         }
         
-        setProfile(data);
+        setProfile(data as Profile);
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError(err instanceof Error ? err : new Error('Failed to fetch profile'));
@@ -58,8 +58,8 @@ export function useProfile() {
       
       const { error } = await supabase
         .from('profiles')
-        .update(updateData)
-        .eq('id', user.id as string);
+        .update(updateData as ProfileUpdate)
+        .eq('id', user.id);
         
       if (error) {
         throw error;
@@ -69,10 +69,10 @@ export function useProfile() {
       const { data } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id as string)
+        .eq('id', user.id)
         .single();
         
-      setProfile(data);
+      setProfile(data as Profile);
       return { success: true, error: null };
     } catch (err) {
       console.error("Error updating profile:", err);

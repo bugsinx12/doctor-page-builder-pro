@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
@@ -17,7 +17,7 @@ interface PracticeInfo {
 }
 
 export const usePracticeInfo = () => {
-  const { userId } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [practiceInfo, setPracticeInfo] = useState<PracticeInfo>({
     name: '',
@@ -30,18 +30,20 @@ export const usePracticeInfo = () => {
   const [isPracticeInfoSet, setIsPracticeInfoSet] = useState(false);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!user?.id) return;
+    
+    const userId = user.id;
 
     const fetchPracticeInfo = async () => {
       try {
         setLoading(true);
-        console.log("Fetching practice info with Clerk ID:", userId);
+        console.log("Fetching practice info with user ID:", userId);
         
-        // Use the Clerk ID directly with the profiles table
+        // Use the user ID directly with the profiles table
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
-          .eq('id', userId as string)
+          .eq('id', userId)
           .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
@@ -82,10 +84,10 @@ export const usePracticeInfo = () => {
     };
 
     fetchPracticeInfo();
-  }, [userId, toast]);
+  }, [user, toast]);
 
   const updatePracticeInfo = async (newInfo: PracticeInfo) => {
-    if (!userId) {
+    if (!user?.id) {
       toast({
         title: "Error",
         description: "You must be logged in to update practice information",
@@ -96,7 +98,7 @@ export const usePracticeInfo = () => {
     
     try {
       setLoading(true);
-      console.log('Updating practice info with Clerk ID:', userId);
+      console.log('Updating practice info with user ID:', user.id);
       
       console.log('Updating practice info to Supabase:', {
         practice_name: newInfo.name,
@@ -107,18 +109,19 @@ export const usePracticeInfo = () => {
       });
       
       // Create an update object that matches the expected types
-      const updateData: ProfileUpdate = {
+      const updateData = {
         practice_name: newInfo.name,
         specialty: newInfo.specialty,
         address: newInfo.address || null,
         phone: newInfo.phone || null,
-        email: newInfo.email || null
-      };
+        email: newInfo.email || null,
+        updated_at: new Date().toISOString()
+      } as ProfileUpdate;
       
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', userId as string);
+        .eq('id', user.id);
         
       if (error) {
         console.error('Supabase update error:', error);

@@ -23,7 +23,7 @@ const OnboardingController = ({ authenticated, children }: OnboardingControllerP
         const { data, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty')
-          .eq('id', user.id as string)
+          .eq('id', user.id)
           .single();
         
         if (error) {
@@ -32,9 +32,7 @@ const OnboardingController = ({ authenticated, children }: OnboardingControllerP
         }
         
         // If profile has practice_name and specialty, consider onboarding completed
-        const onboardingCompleted = data && data.practice_name && data.specialty;
-        
-        if (onboardingCompleted) {
+        if (data && data.practice_name && data.specialty) {
           setIsRedirecting(true);
           navigate('/dashboard', { replace: true });
         }

@@ -35,7 +35,7 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
         const { data: existingProfile, error } = await supabase
           .from('profiles')
           .select('id')
-          .eq('id', userId as string)
+          .eq('id', userId)
           .single();
 
         if (error && !error.message.includes('No rows found')) {
@@ -52,13 +52,15 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
         if (!existingProfile) {
           console.log("Creating new profile for user:", userId);
           
+          const insertData = {
+            id: userId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          } as Database['public']['Tables']['profiles']['Insert'];
+          
           const { error: insertError } = await supabase
             .from('profiles')
-            .insert({ 
-              id: userId,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            } as Database['public']['Tables']['profiles']['Insert']);
+            .insert(insertData);
 
           if (insertError) {
             console.error("Error creating profile:", insertError);
