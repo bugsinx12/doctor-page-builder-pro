@@ -5,13 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Stethoscope, Menu, X } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
-import { UserButton, useAuth, useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const { t } = useTranslation();
-  const { isSignedIn, isLoaded } = useAuth();
-  const { user } = useUser();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   
   return (
@@ -38,17 +37,26 @@ const Navbar = () => {
           </Link>
           <div className="ml-3 flex items-center space-x-3">
             <LanguageSwitcher />
-            {isLoaded && isSignedIn ? (
+            {!isLoading && user ? (
               <div className="flex items-center space-x-4">
-                {user?.firstName && (
+                {user.email && (
                   <span className="text-medical-600 font-medium">
-                    Welcome, {user.firstName}!
+                    Welcome, {user.email}!
                   </span>
                 )}
                 <Button variant="outline" className="rounded-md" onClick={() => navigate('/dashboard')}>
                   Dashboard
                 </Button>
-                <UserButton afterSignOutUrl="/" />
+                <Button 
+                  variant="ghost" 
+                  className="rounded-full w-8 h-8 p-0 overflow-hidden"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  <span className="sr-only">User profile</span>
+                  <div className="w-full h-full flex items-center justify-center bg-medical-100 text-medical-600 font-bold uppercase">
+                    {user.email?.charAt(0) || 'U'}
+                  </div>
+                </Button>
               </div>
             ) : (
               <>
@@ -115,11 +123,11 @@ const Navbar = () => {
               <div className="flex justify-center mb-2">
                 <LanguageSwitcher />
               </div>
-              {isLoaded && isSignedIn ? (
+              {!isLoading && user ? (
                 <div className="flex flex-col items-center space-y-4">
-                  {user?.firstName && (
+                  {user.email && (
                     <span className="text-medical-600 font-medium">
-                      Welcome, {user.firstName}!
+                      Welcome, {user.email}!
                     </span>
                   )}
                   <Button variant="outline" className="w-full" onClick={() => {
@@ -128,9 +136,18 @@ const Navbar = () => {
                   }}>
                     Dashboard
                   </Button>
-                  <div className="flex justify-center">
-                    <UserButton afterSignOutUrl="/" />
-                  </div>
+                  <Button 
+                    onClick={() => {
+                      navigate('/dashboard');
+                      setIsMenuOpen(false);
+                    }}
+                    variant="ghost" 
+                    className="rounded-full w-10 h-10 p-0 overflow-hidden"
+                  >
+                    <div className="w-full h-full flex items-center justify-center bg-medical-100 text-medical-600 font-bold uppercase">
+                      {user.email?.charAt(0) || 'U'}
+                    </div>
+                  </Button>
                 </div>
               ) : (
                 <>

@@ -33,7 +33,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (!isLoading) {
       if (user) {
         // User is authenticated, check if onboarding is completed
-        // This will need to be updated to use Supabase profile data
         setChecking(false);
       } else {
         // User is not authenticated, redirect to login
