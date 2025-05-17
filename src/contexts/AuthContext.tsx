@@ -111,11 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear any existing auth state first
       cleanupAuthState();
       
+      // Get the current URL for proper redirect
+      const currentOrigin = window.location.origin;
+      
       const { data, error } = await supabase.auth.signUp({ 
         email, 
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth`
+          emailRedirectTo: `${currentOrigin}/auth`
         }
       });
       
@@ -175,8 +178,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Reset password
   const resetPassword = async (email: string) => {
     try {
+      // Get the current URL for proper redirect
+      const currentOrigin = window.location.origin;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?reset=true`,
+        redirectTo: `${currentOrigin}/auth?reset=true`,
       });
       
       if (error) {
