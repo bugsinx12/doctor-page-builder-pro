@@ -1,15 +1,16 @@
 
 import { useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
 import { Website } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { useSupabaseClient } from '@/utils/useSupabaseClient';
+import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useWebsiteManagement = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
-  const { userId } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const { client: supabaseClient } = useSupabaseClient();
+  const { client: supabaseClient, isAuthenticated } = useAuthenticatedSupabase();
 
   const deleteWebsite = async (websiteId: string) => {
     if (!confirm('Are you sure you want to delete this website? This action cannot be undone.')) {

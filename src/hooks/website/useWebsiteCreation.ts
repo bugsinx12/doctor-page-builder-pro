@@ -1,12 +1,12 @@
 
 import { useState } from 'react';
-import { useAuth } from '@clerk/clerk-react';
 import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { generateTemplateContent, getWebsiteError, getValidationError } from '@/pages/websiteManagerUtils';
 import type { Database } from "@/integrations/supabase/types";
 import type { Json } from '@/integrations/supabase/types';
-import { useSupabaseClient } from '@/utils/useSupabaseClient';
+import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PracticeInfo {
   name: string;
@@ -17,10 +17,11 @@ interface PracticeInfo {
 }
 
 export const useWebsiteCreation = (websites: Website[], setWebsites: (websites: Website[]) => void) => {
-  const { userId } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const { client: supabaseClient, isAuthenticated } = useSupabaseClient();
+  const { client: supabaseClient, isLoading: authLoading, isAuthenticated } = useAuthenticatedSupabase();
 
   const createWebsite = async (
     templateId: string, 
