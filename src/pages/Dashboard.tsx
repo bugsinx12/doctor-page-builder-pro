@@ -8,12 +8,12 @@ import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import NavigationItems from "@/components/dashboard/NavigationItems";
 import SubscriptionStatus from "@/components/dashboard/SubscriptionStatus";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/useProfile";
 
 const Dashboard = () => {
   const { user, session } = useAuth();
   const navigate = useNavigate();
-  const { profile, isLoading: isProfileLoading } = useSyncUserProfile();
+  const { profile, loading } = useProfile();
   const { subscriptionStatus, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
   
   useEffect(() => {
@@ -32,7 +32,7 @@ const Dashboard = () => {
       <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="space-y-8">
           <ProfileHeader
-            isLoading={isProfileLoading}
+            isLoading={loading}
             practiceName={profile?.practice_name || null}
             specialty={profile?.specialty || null}
             avatarUrl={profile?.avatar_url || null}
