@@ -12,7 +12,7 @@ const getRedirectBase = () => {
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  return 'https://90330c15-fb0a-4d45-8287-c76aafd084ed.lovableproject.com'; // Fallback to the preview URL
+  return 'https://doctor-page-builder-pro.lovable.app'; // Use the production URL as fallback
 };
 
 // Create a Supabase client for anonymous access
@@ -22,15 +22,9 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     persistSession: true,
     storage: typeof localStorage !== 'undefined' ? localStorage : undefined,
-    // Use the actual application URL for redirects
     flowType: 'pkce', // More secure flow for browser-based auth
     detectSessionInUrl: true // Important for handling redirect URLs
-  },
-  global: {
-    headers: {
-      'x-application-name': 'doctor-landing-pages',
-    },
-  },
+  }
 });
 
 /**

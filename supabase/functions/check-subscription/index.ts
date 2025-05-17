@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -42,35 +41,27 @@ serve(async (req) => {
       );
     }
 
-    // Decode the auth token (simple base64 decode)
+    // Extract the JWT token
     const token = authHeader.split(" ")[1];
-    let decodedData;
-    try {
-      decodedData = JSON.parse(atob(token));
-      logStep("Auth token decoded successfully", decodedData);
-    } catch (error) {
-      logStep("Invalid token format", { error });
+    logStep("Token received", { token: token.substring(0, 10) + "..." });
+
+    // Get the user from the token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      logStep("Invalid auth token", { error: userError });
       return new Response(
-        JSON.stringify({ error: "Invalid token format" }),
+        JSON.stringify({ error: "Invalid authentication token" }),
         {
-          status: 400,
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    const { userId, userEmail } = decodedData;
-    if (!userId) {
-      logStep("User ID is missing");
-      return new Response(
-        JSON.stringify({ error: "User ID is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
+    const userId = user.id;
+    const userEmail = user.email;
+    
     logStep("Checking subscription for user:", { userId, userEmail });
 
     // Initialize Stripe
@@ -127,100 +118,6 @@ serve(async (req) => {
         
         logStep("Created new subscriber record", { newSubscriber });
         
-        // Start checking Stripe for this new user
-        try {
-          // Try to find customer in Stripe by email
-          logStep("Looking for Stripe customer by email", { email: userEmail });
-          const customers = await stripe.customers.list({
-            email: userEmail,
-            limit: 1,
-          });
-          
-          if (customers.data.length > 0) {
-            const customer = customers.data[0];
-            logStep("Found customer in Stripe", { customerId: customer.id });
-            
-            // Update subscriber with Stripe customer ID
-            const { error: updateError } = await supabase
-              .from("subscribers")
-              .update({ 
-                stripe_customer_id: customer.id,
-                updated_at: new Date().toISOString()
-              })
-              .eq("user_id", userId);
-              
-            if (updateError) {
-              logStep("Error updating subscriber with Stripe customer ID", { error: updateError });
-            } else {
-              logStep("Updated subscriber with Stripe customer ID");
-              
-              // Check for active subscriptions
-              const subscriptions = await stripe.subscriptions.list({
-                customer: customer.id,
-                status: 'active',
-                limit: 1,
-              });
-              
-              if (subscriptions.data.length > 0) {
-                const subscription = subscriptions.data[0];
-                logStep("Found active subscription", { 
-                  subscriptionId: subscription.id,
-                  status: subscription.status 
-                });
-                
-                // Get subscription details
-                const endDate = new Date(subscription.current_period_end * 1000).toISOString();
-                
-                // Get price ID from subscription
-                const priceId = subscription.items.data[0].price.id;
-                const price = await stripe.prices.retrieve(priceId);
-                
-                // Determine tier based on price
-                let tier = "premium"; // Default tier
-                if (price.id === Deno.env.get("STRIPE_ENTERPRISE_PRICE_ID")) {
-                  tier = "enterprise";
-                } else if (price.id === Deno.env.get("STRIPE_PRO_PRICE_ID")) {
-                  tier = "pro";
-                }
-                
-                // Update subscriber with subscription details
-                const { error: subUpdateError } = await supabase
-                  .from("subscribers")
-                  .update({ 
-                    subscribed: true,
-                    subscription_tier: tier,
-                    subscription_end: endDate,
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq("user_id", userId);
-                  
-                if (subUpdateError) {
-                  logStep("Error updating subscription details", { error: subUpdateError });
-                } else {
-                  logStep("Updated subscription details successfully");
-                  
-                  // Return updated subscription status
-                  return new Response(
-                    JSON.stringify({
-                      subscribed: true,
-                      subscription_tier: tier,
-                      subscription_end: endDate,
-                    }),
-                    {
-                      headers: { ...corsHeaders, "Content-Type": "application/json" },
-                    }
-                  );
-                }
-              }
-            }
-          } else {
-            logStep("No Stripe customer found for this user");
-          }
-        } catch (stripeError) {
-          logStep("Error checking Stripe", { error: stripeError });
-        }
-        
-        // Return default subscription status (not subscribed)
         return new Response(
           JSON.stringify({
             subscribed: false,

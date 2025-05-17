@@ -46,7 +46,6 @@ export const useSubscription = () => {
 
         if (fetchError) {
           console.error("Error fetching subscriber:", fetchError);
-          // Potentially throw or handle error based on severity
         }
 
         // If no subscriber exists, create one
@@ -81,10 +80,23 @@ export const useSubscription = () => {
           }
         }
 
+        // Get the current session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          console.log("No active session found");
+          setIsLoading(false);
+          return;
+        }
+        
         // Check subscription status from edge function
         try {
           console.log("Calling check-subscription edge function");
-          const { data, error } = await supabase.functions.invoke('check-subscription', {});
+          const { data, error } = await supabase.functions.invoke('check-subscription', {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          });
 
           if (error) {
             console.error("Error calling check-subscription:", error);
