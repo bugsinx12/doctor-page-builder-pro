@@ -43,7 +43,7 @@ export const usePracticeInfo = () => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
-          .eq('id', userId)
+          .eq('id', userId as string)
           .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
@@ -109,19 +109,19 @@ export const usePracticeInfo = () => {
       });
       
       // Create an update object that matches the expected types
-      const updateData = {
+      const updateData: ProfileUpdate = {
         practice_name: newInfo.name,
         specialty: newInfo.specialty,
         address: newInfo.address || null,
         phone: newInfo.phone || null,
         email: newInfo.email || null,
         updated_at: new Date().toISOString()
-      } as ProfileUpdate;
+      };
       
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', user.id);
+        .eq('id', user.id as string);
         
       if (error) {
         console.error('Supabase update error:', error);
