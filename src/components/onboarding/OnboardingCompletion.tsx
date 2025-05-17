@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
 import { useToast } from '@/hooks/use-toast';
 import { PracticeInfoState } from '@/hooks/useOnboardingState';
 import { useWebsiteOperations } from '@/hooks/website/useWebsiteOperations';
@@ -23,7 +22,6 @@ const OnboardingCompletion = ({
   setWebsites,
   onComplete
 }: OnboardingCompletionProps) => {
-  const { user } = useUser();
   const { toast } = useToast();
   const [isCompleting, setIsCompleting] = useState(false);
   const { createWebsite } = useWebsiteOperations(websites, setWebsites);
@@ -51,16 +49,7 @@ const OnboardingCompletion = ({
         return;
       }
       
-      // 1. Update Clerk user metadata
-      await user?.update({
-        unsafeMetadata: {
-          onboardingCompleted: true,
-          selectedTemplate,
-          practiceInfo
-        }
-      });
-      
-      // 2. Create website using the selected template
+      // 1. Create website using the selected template
       const newWebsite = await createWebsite(selectedTemplate, practiceInfo);
       
       if (newWebsite) {

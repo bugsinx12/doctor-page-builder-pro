@@ -1,6 +1,5 @@
 
 import { useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
 import { Steps } from '@/components/onboarding/Steps';
 import TemplateSelection from '@/components/onboarding/TemplateSelection';
 import PracticeInfo from '@/components/onboarding/PracticeInfo';
@@ -9,13 +8,14 @@ import { onboardingSteps, getStepContent } from '@/components/onboarding/Onboard
 import { useWebsiteOperations } from '@/hooks/website/useWebsiteOperations';
 import { useOnboardingState } from '@/hooks/useOnboardingState';
 import OnboardingCompletion from '@/components/onboarding/OnboardingCompletion';
+import { useAuth } from '@/contexts/AuthContext'; // Use our custom Supabase AuthContext
 
 interface OnboardingProps {
   onComplete: () => void;
 }
 
 const Onboarding = ({ onComplete }: OnboardingProps) => {
-  const { userId } = useAuth();
+  const { user } = useAuth(); // Using our custom AuthContext
   const {
     currentStep,
     setCurrentStep,
@@ -28,7 +28,6 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
     handlePrevious,
     handlePracticeInfoChange,
     handlePracticeInfoNext,
-    user
   } = useOnboardingState();
   
   // Initialize website operations hook
@@ -36,7 +35,7 @@ const Onboarding = ({ onComplete }: OnboardingProps) => {
 
   // Get completion handler
   const { handleComplete, isCompleting } = OnboardingCompletion({
-    userId,
+    userId: user?.id || null, // Use our user object from AuthContext
     selectedTemplate,
     practiceInfo: localPracticeInfo,
     websites,

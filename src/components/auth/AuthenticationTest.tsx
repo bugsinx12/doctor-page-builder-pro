@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AuthenticationTestProps {
   userId?: string | null;
@@ -11,6 +12,7 @@ interface AuthenticationTestProps {
 const AuthenticationTest: React.FC<AuthenticationTestProps> = ({ userId }) => {
   const { isAuthenticated, isLoading, error } = useSupabaseAuth();
   const [showStatus, setShowStatus] = useState(false);
+  const { user } = useAuth(); // Use our custom AuthContext
 
   useEffect(() => {
     // Only show the status message after a brief delay
@@ -25,8 +27,9 @@ const AuthenticationTest: React.FC<AuthenticationTestProps> = ({ userId }) => {
     return null;
   }
   
-  // Only show the test component if we have a userId from Clerk
-  if (!userId) {
+  // Only show the test component if we have a userId
+  const currentUserId = userId || user?.id;
+  if (!currentUserId) {
     return null;
   }
 
@@ -37,7 +40,7 @@ const AuthenticationTest: React.FC<AuthenticationTestProps> = ({ userId }) => {
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertTitle className="text-green-700">Authentication Successful</AlertTitle>
           <AlertDescription className="text-green-600">
-            Your Clerk and Supabase authentication is working properly.
+            Your authentication is working properly.
           </AlertDescription>
         </Alert>
       )}
@@ -47,7 +50,7 @@ const AuthenticationTest: React.FC<AuthenticationTestProps> = ({ userId }) => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Authentication Status</AlertTitle>
           <AlertDescription>
-            You are signed in with Clerk but not yet authenticated with Supabase.
+            You are signed in but not yet authenticated with Supabase.
           </AlertDescription>
         </Alert>
       )}
@@ -57,7 +60,7 @@ const AuthenticationTest: React.FC<AuthenticationTestProps> = ({ userId }) => {
           <XCircle className="h-4 w-4 text-red-500" />
           <AlertTitle className="text-red-700">Authentication Error</AlertTitle>
           <AlertDescription className="text-red-600">
-            {error.message || "Failed to authenticate with Supabase. Please check your JWT template configuration in Clerk."}
+            {error.message || "Failed to authenticate. Please check your configuration."}
           </AlertDescription>
         </Alert>
       )}
