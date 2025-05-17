@@ -1,15 +1,15 @@
 
 import { useState, useCallback, useEffect } from 'react';
-import { useSession } from '@clerk/clerk-react';
 import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import type { AuthSession } from '@supabase/supabase-js';
 
 /**
- * Hook to check if the user is authenticated with Supabase via Clerk JWT
+ * Hook to check if the user is authenticated with Supabase
  */
 export function useSupabaseAuth() {
-  const { session, isSignedIn } = useSession();
-  const userId = session?.user?.id || null;
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -17,41 +17,35 @@ export function useSupabaseAuth() {
 
   // Function to check authentication that can be called on demand
   const checkAuth = useCallback(async () => {
-    if (!userId || !isSignedIn) {
-      setIsAuthenticated(false);
-      setIsLoading(false);
-      return false;
-    }
-
     try {
       setIsLoading(true);
       setError(null);
 
-      // Get token from Clerk with custom claims
-      const token = await session?.getToken({
-        template: "supabase"
-      });
+      // Get session from Supabase
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!token) {
-        const noTokenError = new Error("No authentication token available");
-        setError(noTokenError);
-        toast({
-          title: "Authentication Error",
-          description: "Failed to get authentication token from Clerk. Please check JWT template configuration.",
-          variant: "destructive",
-        });
+      if (sessionError) {
+        throw sessionError;
+      }
+      
+      if (!session) {
         setIsAuthenticated(false);
+        setUserId(null);
+        setSession(null);
         setIsLoading(false);
         return false;
       }
 
+      // Store user ID for use in application logic
+      setUserId(session.user.id);
+      setSession(session);
+      
       // Test our authentication with a direct API call using the token
       try {
-        // Use text format for the Clerk ID in the request
         const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
           headers: {
             'apikey': SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${token}`
+            'Authorization': `Bearer ${session.access_token}`
           }
         });
 
@@ -65,7 +59,7 @@ export function useSupabaseAuth() {
           
           toast({
             title: "Authentication Error",
-            description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
+            description: "Authentication verification failed.",
             variant: "destructive",
           });
           setIsAuthenticated(false);
@@ -87,25 +81,50 @@ export function useSupabaseAuth() {
       setIsAuthenticated(false);
       toast({
         title: "Authentication Error",
-        description: "Please ensure your Clerk JWT template is configured correctly.",
+        description: "Please sign in again.",
         variant: "destructive",
       });
       return false;
     } finally {
       setIsLoading(false);
     }
-  }, [userId, session, toast, isSignedIn]);
+  }, [toast]);
 
   useEffect(() => {
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      console.log("Auth event:", event);
+      if (currentSession) {
+        setSession(currentSession);
+        setUserId(currentSession.user.id);
+        setIsAuthenticated(true);
+      } else {
+        setSession(null);
+        setUserId(null);
+        setIsAuthenticated(false);
+      }
+      
+      // Don't run a full check here as it would cause infinite loops
+      setIsLoading(false);
+    });
+
+    // Initial auth check
     checkAuth();
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [checkAuth]);
 
   return { 
     isAuthenticated, 
     isLoading, 
     error, 
+    session,
+    user: session?.user || null,
     refreshAuth: checkAuth,
-    userId, // Add userId here for components that need it
+    userId, 
     authAttempted: !isLoading // If we're not loading, we've attempted auth
   };
 }

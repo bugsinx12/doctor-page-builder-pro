@@ -5,9 +5,8 @@ import { Website, WebsiteContent, WebsiteSettings } from '@/types';
 import { useToast } from '@/components/ui/use-toast';
 import { useTemplates } from './website/useTemplates';
 import { useWebsiteOperations } from './website/useWebsiteOperations';
-import { useAuth } from '@clerk/clerk-react';
 import { usePracticeInfo } from './website/usePracticeInfo';
-import { useAuthenticatedSupabase } from '@/hooks/useAuthenticatedSupabase';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import type { Database } from "@/integrations/supabase/types";
 
 type WebsiteRow = Database['public']['Tables']['websites']['Row'];
@@ -19,8 +18,8 @@ export const useWebsiteManager = () => {
   const { templates, loading: templatesLoading } = useTemplates();
   const { isPracticeInfoSet, practiceInfo } = usePracticeInfo();
   const { loading: operationsLoading, createWebsite, deleteWebsite, copyLandingPageUrl } = useWebsiteOperations(websites, setWebsites);
-  const { userId } = useAuth();
-  const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase();
+  const { userId, isLoading: authLoading, isAuthenticated, error: authError } = useSupabaseAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!authLoading && !userId) {
@@ -39,10 +38,11 @@ export const useWebsiteManager = () => {
 
         console.log("Fetching websites for user:", userId);
 
-        // RLS will filter websites by the user's JWT 'sub' claim
-        const { data: websitesData, error: websitesError } = await supabase
+        // Use the supabase client from the hook to fetch websites
+        const { data: websitesData, error: websitesError } = await usePracticeInfo.client
           .from('websites')
-          .select('*');
+          .select('*')
+          .eq('userid', userId);
 
         if (websitesError) {
           console.error('Error fetching websites:', websitesError);
@@ -74,15 +74,20 @@ export const useWebsiteManager = () => {
         }
       } catch (error) {
         console.error('Error fetching websites:', error);
+        toast({
+          title: "Error loading websites",
+          description: "Could not load your websites. Please try again.",
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
     };
 
-    if (isAuthenticated && !authLoading) {
+    if (isAuthenticated && !authLoading && userId) {
       fetchWebsites();
     }
-  }, [userId, navigate, isAuthenticated, authLoading, supabase]);
+  }, [userId, navigate, isAuthenticated, authLoading, toast]);
 
   return {
     loading: loading || operationsLoading || templatesLoading || authLoading,

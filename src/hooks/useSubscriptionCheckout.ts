@@ -1,26 +1,24 @@
 
 import { useState } from 'react';
-import { useUser } from '@clerk/clerk-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 export function useSubscriptionCheckout() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { user } = useUser();
 
   // Create auth data for Supabase edge functions
-  const getAuthToken = () => {
-    if (!user) return null;
-    
-    // Create an auth token that includes the necessary user info
-    const authData = {
-      userId: user.id,
-      userEmail: user.primaryEmailAddress?.emailAddress
-    };
-    
-    // Base64 encode the data
-    return `Bearer ${btoa(JSON.stringify(authData))}`;
+  const getAuthToken = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+      
+      // Return the JWT token
+      return `Bearer ${session.access_token}`;
+    } catch (error) {
+      console.error("Error getting auth token:", error);
+      return null;
+    }
   };
 
   const handlePlanSelection = async (selectedPlan: string) => {
@@ -28,14 +26,22 @@ export function useSubscriptionCheckout() {
     try {
       // For free plan, just complete onboarding
       if (selectedPlan === 'free') {
-        // Save selected plan to user metadata
-        await user?.update({
-          unsafeMetadata: {
-            ...user.unsafeMetadata,
+        // Save selected plan to user metadata in profiles table
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          throw new Error("User not authenticated");
+        }
+
+        // Update user profile with plan info
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
             plan: selectedPlan,
-            onboardingCompleted: true
-          },
-        });
+            onboarding_completed: true
+          })
+          .eq('id', session.user.id);
+
+        if (updateError) throw updateError;
         return { success: true, checkout: false };
       }
 
@@ -47,15 +53,23 @@ export function useSubscriptionCheckout() {
       
       try {
         // First mark onboarding as completed before redirecting
-        await user?.update({
-          unsafeMetadata: {
-            ...user.unsafeMetadata,
-            plan: selectedPlan,
-            onboardingCompleted: true
-          },
-        });
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          throw new Error("User authentication required");
+        }
         
-        const authToken = getAuthToken();
+        // Update user profile with plan info
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            plan: selectedPlan,
+            onboarding_completed: true
+          })
+          .eq('id', session.user.id);
+        
+        if (updateError) throw updateError;
+        
+        const authToken = await getAuthToken();
         if (!authToken) {
           throw new Error("User authentication required");
         }
@@ -100,13 +114,18 @@ export function useSubscriptionCheckout() {
       
       // For safety, mark onboarding as completed even on error
       try {
-        await user?.update({
-          unsafeMetadata: {
-            ...user.unsafeMetadata,
-            plan: 'free', // Fallback to free plan on error
-            onboardingCompleted: true
-          },
-        });
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Update user profile with default free plan on error
+          await supabase
+            .from('profiles')
+            .update({
+              plan: 'free',
+              onboarding_completed: true
+            })
+            .eq('id', session.user.id);
+        }
+        
         return { success: true, checkout: false, error: true };
       } catch (updateError) {
         console.error('Error updating user metadata:', updateError);

@@ -45,7 +45,7 @@ serve(async (req) => {
     });
     logStep('Stripe initialized');
 
-    // Get the user information from Clerk request
+    // Get the authorization header (JWT from Supabase)
     const authHeader = req.headers.get('Authorization')
     logStep('Auth header', { authHeader: authHeader ? 'present' : 'missing' });
     
@@ -59,37 +59,7 @@ serve(async (req) => {
       });
     }
 
-    // Extract user ID and email from the authorization header (from Clerk)
-    let authData;
-    try {
-      authData = JSON.parse(atob(authHeader.split(' ')[1]));
-      logStep('Auth data extracted', { authData });
-    } catch (error) {
-      logStep('Error parsing auth data', { error: error.message });
-      return new Response(JSON.stringify({ 
-        error: 'Invalid authorization data format'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
-    }
-    
-    if (!authData.userId || !authData.userEmail) {
-      logStep('Error: Missing user data');
-      return new Response(JSON.stringify({ 
-        error: 'Invalid authorization data. Missing userId or userEmail',
-        subscribed: false 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 401
-      });
-    }
-    
-    const userId = authData.userId;
-    const userEmail = authData.userEmail;
-    
-    logStep('User authenticated', { userId, email: userEmail });
-    
+    // Initialize Supabase client with admin/service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -103,11 +73,42 @@ serve(async (req) => {
       });
     }
     
-    // Using service role to bypass RLS since we're authenticating with Clerk
+    // Create Supabase client with service role to bypass RLS
     const supabase = createClient(
       supabaseUrl,
       supabaseServiceRoleKey
     )
+    
+    // Verify JWT and get user information from auth token
+    let token = authHeader.split(' ')[1];
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      logStep('Error: Invalid auth token', { error: authError?.message });
+      return new Response(JSON.stringify({ 
+        error: 'Invalid authorization token',
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+    
+    const userId = user.id;
+    const userEmail = user.email;
+    
+    if (!userId || !userEmail) {
+      logStep('Error: Missing user data');
+      return new Response(JSON.stringify({ 
+        error: 'Invalid user data. Missing userId or userEmail',
+        subscribed: false 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401
+      });
+    }
+    
+    logStep('User authenticated', { userId, email: userEmail });
     
     // Get the plan from the request body
     let requestBody;
@@ -171,20 +172,22 @@ serve(async (req) => {
         const customer = await stripe.customers.create({
           email: userEmail,
           metadata: {
-            clerk_user_id: userId,
+            supabase_user_id: userId,
           },
         });
         customerId = customer.id;
         logStep('Customer created', { customerId });
 
         // Store the customer ID in our database
-        const { error: upsertError } = await supabase.from('subscribers').upsert({
-          user_id: userId,
-          email: userEmail,
-          stripe_customer_id: customerId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        const { error: upsertError } = await supabase
+          .from('subscribers')
+          .upsert({
+            user_id: userId,
+            email: userEmail,
+            stripe_customer_id: customerId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
         
         if (upsertError) {
           logStep('Error storing customer ID', { error: upsertError.message });

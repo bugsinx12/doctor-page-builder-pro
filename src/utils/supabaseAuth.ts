@@ -1,117 +1,81 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { useSession } from '@clerk/clerk-react';
-import { supabase, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
- * @deprecated Use useClerkSupabaseAuth or useClerkSupabaseClient instead.
- * This file is kept for backward compatibility.
+ * Utility functions for working with Supabase authentication
  */
 
 /**
- * Hook to check if the user is authenticated with Supabase via Clerk JWT
- * This revised approach uses the JWT 'sub' claim directly for authentication
+ * Clean up any local storage items related to authentication
+ * This is useful when signing out or debugging auth issues
  */
-export function useSupabaseAuth() {
-  const { session, isSignedIn } = useSession();
-  const userId = session?.user?.id || null;
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  // Function to check authentication that can be called on demand
-  const checkAuth = useCallback(async () => {
-    if (!userId || !isSignedIn) {
-      setIsAuthenticated(false);
-      setSupabaseUserId(null);
-      setIsLoading(false);
-      return false;
-    }
-
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      // Store Clerk ID for use in application logic
-      setSupabaseUserId(userId);
-      
-      // Get token from Clerk with custom claims
-      const token = await session?.getToken({
-        template: "supabase"
-      });
-      
-      if (!token) {
-        const noTokenError = new Error("No authentication token available");
-        setError(noTokenError);
-        toast({
-          title: "Authentication Error",
-          description: "Failed to get authentication token from Clerk. Please check JWT template configuration.",
-          variant: "destructive",
-        });
-        setIsAuthenticated(false);
-        setIsLoading(false);
-        return false;
+export const cleanupAuthState = () => {
+  try {
+    // Remove any supabase-related items
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('supabase') || key.includes('sb-')) {
+        localStorage.removeItem(key);
       }
+    });
+    console.log("Cleared Supabase auth state from local storage");
+  } catch (error) {
+    console.error("Error clearing auth state:", error);
+  }
+};
 
-      // Test our authentication
-      try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
-          headers: {
-            'apikey': SUPABASE_PUBLISHABLE_KEY,
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          console.error("Supabase auth error:", response.statusText);
-          setError(new Error(`Authentication failed: ${response.statusText}`));
-          toast({
-            title: "Authentication Error",
-            description: "Failed to authenticate with Supabase. Check your JWT template configuration.",
-            variant: "destructive",
-          });
-          setIsAuthenticated(false);
-          setIsLoading(false);
-          return false;
-        }
-      } catch (err) {
-        console.error("Error testing auth:", err);
-        throw err;
-      }
-
-      // Authentication successful
-      setIsAuthenticated(true);
-      setIsLoading(false);
-      return true;
-    } catch (err) {
-      console.error("Error in Supabase auth:", err);
-      setError(err instanceof Error ? err : new Error("Authentication error"));
-      setIsAuthenticated(false);
-      toast({
-        title: "Authentication Error",
-        description: "Please ensure your Clerk JWT template is configured correctly.",
-        variant: "destructive",
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
+/**
+ * Helper to perform a full sign out, clearing all auth state
+ * @param callback Optional callback to run after signing out
+ */
+export const performFullSignOut = async (
+  callback?: () => void
+) => {
+  try {
+    // First clean up any auth items in local storage
+    cleanupAuthState();
+    
+    // Then perform the sign out through Supabase
+    await supabase.auth.signOut({ scope: 'global' });
+    
+    // Run the callback if provided
+    if (callback) {
+      callback();
     }
-  }, [userId, session, toast, isSignedIn]);
+    
+    // Force a full page reload to ensure clean state
+    window.location.href = '/auth';
+  } catch (error) {
+    console.error('Error during sign out:', error);
+    // Still redirect to auth page even if there was an error
+    window.location.href = '/auth';
+  }
+};
 
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+/**
+ * Helper to get a profile image from an email using Gravatar
+ * @param email The user's email address
+ * @returns A URL for the user's Gravatar image
+ */
+export const getGravatarUrl = (email?: string): string => {
+  if (!email) return '';
+  
+  // Create an MD5 hash of the email (simplified version)
+  const hash = btoa(email.toLowerCase().trim()).replace(/[^a-z0-9]/g, '');
+  
+  // Return the Gravatar URL
+  return `https://www.gravatar.com/avatar/${hash}?d=mp`;
+};
 
-  return { 
-    isAuthenticated, 
-    isLoading, 
-    error, 
-    supabaseUserId,
-    refreshAuth: checkAuth,
-    userId, // Add userId here for components that need it
-    authAttempted: !isLoading // If we're not loading, we've attempted auth
-  };
-}
+/**
+ * Gets the current user's ID from the session
+ * @returns The user ID as a string, or null if not logged in
+ */
+export const getCurrentUserId = async (): Promise<string | null> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id || null;
+  } catch (error) {
+    console.error("Error getting user ID:", error);
+    return null;
+  }
+};
