@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from "react";
-import { useUser, useAuth } from "@clerk/clerk-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuthenticatedSupabase } from "@/hooks/useAuthenticatedSupabase";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Database } from "@/integrations/supabase/types";
 
 type Subscriber = Database['public']['Tables']['subscribers']['Row'];
@@ -15,8 +15,8 @@ interface SubscriptionStatus {
 }
 
 export const useSubscription = () => {
-  const { user } = useUser();
-  const { userId } = useAuth();
+  const { user } = useAuth();
+  const userId = user?.id;
   const { client: supabase, isLoading: authLoading, isAuthenticated, error: authError } = useAuthenticatedSupabase();
   const [isLoading, setIsLoading] = useState(true);
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>({
@@ -54,7 +54,7 @@ export const useSubscription = () => {
           console.log("No subscriber found, creating new record");
           const subscriberData: SubscriberInsert = {
             user_id: userId,
-            email: user.primaryEmailAddress?.emailAddress || "",
+            email: user.email || "",
             subscribed: false
           };
           

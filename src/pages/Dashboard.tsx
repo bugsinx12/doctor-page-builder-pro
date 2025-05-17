@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shell } from "@/components/Shell";
-import { useSyncUserProfile } from "@/hooks/useSyncUserProfile";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import NavigationItems from "@/components/dashboard/NavigationItems";

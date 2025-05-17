@@ -2,12 +2,10 @@ import React from 'react';
 import { Check, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from '@/components/ui/use-toast';
-import { useUser } from '@clerk/clerk-react';
-import { useSyncUserProfile } from "@/hooks/useSyncUserProfile";
+import { useAuth } from "@/contexts/AuthContext";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 
 interface PricingFeature {
@@ -39,25 +37,24 @@ const PricingCard: React.FC<PricingCardProps> = ({
   frequency = 'month',
   isCurrentPlan = false
 }) => {
-  const { isSignedIn } = useAuth();
-  const { user } = useUser();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const getAuthToken = () => {
-    if (!user) return null;
+    if (!user || !session) return null;
     
     const authData = {
       userId: user.id,
-      userEmail: user.primaryEmailAddress?.emailAddress
+      userEmail: user.email
     };
     
     return `Bearer ${btoa(JSON.stringify(authData))}`;
   };
 
   const handleSubscribe = async () => {
-    if (!isSignedIn) {
+    if (!session) {
       navigate('/auth');
       return;
     }

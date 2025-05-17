@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@clerk/clerk-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProfileHeaderProps {
   isLoading: boolean;
@@ -20,9 +20,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   specialty,
   avatarUrl,
 }) => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const onboardingCompleted = user?.unsafeMetadata?.onboardingCompleted as boolean;
+  
+  // Check onboarding status from user profile info
+  const hasCompletedProfile = Boolean(practiceName && specialty);
 
   return (
     <div className="flex items-center gap-4">
@@ -32,7 +34,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         ) : avatarUrl ? (
           <AvatarImage src={avatarUrl} alt={practiceName || "Avatar"} />
         ) : (
-          <AvatarFallback>{practiceName?.charAt(0) || user?.firstName?.charAt(0) || "P"}</AvatarFallback>
+          <AvatarFallback>{practiceName?.charAt(0) || user?.email?.charAt(0) || "P"}</AvatarFallback>
         )}
       </Avatar>
       <div className="flex flex-col gap-1">
@@ -40,16 +42,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           {isLoading ? (
             <Skeleton className="h-6 w-48" />
           ) : (
-            practiceName || user?.firstName || "Welcome"
+            practiceName || user?.email?.split('@')[0] || "Welcome"
           )}
         </CardTitle>
         <CardContent className="p-0 text-sm text-muted-foreground">
           {isLoading ? (
             <Skeleton className="h-4 w-32" />
           ) : (
-            specialty || (onboardingCompleted ? "No specialty set" : "Please complete onboarding")
+            specialty || (hasCompletedProfile ? "No specialty set" : "Please complete onboarding")
           )}
-          {!onboardingCompleted && (
+          {!hasCompletedProfile && (
             <Button 
               variant="link" 
               className="p-0 h-auto text-sm text-medical-600"
