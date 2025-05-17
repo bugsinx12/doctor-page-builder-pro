@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import AuthTabs from "@/components/auth/AuthTabs";
@@ -6,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -59,9 +59,32 @@ const Auth = () => {
   // Redirect to onboarding if user is already signed in
   useEffect(() => {
     if (session && !isLoading && !processingVerification) {
-      navigate("/onboarding", { replace: true });
+      // Check if the user has a profile in Supabase
+      const checkProfileStatus = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, practice_name, specialty')
+            .eq('id', user?.id || '')
+            .maybeSingle();
+          
+          // If the user has completed onboarding (has practice info)
+          if (data && data.practice_name && data.specialty) {
+            navigate("/dashboard", { replace: true });
+          } else {
+            // Otherwise, go to onboarding
+            navigate("/onboarding", { replace: true });
+          }
+        } catch (error) {
+          console.error("Error checking profile status:", error);
+          // Default to onboarding on error
+          navigate("/onboarding", { replace: true });
+        }
+      };
+
+      checkProfileStatus();
     }
-  }, [session, isLoading, navigate, processingVerification]);
+  }, [session, isLoading, navigate, processingVerification, user]);
 
   if (isLoading || processingVerification) {
     return (

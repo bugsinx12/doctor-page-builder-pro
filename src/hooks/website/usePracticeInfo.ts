@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from '@/integrations/supabase/types';
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
@@ -41,7 +41,7 @@ export const usePracticeInfo = () => {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty, address, phone, email')
-          .eq('id', userId)
+          .eq('id', userId as string)
           .maybeSingle();
           
         if (error && error.code !== 'PGRST116') {
@@ -118,7 +118,7 @@ export const usePracticeInfo = () => {
       const { error } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', userId);
+        .eq('id', userId as string);
         
       if (error) {
         console.error('Supabase update error:', error);

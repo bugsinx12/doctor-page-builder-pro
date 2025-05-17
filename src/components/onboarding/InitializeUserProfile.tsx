@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 
 interface InitializeUserProfileProps {
   isAuthenticated: boolean;
@@ -34,7 +35,7 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
         const { data: existingProfile, error } = await supabase
           .from('profiles')
           .select('id')
-          .eq('id', userId)
+          .eq('id', userId as string)
           .single();
 
         if (error && !error.message.includes('No rows found')) {
@@ -57,7 +58,7 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
               id: userId,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
-            });
+            } as Database['public']['Tables']['profiles']['Insert']);
 
           if (insertError) {
             console.error("Error creating profile:", insertError);

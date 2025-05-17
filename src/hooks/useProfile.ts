@@ -2,10 +2,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Database } from '@/integrations/supabase/types';
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProfileUpdate = Database['public']['Tables']['profiles']['Update'];
 
 export function useProfile() {
   const { user } = useAuth();
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   
@@ -24,7 +28,7 @@ export function useProfile() {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', user.id as string)
           .single();
           
         if (error) {
@@ -43,17 +47,19 @@ export function useProfile() {
     fetchProfile();
   }, [user]);
   
-  const updateProfile = async (updates: Partial<any>) => {
+  const updateProfile = async (updates: Partial<Profile>) => {
     try {
       if (!user) return { success: false, error: new Error('User not authenticated') };
       
+      const updateData: ProfileUpdate = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      
       const { error } = await supabase
         .from('profiles')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+        .update(updateData)
+        .eq('id', user.id as string);
         
       if (error) {
         throw error;
@@ -63,7 +69,7 @@ export function useProfile() {
       const { data } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', user.id as string)
         .single();
         
       setProfile(data);

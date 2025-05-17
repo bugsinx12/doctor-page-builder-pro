@@ -23,7 +23,7 @@ const OnboardingController = ({ authenticated, children }: OnboardingControllerP
         const { data, error } = await supabase
           .from('profiles')
           .select('practice_name, specialty')
-          .eq('id', user.id)
+          .eq('id', user.id as string)
           .single();
         
         if (error) {
