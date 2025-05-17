@@ -33,57 +33,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
-// Create a function to get an authenticated Supabase client using Clerk's JWT
-export function getSupabaseWithClerkToken(token: string) {
-  return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-    global: {
-      headers: {
-        'x-application-name': 'doctor-landing-pages',
-        Authorization: `Bearer ${token}`,
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
-}
-
-// Function that creates a Supabase client with Clerk token
-export const createSupabaseClientWithClerk = (getToken: () => Promise<string | null>) => {
-  return createClient<Database>(
-    SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY,
-    {
-      global: {
-        headers: {
-          'x-application-name': 'doctor-landing-pages',
-          // Use a synchronous string for the initial header value
-          Authorization: '',
-        },
-        // Add request interceptor to dynamically set the Authorization header
-        fetch: async (url, options: RequestInit = {}) => {
-          const token = await getToken();
-          if (token) {
-            // Set the Authorization header for each request
-            options.headers = {
-              ...(options.headers || {}),
-              Authorization: `Bearer ${token}`,
-            };
-          }
-          return fetch(url, options);
-        },
-      },
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    }
-  );
-};
-
 /**
  * Helper function for debugging auth issues
  * This will clear any existing Supabase auth state from local storage
