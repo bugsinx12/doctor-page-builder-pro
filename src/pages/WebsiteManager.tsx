@@ -4,10 +4,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWebsiteManager } from '@/hooks/useWebsiteManager';
 import { useToast } from '@/hooks/use-toast';
 import { Shell } from '@/components/Shell';
-import { useClerkSupabaseAuth } from '@/hooks/useClerkSupabaseAuth';
 import WebsiteLoadingState from '@/components/website/WebsiteLoadingState';
 import WebsiteAuthError from '@/components/website/WebsiteAuthError';
 import WebsiteTabContent from '@/components/website/WebsiteTabContent';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const WebsiteManager = () => {
   const {
@@ -24,7 +25,9 @@ const WebsiteManager = () => {
   
   const [activeTab, setActiveTab] = useState("my-websites");
   const { toast } = useToast();
-  const { isAuthenticated, isLoading: authLoading, error: authError, refreshAuth } = useClerkSupabaseAuth();
+  const { user } = useAuth();
+  const [authError, setAuthError] = useState<Error | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   
   // Combine auth errors from different sources
   const combinedAuthError = authError || websiteManagerAuthError;
@@ -34,10 +37,10 @@ const WebsiteManager = () => {
   };
 
   const handleCreateWebsite = async (templateId: string, practiceInfo: any) => {
-    if (!isAuthenticated) {
+    if (!user) {
       toast({
         title: "Authentication Required",
-        description: "Please ensure you are logged in with Clerk and the Supabase integration is working correctly.",
+        description: "Please ensure you are logged in.",
         variant: "destructive"
       });
       return;
@@ -71,16 +74,28 @@ const WebsiteManager = () => {
   };
 
   const handleRetryAuth = async () => {
-    await refreshAuth();
-    toast({
-      title: "Authentication Refreshed",
-      description: "Attempting to reconnect with Supabase...",
-    });
+    try {
+      const { error } = await supabase.auth.refreshSession();
+      if (error) throw error;
+      
+      setAuthError(null);
+      setIsAuthenticated(true);
+      toast({
+        title: "Authentication Refreshed",
+        description: "Successfully reconnected to our services.",
+      });
+    } catch (error) {
+      console.error("Error refreshing auth:", error);
+      setAuthError(error instanceof Error ? error : new Error("Failed to refresh authentication"));
+      toast({
+        title: "Authentication Failed",
+        description: "Could not reconnect to our services. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const loading = websiteLoading || authLoading;
-
-  if (loading) {
+  if (websiteLoading) {
     return <WebsiteLoadingState />;
   }
 

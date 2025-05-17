@@ -19,7 +19,7 @@ const AuthenticationError = ({ onRetry, onSignOut }: AuthenticationErrorProps) =
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Authentication Error</h2>
           <p className="text-gray-600 mb-6">
-            We couldn't connect securely to our database. Please ensure your Clerk JWT template for Supabase is configured with the correct signing key.
+            We couldn't connect securely to our database. Please ensure you have a valid session.
           </p>
           <div className="space-y-4">
             <Button onClick={onRetry} className="w-full">
@@ -30,7 +30,7 @@ const AuthenticationError = ({ onRetry, onSignOut }: AuthenticationErrorProps) =
             </Button>
           </div>
           <div className="mt-6 text-sm text-gray-500">
-            <p>If the problem persists, please check your Clerk JWT template configuration.</p>
+            <p>If the problem persists, please check your connection or contact support.</p>
           </div>
         </div>
       </div>

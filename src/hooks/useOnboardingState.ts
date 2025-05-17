@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePracticeInfo } from '@/hooks/website/usePracticeInfo';
 import { Website } from '@/types';
 import { useToast } from '@/hooks/use-toast';
@@ -17,7 +17,7 @@ export interface PracticeInfoState {
 export type PracticeInfo = PracticeInfoState;
 
 export function useOnboardingState() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [websites, setWebsites] = useState<Website[]>([]);

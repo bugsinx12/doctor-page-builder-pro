@@ -24,20 +24,13 @@ const WebsiteAuthError: React.FC<WebsiteAuthErrorProps> = ({
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Authentication Error</AlertTitle>
           <AlertDescription>
-            Make sure your Clerk-Supabase Third-Party Authentication is properly configured.
+            There was an issue with your authentication. Please try again.
             <Button 
               variant="outline" 
               className="mt-2 mr-2"
               onClick={onRetryAuth}
             >
               Retry Authentication
-            </Button>
-            <Button 
-              variant="outline" 
-              className="mt-2"
-              onClick={() => window.open('https://clerk.com/docs/integrations/databases/supabase', '_blank')}
-            >
-              View Documentation
             </Button>
           </AlertDescription>
         </Alert>
@@ -48,7 +41,7 @@ const WebsiteAuthError: React.FC<WebsiteAuthErrorProps> = ({
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Authentication Required</AlertTitle>
           <AlertDescription>
-            You are signed in with Clerk but not authenticated with Supabase. Please check your Third-Party Auth configuration.
+            You need to be authenticated to access this feature.
             <Button 
               variant="outline" 
               className="mt-2"

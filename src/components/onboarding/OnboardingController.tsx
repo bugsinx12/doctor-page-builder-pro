@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OnboardingControllerProps {
   authenticated: boolean;
@@ -9,7 +10,7 @@ interface OnboardingControllerProps {
 }
 
 const OnboardingController = ({ authenticated, children }: OnboardingControllerProps) => {
-  const { user } = useUser();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isRedirecting, setIsRedirecting] = useState(false);
   
@@ -17,11 +18,28 @@ const OnboardingController = ({ authenticated, children }: OnboardingControllerP
     if (!authenticated || !user) return;
     
     const checkOnboardingStatus = async () => {
-      const onboardingCompleted = user.unsafeMetadata?.onboardingCompleted as boolean;
-      
-      if (onboardingCompleted) {
-        setIsRedirecting(true);
-        navigate('/dashboard', { replace: true });
+      try {
+        // Fetch user profile to check onboarding status
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('practice_name, specialty')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error("Error checking onboarding status:", error);
+          return;
+        }
+        
+        // If profile has practice_name and specialty, consider onboarding completed
+        const onboardingCompleted = data && data.practice_name && data.specialty;
+        
+        if (onboardingCompleted) {
+          setIsRedirecting(true);
+          navigate('/dashboard', { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking onboarding status:", error);
       }
     };
     

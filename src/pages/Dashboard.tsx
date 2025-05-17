@@ -7,21 +7,20 @@ import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import ProfileHeader from "@/components/dashboard/ProfileHeader";
 import NavigationItems from "@/components/dashboard/NavigationItems";
 import SubscriptionStatus from "@/components/dashboard/SubscriptionStatus";
-import { useClerkSupabaseAuth } from "@/hooks/useClerkSupabaseAuth";
-import { useSession } from "@clerk/clerk-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
-  const { session } = useSession();
-  const { isAuthenticated, userId: clerkId } = useClerkSupabaseAuth();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useSyncUserProfile();
   const { subscriptionStatus, isLoading: isSubscriptionLoading } = useSubscriptionStatus();
   
   useEffect(() => {
-    if (!session?.user?.id || !isAuthenticated) {
+    if (!user || !session) {
       navigate("/auth");
     }
-  }, [session, navigate, isAuthenticated]);
+  }, [user, session, navigate]);
 
   useEffect(() => {
     console.log("Dashboard - Profile:", profile);

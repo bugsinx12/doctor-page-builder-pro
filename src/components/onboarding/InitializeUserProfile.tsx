@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
 
 interface InitializeUserProfileProps {
   isAuthenticated: boolean;
@@ -10,7 +9,7 @@ interface InitializeUserProfileProps {
   userId: string | null | undefined;
 }
 
-// This component verifies/initializes the user profile in Supabase after Clerk auth
+// This component verifies/initializes the user profile in Supabase
 const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({ 
   isAuthenticated, 
   isLoading,
@@ -29,16 +28,16 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
     const initProfile = async () => {
       try {
         setProcessing(true);
-        console.log("Initializing user profile for Clerk ID:", userId);
+        console.log("Initializing user profile for ID:", userId);
         
-        // Check if profile exists - use the string ID from Clerk directly
+        // Check if profile exists
         const { data: existingProfile, error } = await supabase
           .from('profiles')
           .select('id')
           .eq('id', userId)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
+        if (error && !error.message.includes('No rows found')) {
           console.error("Error checking profile:", error);
           toast({
             title: "Profile Error",
@@ -48,9 +47,9 @@ const InitializeUserProfile: React.FC<InitializeUserProfileProps> = ({
           return;
         }
 
-        // If profile doesn't exist, create it using the Clerk ID directly
+        // If profile doesn't exist, create it
         if (!existingProfile) {
-          console.log("Creating new profile for Clerk user:", userId);
+          console.log("Creating new profile for user:", userId);
           
           const { error: insertError } = await supabase
             .from('profiles')
